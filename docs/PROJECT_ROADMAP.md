@@ -285,6 +285,9 @@ Initial validation checks:
 - Event minutes are parsed from text, including added time and annotations such
   as `56 (P)`.
 - Missing team/player/person/official values are logged where relevant.
+- Man of the Match text is parsed strictly so staging keeps a person name and a
+  team that belongs to the match, while broadcast notes, coach cards, and
+  disciplinary text are logged instead of treated as names.
 
 Useful validation checks:
 
@@ -305,6 +308,15 @@ Acceptance criteria:
 ## Phase 3 - FastAPI Backend
 
 Objective: Expose the modeled data through a clean read API.
+
+Current Phase 3 foundation:
+
+- `api/main.py` creates the FastAPI app and registers route modules.
+- `api/routers/` contains thin endpoint modules for health, seasons, matches,
+  teams, events, and officials.
+- `src/api/queries.py` contains the Postgres SQL query layer.
+- `src/api/schemas.py` contains the initial Pydantic response models.
+- The API reads from Postgres `staging.*` tables, not raw CSV files.
 
 Initial endpoints:
 
@@ -337,6 +349,18 @@ Implementation guidance:
 - Support filters such as season, team, event type, date range, and home/away.
 - Add pagination for list endpoints.
 - Return consistent error shapes.
+
+Phase 3 command pattern:
+
+- Run the local API: `python -m uvicorn api.main:app --reload`
+- Open API docs: `http://127.0.0.1:8000/docs`
+- Check health: `curl http://127.0.0.1:8000/health`
+- List seasons: `curl http://127.0.0.1:8000/seasons`
+- List matches: `curl "http://127.0.0.1:8000/matches?season=2025_26&limit=5"`
+- Inspect one match: `curl "http://127.0.0.1:8000/matches/15463"`
+- List teams: `curl "http://127.0.0.1:8000/teams?season=2025_26"`
+- List events: `curl "http://127.0.0.1:8000/events?season=2025_26&event_type=goal&limit=10"`
+- List officials: `curl "http://127.0.0.1:8000/officials?season=2025_26&limit=10"`
 
 Acceptance criteria:
 

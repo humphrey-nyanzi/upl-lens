@@ -224,6 +224,18 @@ Verify staging row counts and validation issues:
 python scripts/data_platform/verify_staging_outputs.py
 ```
 
+Run the read-first FastAPI backend:
+
+```bash
+python -m uvicorn api.main:app --reload
+```
+
+Open the API docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
 Open the Feature 1 research notebooks:
 
 ```text
@@ -382,9 +394,77 @@ Initial Phase 2 cleaning handles:
 - empty event minute strings
 - inline minute annotations such as `56 (P)`
 - missing team and player values where relevant
+- strict Man of the Match extraction, keeping only a person name plus a team
+  that actually played in the match
 - duplicate natural-key risks
 - season consistency checks
 - match-reference checks from child tables back to `staging.matches`
+
+## Phase 3 FastAPI Read Backend
+
+Phase 3 starts the public product layer without building React yet.
+
+Plain-English API flow:
+
+```text
+browser or future React app
+  -> FastAPI route
+  -> src/api/queries.py
+  -> Postgres staging.* table
+  -> beginner-readable JSON
+```
+
+The API reads from Postgres `staging.*` tables. It does not read raw CSV files.
+
+Start the local API server:
+
+```bash
+python -m uvicorn api.main:app --reload
+```
+
+The server runs at:
+
+```text
+http://127.0.0.1:8000
+```
+
+Interactive OpenAPI docs are available at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Initial endpoints:
+
+```text
+GET /health
+GET /seasons
+GET /matches
+GET /matches/{match_id}
+GET /teams
+GET /events
+GET /officials
+```
+
+Example endpoint checks:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/seasons
+curl "http://127.0.0.1:8000/matches?season=2025_26&limit=5"
+curl "http://127.0.0.1:8000/matches/15463"
+curl "http://127.0.0.1:8000/teams?season=2025_26"
+curl "http://127.0.0.1:8000/events?season=2025_26&event_type=goal&limit=10"
+curl "http://127.0.0.1:8000/officials?season=2025_26&limit=10"
+```
+
+Useful filters:
+
+- `season`, for example `2025_26`
+- `team`, for partial team-name matching
+- `match_day`, for match, event, and official lists
+- `event_type`, for event lists such as `goal`, `yellow_card`, or `red_card`
+- `limit` and `offset`, for list pagination
 
 ## Roadmap
 

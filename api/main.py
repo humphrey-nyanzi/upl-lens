@@ -1,0 +1,25 @@
+"""FastAPI entrypoint for the UPL Match Intelligence read backend."""
+
+from __future__ import annotations
+
+from fastapi import FastAPI
+
+from api.routers import events, health, matches, officials, seasons, teams
+
+
+app = FastAPI(
+    title="UPL Match Intelligence API",
+    description=(
+        "Read-first API over the cleaned Postgres staging tables for Uganda "
+        "Premier League match intelligence."
+    ),
+    version="0.1.0",
+)
+
+app.include_router(health.router)
+app.include_router(seasons.router)
+app.include_router(matches.router)
+app.include_router(teams.router)
+app.include_router(events.router)
+app.include_router(officials.router)
+

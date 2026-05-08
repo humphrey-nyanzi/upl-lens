@@ -94,6 +94,7 @@ def _normalize_team(value: Any) -> str | None:
     if text_value is None:
         return None
     corrected = config.CLUB_NAME_CORRECTIONS.get(text_value, text_value)
+    corrected = config.CLUB_NAME_CORRECTIONS.get(corrected.title(), corrected)
     normalized = normalize_team_name(corrected.lower())
     return config.CLUB_NAME_CORRECTIONS.get(normalized, normalized)
 
@@ -102,6 +103,84 @@ def _normalize_person(value: Any) -> str | None:
     """Trim person names while preserving the source spelling."""
 
     return _clean_text(value)
+
+
+def _clean_person_name(value: Any) -> str | None:
+    """Return a stricter person-name value for fields such as Man of the Match."""
+
+    text_value = _clean_text(value)
+    if text_value is None:
+        return None
+    cleaned = re.sub(r"^\(?\s*(?:gk|captain|capt)\s*\)?\s*", "", text_value, flags=re.IGNORECASE)
+    cleaned = cleaned.replace("(", "").replace(")", "")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .:-|")
+    if not cleaned:
+        return None
+    if re.search(
+        r"\b(match|coach|yellow|red|card|live|televised|turn up|circumstances|decision|forfeiture|fixture|notice)\b",
+        cleaned,
+        flags=re.IGNORECASE,
+    ):
+        return None
+    return cleaned
+
+
+def _team_matches_match(row: pd.Series, team_name: str | None) -> bool:
+    """Return whether a team belongs to the match's home/away pair."""
+
+    if team_name is None:
+        return False
+    return team_name in {row.get("home_team"), row.get("away_team")}
+
+
+def _extract_man_of_match(row: pd.Series) -> tuple[str | None, str | None]:
+    """Extract a strict Man of the Match name/team pair from raw match text.
+
+    The UPL page excerpt often mixes broadcast notes, coach cards, forfeiture
+    explanations, and the actual award. Staging keeps only the award when it can
+    identify a likely person name and a team that played in the match.
+    """
+
+    raw_name = _clean_text(row.get("man_of_the_match"))
+    raw_team = _normalize_team(row.get("man_of_the_match_team"))
+    if raw_name is None:
+        return None, None
+
+    label_match = re.search(
+        r"(?:pilsner\s+)?m\s*<?an\s*of\s*(?:the\s*)?(?:match|math)\s*:\s*(?P<body>.+)",
+        raw_name,
+        flags=re.IGNORECASE,
+    )
+    if label_match:
+        body = label_match.group("body")
+        parenthetical_teams = list(re.finditer(r"\((?P<team>[^()]*)\)", body))
+        for team_match in reversed(parenthetical_teams):
+            parsed_team = _normalize_team(team_match.group("team"))
+            if not _team_matches_match(row, parsed_team):
+                continue
+            parsed_name = _clean_person_name(body[: team_match.start()])
+            if parsed_name:
+                return parsed_name, parsed_team
+
+        # A few source rows omit the opening parenthesis before the team, e.g.
+        # `Name Team FC)`. Use the home/away team names as anchors instead of
+        # guessing arbitrary trailing words.
+        for candidate_team in (row.get("home_team"), row.get("away_team")):
+            if candidate_team and re.search(re.escape(str(candidate_team)), body, flags=re.IGNORECASE):
+                parsed_name = _clean_person_name(
+                    re.split(re.escape(str(candidate_team)), body, maxsplit=1, flags=re.IGNORECASE)[0]
+                )
+                if parsed_name:
+                    return parsed_name, str(candidate_team)
+
+    clean_name = _clean_person_name(raw_name)
+    if clean_name and len(clean_name) <= 80:
+        if _team_matches_match(row, raw_team):
+            return clean_name, raw_team
+        if raw_team is None:
+            return clean_name, None
+
+    return None, None
 
 
 def _parse_dates(series: pd.Series) -> pd.Series:
@@ -274,6 +353,10 @@ def _clean_match_rows(raw_matches: pd.DataFrame) -> pd.DataFrame:
     df["match_time"] = df["time"].map(_clean_text)
     for column in ("home_team", "away_team", "man_of_the_match_team"):
         df[column] = df[column].map(_normalize_team)
+
+    motm_values = df.apply(_extract_man_of_match, axis=1)
+    df["man_of_the_match"] = [name for name, _ in motm_values]
+    df["man_of_the_match_team"] = [team for _, team in motm_values]
 
     df["home_score"] = pd.to_numeric(df["home_score"], errors="coerce").astype("Int64")
     df["away_score"] = pd.to_numeric(df["away_score"], errors="coerce").astype("Int64")
@@ -896,6 +979,90 @@ def _validate_missing_team_player_values(
     return issues
 
 
+def _validate_man_of_match_quality(
+    raw_tables: dict[str, pd.DataFrame],
+    staging_tables: dict[str, pd.DataFrame],
+    run_id: str,
+) -> list[dict[str, Any]]:
+    """Validate Man of the Match extraction without failing historical rebuilds."""
+
+    issues: list[dict[str, Any]] = []
+    matches = staging_tables["matches"]
+    if matches.empty:
+        return issues
+
+    motm_with_no_team = matches.loc[
+        matches["man_of_the_match"].notna() & matches["man_of_the_match_team"].isna()
+    ]
+    for _, row in motm_with_no_team.head(200).iterrows():
+        issues.append(
+            _issue(
+                run_id,
+                "warning",
+                "man_of_match_quality",
+                "staging",
+                "matches",
+                "Man of the Match name was kept, but no valid team could be confirmed.",
+                season=row.get("season"),
+                match_id=row.get("match_id"),
+                column_name="man_of_the_match_team",
+                issue_value=row.get("man_of_the_match"),
+            )
+        )
+
+    motm_bad_team = matches.loc[
+        matches["man_of_the_match_team"].notna()
+        & (matches["man_of_the_match_team"] != matches["home_team"])
+        & (matches["man_of_the_match_team"] != matches["away_team"])
+    ]
+    for _, row in motm_bad_team.head(200).iterrows():
+        issues.append(
+            _issue(
+                run_id,
+                "error",
+                "man_of_match_quality",
+                "staging",
+                "matches",
+                "Man of the Match team is not one of the two teams in the match.",
+                season=row.get("season"),
+                match_id=row.get("match_id"),
+                column_name="man_of_the_match_team",
+                issue_value=row.get("man_of_the_match_team"),
+            )
+        )
+
+    raw_matches = raw_tables["matches"]
+    if raw_matches.empty:
+        return issues
+
+    compare_columns = ["match_id", "man_of_the_match"]
+    raw_motm = raw_matches.loc[:, compare_columns].rename(columns={"man_of_the_match": "raw_man_of_the_match"})
+    motm_compare = raw_motm.merge(
+        matches.loc[:, ["match_id", "season", "man_of_the_match"]],
+        on="match_id",
+        how="left",
+    )
+    raw_had_text = motm_compare["raw_man_of_the_match"].map(_clean_text).notna()
+    staging_missing = motm_compare["man_of_the_match"].isna()
+    for _, row in motm_compare.loc[raw_had_text & staging_missing].head(200).iterrows():
+        issues.append(
+            _issue(
+                run_id,
+                "info",
+                "man_of_match_quality",
+                "staging",
+                "matches",
+                "Raw Man of the Match text was not accepted as a strict player/team award.",
+                season=row.get("season"),
+                match_id=row.get("match_id"),
+                column_name="man_of_the_match",
+                issue_value=row.get("raw_man_of_the_match"),
+            )
+        )
+
+    return issues
+
+
 def _validate_staging_tables(
     raw_tables: dict[str, pd.DataFrame],
     staging_tables: dict[str, pd.DataFrame],
@@ -910,6 +1077,7 @@ def _validate_staging_tables(
     issues.extend(_validate_duplicates(staging_tables, run_id))
     issues.extend(_validate_key_fields(staging_tables, run_id))
     issues.extend(_validate_missing_team_player_values(staging_tables, run_id))
+    issues.extend(_validate_man_of_match_quality(raw_tables, staging_tables, run_id))
     return pd.DataFrame(issues)
 
 

@@ -62,10 +62,13 @@ SCRAPER_STATUS_FORCELIST = (429, 500, 502, 503, 504)
 # Team name corrections mapping
 CLUB_NAME_CORRECTIONS = {
     "Vipers FC": "Vipers SC",
+    "Vipers": "Vipers SC",
     "Bright Stars FC": "Soltilo Bright Stars FC",
+    "Soltilo Bright Stars": "Soltilo Bright Stars FC",
     "Mbarara City": "Mbarara City FC",
     "Police": "Police FC",
     "Ondupraka FC": "Onduparaka FC",
+    "Odumparaka FC": "Onduparaka FC",
     "Sc Villa": "SC Villa",
     "Gaddafi FC": "Entebbe UPPC FC",
     "Tooro United": "Tooro United FC",
@@ -74,6 +77,12 @@ CLUB_NAME_CORRECTIONS = {
     "Onduparak FC": "Onduparaka FC",
     "Ondupararka FC": "Onduparaka FC",
     "KCCA": "KCCA FC",
+    "URA": "URA FC",
+    "Busoga United": "Busoga United FC",
+    "Wakiso Giants": "Wakiso Giants FC",
+    "Wakiso Giants FSC": "Wakiso Giants FC",
+    "Kyetume FC": "Kyetume",
+    "Tooro Uinted FC": "Tooro United FC",
 }
 
 # Uppercase abbreviations in team names
