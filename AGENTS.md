@@ -113,6 +113,11 @@ Current workflow:
 - Install Python deps: `pip install -r requirements.txt`
 - Run scraper: `python scripts/data_platform/scrape_upl_matches.py --season 2025-26`
 - Build Feature 1 goal timing dataset: `python scripts/features/feature_01_goal_timing/build_goal_timing_dataset.py`
+- Apply database migrations: `python scripts/data_platform/apply_db_migrations.py`
+- Load raw CSVs into Postgres: `python scripts/data_platform/load_raw_to_postgres.py`
+- Verify raw Postgres counts: `python scripts/data_platform/verify_raw_postgres_counts.py`
+- Build cleaned staging tables: `python scripts/data_platform/build_staging_from_raw.py`
+- Verify staging outputs: `python scripts/data_platform/verify_staging_outputs.py`
 - Open notebooks from `notebooks/features/feature_01_goal_timing/` for the pilot analysis.
 
 Future workflow should add:
@@ -120,6 +125,8 @@ Future workflow should add:
 - Postgres startup/configuration instructions.
 - Database migration command.
 - Data loading command.
+- Raw-to-staging cleaning command.
+- Staging validation command.
 - FastAPI dev server command.
 - React dev server command.
 - GitHub Actions scheduled update workflow.
@@ -163,6 +170,12 @@ match pages would.
 
 - Python 3 with type annotations where practical.
 - Use NumPy-style docstrings for public Python functions.
+- Write beginner-readable code. Prefer clear names, small functions, and simple
+  control flow over clever shortcuts.
+- Add helpful comments for non-obvious decisions, database modeling choices,
+  idempotent loading logic, validation rules, and cross-module workflows.
+- Avoid noisy comments that restate the code. Explain why something exists, not
+  merely what a single line does.
 - Imports: standard library, third-party, then local modules.
 - Copy DataFrames before mutation: `df = df.copy()`.
 - Prefer functions that return new DataFrames rather than mutating inputs.
@@ -181,6 +194,10 @@ When adding Postgres support, separate:
 - Raw scraped records.
 - Staging/cleaned records.
 - Analytics-ready facts, dimensions, and views.
+
+For Phase 2, use Postgres `raw.*` as the input for cleaning. Do not make the new
+staging pipeline read raw CSV files directly; CSV-to-Postgres protection happens
+in Phase 1 ingestion.
 
 Useful future concepts:
 
@@ -252,6 +269,16 @@ GitHub Actions is the preferred automation path for portfolio visibility.
 
 - Before coding, check [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) and
   the current files related to the task.
+- Explain work systematically and beginner-consciously. For each implementation
+  step, briefly state what is being changed, why it matters, and how to run or
+  verify it.
+- When introducing new tools such as Postgres, SQLAlchemy, Alembic, FastAPI,
+  React, Docker, or GitHub Actions, include short plain-English explanations of
+  the concept and how it fits into this project.
+- Do not dump unexplained code. Pair meaningful code changes with enough
+  explanation for a beginner to follow the design.
+- Use comments and docstrings as teaching aids where they clarify important
+  project logic, but keep them concise and maintainable.
 - Preserve the three-track architecture: data platform, research lab, public
   product.
 - Do not collapse production logic into notebooks.

@@ -222,6 +222,14 @@ Tasks:
 - Write a loading script that imports current raw CSVs into Postgres.
 - Make ingestion idempotent with upserts or truncate/reload by season.
 
+Phase 1 implementation command pattern:
+
+- Create database: `psql -U postgres -c "CREATE DATABASE upl_match_intelligence;"`
+- Apply migrations: `python scripts/data_platform/apply_db_migrations.py`
+- Load raw CSVs: `python scripts/data_platform/load_raw_to_postgres.py`
+- Load one season only: `python scripts/data_platform/load_raw_to_postgres.py --season 2025-26`
+- Verify CSV counts against Postgres: `python scripts/data_platform/verify_raw_postgres_counts.py`
+
 Acceptance criteria:
 
 - A developer can create the Postgres schema from documented commands.
@@ -232,6 +240,26 @@ Acceptance criteria:
 ## Phase 2 - Cleaning, Validation, And Analytics Models
 
 Objective: Make the database trustworthy and useful for analysis.
+
+Current Phase 2 foundation:
+
+- `database/migrations/002_create_staging_foundation.sql` creates the first
+  `staging` tables and a `staging.validation_issues` table.
+- `database/migrations/003_create_staging_validation_runs.sql` records each
+  staging build run, even when no validation issues are found.
+- `scripts/data_platform/build_staging_from_raw.py` rebuilds cleaned staging
+  tables from Postgres `raw.*`.
+- `scripts/data_platform/verify_staging_outputs.py` summarizes staging row
+  counts and validation issues.
+- The source for Phase 2 cleaning is Postgres `raw.*`, not the raw CSV files.
+
+Phase 2 command pattern:
+
+- Apply migrations: `python scripts/data_platform/apply_db_migrations.py`
+- Build all staging tables: `python scripts/data_platform/build_staging_from_raw.py`
+- Build one season: `python scripts/data_platform/build_staging_from_raw.py --season 2025-26`
+- Verify staging outputs: `python scripts/data_platform/verify_staging_outputs.py`
+- Verify one season/run: `python scripts/data_platform/verify_staging_outputs.py --season 2025-26 --run-id <run-id>`
 
 Tasks:
 
@@ -246,6 +274,17 @@ Tasks:
 - Create event-derived fields: goal, yellow card, red card, substitution.
 - Create home/away perspective features for team analysis.
 - Add data quality checks.
+
+Initial validation checks:
+
+- Required raw columns exist before transformation.
+- Raw rows match the requested season slice.
+- Duplicate natural-key risks are logged.
+- Child tables reference matches that exist in `staging.matches`.
+- Day-first dates are parsed and invalid dates are logged.
+- Event minutes are parsed from text, including added time and annotations such
+  as `56 (P)`.
+- Missing team/player/person/official values are logged where relevant.
 
 Useful validation checks:
 

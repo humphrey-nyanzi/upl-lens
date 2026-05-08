@@ -182,11 +182,209 @@ Build the Feature 1 goal timing dataset:
 python scripts/features/feature_01_goal_timing/build_goal_timing_dataset.py
 ```
 
+Create the local Postgres database:
+
+```sql
+CREATE DATABASE upl_match_intelligence;
+```
+
+Apply the Phase 1 database migrations:
+
+```bash
+python scripts/data_platform/apply_db_migrations.py
+```
+
+Load raw season CSVs into Postgres:
+
+```bash
+python scripts/data_platform/load_raw_to_postgres.py
+```
+
+Load only one season into Postgres:
+
+```bash
+python scripts/data_platform/load_raw_to_postgres.py --season 2025-26
+```
+
+Build cleaned staging tables from Postgres raw tables:
+
+```bash
+python scripts/data_platform/build_staging_from_raw.py
+```
+
+Build cleaned staging tables for one season:
+
+```bash
+python scripts/data_platform/build_staging_from_raw.py --season 2025-26
+```
+
+Verify staging row counts and validation issues:
+
+```bash
+python scripts/data_platform/verify_staging_outputs.py
+```
+
 Open the Feature 1 research notebooks:
 
 ```text
 notebooks/features/feature_01_goal_timing/
 ```
+
+## Phase 1 Database Setup
+
+Phase 1 introduces the first real Postgres foundation for the project.
+
+- `database/migrations/001_create_raw_schema.sql` creates the `raw`,
+  `staging`, and `analytics` schemas.
+- `database/migrations/002_create_staging_foundation.sql` creates the first
+  cleaned staging tables and the validation issue log.
+- `database/migrations/003_create_staging_validation_runs.sql` records each
+  staging build run, even when no validation issues are found.
+- The `raw` schema contains source-shaped tables that mirror the current
+  scraper CSV outputs.
+- `scripts/data_platform/apply_db_migrations.py` applies versioned SQL files in
+  order and records them in `app_meta.schema_migrations`.
+- `scripts/data_platform/load_raw_to_postgres.py` imports the season CSV files
+  from `data/raw/<season>/` into Postgres.
+- `scripts/data_platform/verify_raw_postgres_counts.py` compares season CSV
+  counts to Postgres counts by season and table.
+
+The raw ingestion is idempotent:
+
+- `raw.matches` upserts by `match_id`.
+- The child tables use stable row fingerprint keys so rerunning the loader
+  updates the same logical record instead of inserting duplicates.
+- `raw.failed_matches` upserts by season and match URL.
+
+### Local Setup Steps
+
+1. Copy `.env.example` to `.env`.
+2. Fill in your Postgres credentials in `.env`.
+3. Create the database:
+
+```bash
+psql -U postgres -c "CREATE DATABASE upl_match_intelligence;"
+```
+
+4. Apply migrations:
+
+```bash
+python scripts/data_platform/apply_db_migrations.py
+```
+
+5. Load the raw CSV files:
+
+```bash
+python scripts/data_platform/load_raw_to_postgres.py
+```
+
+6. Verify the CSV counts against Postgres:
+
+```bash
+python scripts/data_platform/verify_raw_postgres_counts.py
+```
+
+### Verification Queries
+
+List the raw tables:
+
+```bash
+psql -U postgres -d upl_match_intelligence -c "\\dt raw.*"
+```
+
+Check row counts:
+
+```bash
+psql -U postgres -d upl_match_intelligence -c "SELECT 'matches' AS table_name, COUNT(*) FROM raw.matches UNION ALL SELECT 'events', COUNT(*) FROM raw.events UNION ALL SELECT 'lineups', COUNT(*) FROM raw.lineups UNION ALL SELECT 'staff', COUNT(*) FROM raw.staff UNION ALL SELECT 'officials', COUNT(*) FROM raw.officials UNION ALL SELECT 'stats', COUNT(*) FROM raw.stats UNION ALL SELECT 'failed_matches', COUNT(*) FROM raw.failed_matches;"
+```
+
+Inspect one season:
+
+```bash
+psql -U postgres -d upl_match_intelligence -c "SELECT season, COUNT(*) AS matches FROM raw.matches GROUP BY season ORDER BY season;"
+```
+
+Run the repeatable Phase 1 verification script:
+
+```bash
+python scripts/data_platform/verify_raw_postgres_counts.py
+```
+
+Verify just one season:
+
+```bash
+python scripts/data_platform/verify_raw_postgres_counts.py --season 2025-26
+```
+
+## Phase 2 Cleaning, Validation, And Staging
+
+Phase 2 starts the cleaned database layer.
+
+Plain-English database layers:
+
+- `raw` is the source archive in Postgres. It keeps scraper-shaped records close
+  to the original UPL pages and raw CSV columns.
+- `staging` is the cleaned working layer. It standardizes dates, team names,
+  event types, event minutes, result fields, and source quality checks.
+- `analytics` will come later. It will hold facts, dimensions, summaries, and
+  views that are easier for FastAPI and React to query.
+
+The Phase 2 pipeline reads from Postgres `raw.*` tables, not directly from CSVs.
+This matters because the Phase 1 loader already protects `raw.*` from known
+historical season contamination.
+
+Apply the staging migration:
+
+```bash
+python scripts/data_platform/apply_db_migrations.py
+```
+
+Rebuild all staging tables from Postgres raw tables:
+
+```bash
+python scripts/data_platform/build_staging_from_raw.py
+```
+
+Rebuild one season only:
+
+```bash
+python scripts/data_platform/build_staging_from_raw.py --season 2025-26
+```
+
+Verify staging outputs:
+
+```bash
+python scripts/data_platform/verify_staging_outputs.py
+```
+
+Verify one season and one specific validation run:
+
+```bash
+python scripts/data_platform/verify_staging_outputs.py --season 2025-26 --run-id <run-id>
+```
+
+The build command records each run in `staging.validation_runs` and records
+individual validation issues in `staging.validation_issues`.
+Review a run with SQL:
+
+```sql
+SELECT severity, check_name, table_name, COUNT(*)
+FROM staging.validation_issues
+WHERE run_id = '<run-id>'
+GROUP BY severity, check_name, table_name
+ORDER BY severity, check_name, table_name;
+```
+
+Initial Phase 2 cleaning handles:
+
+- day-first date parsing
+- padded/blank text normalization
+- empty event minute strings
+- inline minute annotations such as `56 (P)`
+- missing team and player values where relevant
+- duplicate natural-key risks
+- season consistency checks
+- match-reference checks from child tables back to `staging.matches`
 
 ## Roadmap
 

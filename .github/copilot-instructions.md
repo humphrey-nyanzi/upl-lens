@@ -142,6 +142,11 @@ needs it.
 - Install Python deps: `pip install -r requirements.txt`
 - Run scraper: `python scripts/data_platform/scrape_upl_matches.py --season 2025-26`
 - Build Feature 1 goal timing dataset: `python scripts/features/feature_01_goal_timing/build_goal_timing_dataset.py`
+- Apply database migrations: `python scripts/data_platform/apply_db_migrations.py`
+- Load raw CSVs into Postgres: `python scripts/data_platform/load_raw_to_postgres.py`
+- Verify raw CSVs against Postgres: `python scripts/data_platform/verify_raw_postgres_counts.py`
+- Build staging from raw Postgres tables: `python scripts/data_platform/build_staging_from_raw.py`
+- Verify staging outputs: `python scripts/data_platform/verify_staging_outputs.py`
 - Work with Feature 1 notebooks from `notebooks/features/feature_01_goal_timing/`.
 
 No formal test suite exists yet. Validate by running the relevant script,
@@ -163,6 +168,12 @@ When these pieces are introduced, update this file and `AGENTS.md`:
 - Keep constants, paths, URLs, and team-name corrections centralized in
   `src/config.py` or a clear config module.
 - Use lowercase, underscore-separated column names.
+- Write beginner-readable code with clear names, small functions, and simple
+  control flow.
+- Add comments where they explain non-obvious decisions, database modeling,
+  idempotent ingestion, validation rules, or API/frontend data flow.
+- Avoid comments that only repeat the code. Prefer comments that explain why a
+  choice was made.
 - Prefer typed Python functions.
 - Use NumPy-style docstrings for public Python functions.
 - Copy DataFrames before mutation: `df = df.copy()`.
@@ -181,6 +192,10 @@ Use layered modeling:
 - `raw` for source-shaped scraped records.
 - `staging` for cleaned and normalized records.
 - `analytics` for facts, dimensions, summaries, and views.
+
+Phase 2 staging must read from Postgres `raw.*`, not directly from CSV files.
+The raw loader already filters historical season-contaminated rows before they
+enter the trusted raw database layer.
 
 Likely modeled tables:
 
@@ -252,6 +267,12 @@ Before making non-trivial changes:
 - Check whether the task belongs to data platform, research lab, or public
   product.
 - Keep the change phase-appropriate.
+- Explain each step in beginner-friendly language: what changed, why it matters,
+  and how to run or verify it.
+- When adding unfamiliar technologies such as Postgres, SQLAlchemy, Alembic,
+  FastAPI, React, Docker, or GitHub Actions, include a short explanation of the
+  concept and how it fits into this project.
+- Do not provide unexplained code-only changes.
 
 Do not:
 
