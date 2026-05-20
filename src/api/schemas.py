@@ -31,6 +31,25 @@ class SeasonResponse(ApiModel):
     team_count: int
 
 
+class EventBreakdownItem(ApiModel):
+    event_type: str
+    label: str
+    count: int
+
+
+class SeasonOverviewResponse(ApiModel):
+    season: str
+    match_count: int
+    team_count: int
+    goal_count: int
+    event_count: int
+    yellow_card_count: int
+    red_card_count: int
+    first_match_date: date | None = None
+    latest_match_date: date | None = None
+    event_breakdown: list[EventBreakdownItem]
+
+
 class MatchSummary(ApiModel):
     match_id: int
     season: str
@@ -109,4 +128,3 @@ class TeamResponse(ApiModel):
     wins: int
     draws: int
     losses: int
-

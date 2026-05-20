@@ -439,6 +439,7 @@ Initial endpoints:
 ```text
 GET /health
 GET /seasons
+GET /seasons/{season}/overview
 GET /matches
 GET /matches/{match_id}
 GET /teams
@@ -451,6 +452,7 @@ Example endpoint checks:
 ```bash
 curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/seasons
+curl "http://127.0.0.1:8000/seasons/2025_26/overview"
 curl "http://127.0.0.1:8000/matches?season=2025_26&limit=5"
 curl "http://127.0.0.1:8000/matches/15463"
 curl "http://127.0.0.1:8000/teams?season=2025_26"
@@ -465,6 +467,64 @@ Useful filters:
 - `match_day`, for match, event, and official lists
 - `event_type`, for event lists such as `goal`, `yellow_card`, or `red_card`
 - `limit` and `offset`, for list pagination
+
+## Phase 4 React Frontend Pilot
+
+Phase 4 starts the browser product layer with a narrow League Overview screen.
+The important flow is:
+
+```text
+React League Overview
+  -> FastAPI endpoints
+  -> src/api/queries.py
+  -> Postgres staging.* tables
+  -> JSON
+  -> dashboard cards, lists, and tables
+```
+
+The frontend does not read CSV files. It uses the existing API endpoints for
+health, seasons, season overview, matches, teams, and events.
+
+Start the local API server from the repository root:
+
+```powershell
+.venv\Scripts\python.exe -m uvicorn api.main:app --reload
+```
+
+In a second terminal, start the React frontend:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend runs at:
+
+```text
+http://127.0.0.1:5173
+```
+
+The frontend API URL is configured with Vite:
+
+```text
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Copy `frontend/.env.example` to `frontend/.env` only if you need to point the
+frontend at a different FastAPI host or port.
+
+What the pilot shows:
+
+- API/database health from `/health`
+- available seasons from `/seasons`
+- season-level totals from `/seasons/{season}/overview`
+- a season selector
+- summary cards for matches, teams, goals, and cards
+- recent matches from `/matches?season=...`
+- team records from `/teams?season=...`
+- event breakdown from `/events?season=...`
+- placeholders for the next product areas
 
 ## Roadmap
 

@@ -322,6 +322,7 @@ Initial endpoints:
 
 - `GET /health`
 - `GET /seasons`
+- `GET /seasons/{season}/overview`
 - `GET /matches`
 - `GET /matches/{match_id}`
 - `GET /teams`
@@ -356,6 +357,7 @@ Phase 3 command pattern:
 - Open API docs: `http://127.0.0.1:8000/docs`
 - Check health: `curl http://127.0.0.1:8000/health`
 - List seasons: `curl http://127.0.0.1:8000/seasons`
+- Get season overview: `curl "http://127.0.0.1:8000/seasons/2025_26/overview"`
 - List matches: `curl "http://127.0.0.1:8000/matches?season=2025_26&limit=5"`
 - Inspect one match: `curl "http://127.0.0.1:8000/matches/15463"`
 - List teams: `curl "http://127.0.0.1:8000/teams?season=2025_26"`
@@ -372,6 +374,20 @@ Acceptance criteria:
 ## Phase 4 - React Frontend
 
 Objective: Build a real interactive product, not another notebook dashboard.
+
+Current Phase 4 pilot foundation:
+
+- `frontend/` contains a Vite + React + TypeScript app.
+- `frontend/src/api/client.ts` is the small API service layer.
+- `frontend/src/api/types.ts` mirrors the current FastAPI response shapes.
+- The first screen is a League Overview dashboard that calls `/health`,
+  `/seasons`, `/seasons/{season}/overview`, `/matches`, `/teams`, and
+  `/events`.
+- `GET /seasons/{season}/overview` gives the frontend season-wide totals for
+  matches, teams, goals, cards, event totals, and event breakdowns without
+  paging through every event row in the browser.
+- FastAPI allows local Vite origins with CORS for browser development.
+- The frontend reads FastAPI JSON only; it does not read CSV files.
 
 Initial pages:
 
@@ -416,6 +432,18 @@ Acceptance criteria:
 - Users can browse matches and teams.
 - At least one flagship insight is presented interactively.
 - The app can run locally with documented commands.
+
+Phase 4 command pattern:
+
+- Run the local API:
+  `.venv\Scripts\python.exe -m uvicorn api.main:app --reload`
+- Install frontend dependencies:
+  `cd frontend`
+  `npm install`
+- Run the React dev server:
+  `npm run dev`
+- Open the frontend:
+  `http://127.0.0.1:5173`
 
 ## Phase 5 - Automation With GitHub Actions
 

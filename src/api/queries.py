@@ -118,6 +118,102 @@ def list_seasons() -> list[dict[str, Any]]:
     )
 
 
+def _event_type_label(event_type: str | None) -> str:
+    """Return a viewer-friendly event label for dashboard summaries."""
+
+    labels = {
+        "goal": "Goals",
+        "own_goal": "Own goals",
+        "penalty_goal": "Penalty goals",
+        "assist": "Assists",
+        "yellow_card": "Yellow cards",
+        "red_card": "Red cards",
+        "substitution": "Substitutions",
+    }
+    if event_type is None:
+        return "Other events"
+    return labels.get(event_type, event_type.replace("_", " ").title())
+
+
+def get_season_overview(season: str) -> dict[str, Any] | None:
+    """Return one season-level dashboard summary from staging tables.
+
+    This is the first API shape built specifically for the React overview. It
+    lets Postgres do season-wide counting once, instead of forcing the browser
+    to page through every match and event row.
+    """
+
+    overview = _fetch_one(
+        """
+        WITH match_totals AS (
+            SELECT
+                season,
+                COUNT(*) AS match_count,
+                COALESCE(SUM(COALESCE(total_goals, 0)), 0) AS goal_count,
+                MIN(match_date) AS first_match_date,
+                MAX(match_date) AS latest_match_date
+            FROM staging.matches
+            WHERE season = %(season)s::text
+            GROUP BY season
+        ),
+        team_rows AS (
+            SELECT home_team AS team_name
+            FROM staging.matches
+            WHERE season = %(season)s::text
+                AND home_team IS NOT NULL
+            UNION
+            SELECT away_team AS team_name
+            FROM staging.matches
+            WHERE season = %(season)s::text
+                AND away_team IS NOT NULL
+        ),
+        team_totals AS (
+            SELECT COUNT(DISTINCT team_name) AS team_count
+            FROM team_rows
+        )
+        SELECT
+            match_totals.season,
+            match_totals.match_count,
+            COALESCE(team_totals.team_count, 0) AS team_count,
+            match_totals.goal_count,
+            match_totals.first_match_date,
+            match_totals.latest_match_date
+        FROM match_totals
+        CROSS JOIN team_totals;
+        """,
+        {"season": season},
+    )
+    if overview is None:
+        return None
+
+    event_counts = _fetch_all(
+        """
+        SELECT
+            COALESCE(event_type, 'other') AS event_type,
+            COUNT(*) AS count
+        FROM staging.events
+        WHERE season = %(season)s::text
+        GROUP BY COALESCE(event_type, 'other')
+        ORDER BY count DESC, event_type;
+        """,
+        {"season": season},
+    )
+    counts_by_type = {row["event_type"]: row["count"] for row in event_counts}
+
+    overview["event_count"] = sum(counts_by_type.values())
+    overview["yellow_card_count"] = counts_by_type.get("yellow_card", 0)
+    overview["red_card_count"] = counts_by_type.get("red_card", 0)
+    overview["event_breakdown"] = [
+        {
+            "event_type": row["event_type"],
+            "label": _event_type_label(row["event_type"]),
+            "count": row["count"],
+        }
+        for row in event_counts
+    ]
+    return overview
+
+
 def list_matches(
     season: str | None = None,
     team: str | None = None,
