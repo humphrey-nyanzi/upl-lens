@@ -449,6 +449,23 @@ Phase 4 command pattern:
 
 Objective: Keep the current season updated without manual scraping.
 
+Current Phase 5 foundation:
+
+- `scripts/data_platform/update_current_season.py` is the local orchestration
+  script for the current-season update pipeline.
+- The script has two modes:
+  - `full` runs the scraper, applies migrations, loads raw CSVs into Postgres,
+    rebuilds staging tables, and runs verification checks.
+  - `artifact-only` runs the scraper and leaves refreshed raw files/logs for
+    GitHub Actions artifacts without changing a database.
+- The script prints a data-completeness summary from the season failed-match
+  manifest, with optional strict failure via
+  `--fail-on-remaining-failed-matches`.
+- `.github/workflows/current-season-update.yml` can be triggered manually and
+  is also scheduled weekly.
+- The workflow defaults to `artifact-only` until a hosted Postgres database is
+  available through GitHub repository secrets.
+
 Target weekly flow:
 
 1. Run current-season scraper.
@@ -466,12 +483,27 @@ Important design requirement:
 
 GitHub Actions tasks:
 
-- Add scheduled workflow.
-- Add manual dispatch option.
+- Add scheduled workflow. Initial version exists.
+- Add manual dispatch option. Initial version exists.
 - Configure secrets for database connection only when needed.
-- Save logs or failed-match artifacts.
+- Save logs or failed-match artifacts. Initial version uploads raw files and
+  automation logs as workflow artifacts.
 - Avoid committing scraped data unless the project explicitly decides to track
   small public snapshots.
+
+Phase 5 command pattern:
+
+- Run the full local update against local Postgres:
+  `python scripts/data_platform/update_current_season.py --season 2025-26`
+- Reuse existing raw files and only refresh Postgres/staging:
+  `python scripts/data_platform/update_current_season.py --season 2025-26 --skip-scrape`
+- Run scraper-only artifact mode for CI or source-data snapshots:
+  `python scripts/data_platform/update_current_season.py --season 2025-26 --mode artifact-only`
+- Fail strict automation when any match still needs a retry:
+  `python scripts/data_platform/update_current_season.py --season 2025-26 --fail-on-remaining-failed-matches`
+- GitHub Actions full mode needs these repository secrets:
+  `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`,
+  `POSTGRES_PASSWORD`, and optionally `POSTGRES_SSLMODE`.
 
 Acceptance criteria:
 

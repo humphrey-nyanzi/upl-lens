@@ -100,6 +100,10 @@ SIDE_AWAY = "away"
 # Analysis constants
 SEASONS = ["2019/20", "2020/21", "2021/22", "2022/23", "2023/24", "2024/25"]
 
+# Phase 5 automation starts with the active season. Keep this centralized so
+# local scripts and GitHub Actions use the same default season value.
+CURRENT_SEASON = "2025-26"
+
 RAW_TABLE_FILE_PREFIXES = {
     "matches": "upl_matches",
     "events": "upl_events",

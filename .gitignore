@@ -104,3 +104,6 @@ target/
 # /data/
 *.pbix
 /data
+
+# Phase 5 local automation logs are useful while debugging but should not be committed.
+/outputs/automation/

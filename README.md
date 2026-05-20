@@ -526,6 +526,60 @@ What the pilot shows:
 - event breakdown from `/events?season=...`
 - placeholders for the next product areas
 
+## Phase 5 Current-Season Automation
+
+Phase 5 begins the automation layer. Instead of manually remembering every
+pipeline command, use one orchestrator that runs the current-season update steps
+in order.
+
+Run the full local update from the repository root:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26
+```
+
+That command runs:
+
+```text
+scraper
+  -> database migrations
+  -> raw CSV to Postgres load
+  -> raw count verification
+  -> staging rebuild
+  -> staging validation summary
+```
+
+If you already scraped the season and only want to refresh Postgres/staging:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-scrape
+```
+
+At the end of each run, the orchestrator prints a data-completeness summary from
+the season's failed-match manifest. By default, remaining failed matches are a
+warning because temporary source-site timeouts can happen. Use strict mode when
+you want automation to fail if any match still needs a retry:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --fail-on-remaining-failed-matches
+```
+
+GitHub Actions has a starter workflow at
+`.github/workflows/current-season-update.yml`. It can be triggered manually and
+also runs weekly. For now, the scheduled workflow defaults to `artifact-only`
+mode, which refreshes raw files and uploads logs/artifacts without touching a
+database. Use `full` mode only after GitHub repository secrets point to a hosted
+Postgres database:
+
+```text
+POSTGRES_HOST
+POSTGRES_PORT
+POSTGRES_DB
+POSTGRES_USER
+POSTGRES_PASSWORD
+POSTGRES_SSLMODE
+```
+
 ## Roadmap
 
 The detailed implementation plan lives in
