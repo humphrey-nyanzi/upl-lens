@@ -10,6 +10,7 @@ python scripts/data_platform/update_current_season.py
 python scripts/data_platform/update_current_season.py --season 2025-26
 python scripts/data_platform/update_current_season.py --mode artifact-only
 python scripts/data_platform/update_current_season.py --skip-scrape
+python scripts/data_platform/update_current_season.py --use-cache
 """
 
 from __future__ import annotations
@@ -61,6 +62,14 @@ def parse_args() -> argparse.Namespace:
         "--skip-scrape",
         action="store_true",
         help="Reuse existing raw season files and start at the database steps.",
+    )
+    parser.add_argument(
+        "--use-cache",
+        action="store_true",
+        help=(
+            "Allow the scraper to reuse cached HTML and checkpoint state. "
+            "By default, Phase 5 refreshes from the live source."
+        ),
     )
     parser.add_argument(
         "--skip-raw-verification",
@@ -206,9 +215,13 @@ def main() -> None:
     print(f"Raw season folder: {raw_season_dir(season).relative_to(PROJECT_ROOT)}")
 
     if not args.skip_scrape:
+        scrape_command = _python_command("scrape_upl_matches.py", "--season", season)
+        if not args.use_cache:
+            scrape_command.append("--refresh-source")
+
         _run_step(
             "scrape_current_season",
-            _python_command("scrape_upl_matches.py", "--season", season),
+            scrape_command,
             log_dir,
         )
     else:

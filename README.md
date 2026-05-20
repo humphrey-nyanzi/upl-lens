@@ -549,6 +549,15 @@ scraper
   -> staging validation summary
 ```
 
+By default, the Phase 5 update refreshes from the live UPL source. That means it
+bypasses cached HTML and old checkpoint state so the current-season match list
+does not become stale. For faster development runs where you intentionally want
+to reuse cached pages and resume from checkpoints, add `--use-cache`:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --use-cache
+```
+
 If you already scraped the season and only want to refresh Postgres/staging:
 
 ```powershell
@@ -567,9 +576,9 @@ you want automation to fail if any match still needs a retry:
 GitHub Actions has a starter workflow at
 `.github/workflows/current-season-update.yml`. It can be triggered manually and
 also runs weekly. For now, the scheduled workflow defaults to `artifact-only`
-mode, which refreshes raw files and uploads logs/artifacts without touching a
-database. Use `full` mode only after GitHub repository secrets point to a hosted
-Postgres database:
+mode, which refreshes raw files from the live source and uploads logs/artifacts
+without touching a database. Use `full` mode only after GitHub repository
+secrets point to a hosted Postgres database:
 
 ```text
 POSTGRES_HOST

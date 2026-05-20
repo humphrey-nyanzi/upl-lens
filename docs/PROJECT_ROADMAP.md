@@ -458,6 +458,11 @@ Current Phase 5 foundation:
     rebuilds staging tables, and runs verification checks.
   - `artifact-only` runs the scraper and leaves refreshed raw files/logs for
     GitHub Actions artifacts without changing a database.
+- Phase 5 updates refresh from the live source by default. This bypasses cached
+  HTML and old checkpoint state so current-season automation does not silently
+  reuse stale match lists.
+- `--use-cache` is available for faster local development runs that should
+  intentionally resume from existing cached pages/checkpoints.
 - The script prints a data-completeness summary from the season failed-match
   manifest, with optional strict failure via
   `--fail-on-remaining-failed-matches`.
@@ -495,6 +500,8 @@ Phase 5 command pattern:
 
 - Run the full local update against local Postgres:
   `python scripts/data_platform/update_current_season.py --season 2025-26`
+- Run a faster development update using cached HTML/checkpoints:
+  `python scripts/data_platform/update_current_season.py --season 2025-26 --use-cache`
 - Reuse existing raw files and only refresh Postgres/staging:
   `python scripts/data_platform/update_current_season.py --season 2025-26 --skip-scrape`
 - Run scraper-only artifact mode for CI or source-data snapshots:

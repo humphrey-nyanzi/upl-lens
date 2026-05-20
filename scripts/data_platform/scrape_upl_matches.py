@@ -1071,7 +1071,11 @@ def _build_legacy_goal_dataframe(events_df: pd.DataFrame) -> pd.DataFrame:
     return goal_events[LEGACY_GOAL_COLUMNS]
 
 
-def scrape_season(season: str) -> tuple[dict[str, pd.DataFrame], dict[str, Any]]:
+def scrape_season(
+    season: str,
+    *,
+    refresh_source: bool = False,
+) -> tuple[dict[str, pd.DataFrame], dict[str, Any]]:
     """
     Scrape all structured match data for a season.
 
@@ -1090,15 +1094,22 @@ def scrape_season(season: str) -> tuple[dict[str, pd.DataFrame], dict[str, Any]]
     headers = {"User-Agent": USER_AGENT}
     cache_dir = DATA_CACHE / "match_html" / season_key(season)
     rate_limiter = RateLimiter(RATE_LIMIT_SECONDS)
+    use_cache = USE_HTML_CACHE and not refresh_source
     client = ScraperClient(
         headers=headers,
         cache_dir=cache_dir,
         rate_limiter=rate_limiter,
-        use_cache=USE_HTML_CACHE,
+        use_cache=use_cache,
     )
 
+    if refresh_source:
+        print("[ok] Refresh source enabled: bypassing cached HTML and checkpoint state")
+
     match_urls = fetch_match_urls(client, season)
-    completed_urls, all_tables, failed_urls = _load_checkpoint(season)
+    if refresh_source:
+        completed_urls, all_tables, failed_urls = set(), _empty_scraped_tables(), {}
+    else:
+        completed_urls, all_tables, failed_urls = _load_checkpoint(season)
     starting_completed_count = len(completed_urls)
     pending_urls = [url for url in match_urls if url not in completed_urls]
     retry_first_urls = [url for url in pending_urls if url in failed_urls]
@@ -1174,6 +1185,11 @@ def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Scrape structured UPL event data")
     parser.add_argument("--season", type=str, default="2025-26", help="Season to scrape (e.g., 2025-26)")
+    parser.add_argument(
+        "--refresh-source",
+        action="store_true",
+        help="Bypass cached HTML and checkpoint state so the season is scraped from the live source.",
+    )
     args = parser.parse_args()
 
     print(f"\n{'=' * 60}")
@@ -1181,7 +1197,10 @@ def main() -> int:
     print(f"{'=' * 60}\n")
 
     try:
-        season_tables, scrape_summary = scrape_season(args.season)
+        season_tables, scrape_summary = scrape_season(
+            args.season,
+            refresh_source=args.refresh_source,
+        )
 
         season_outputs_exist = all(raw_season_file(args.season, table_name).exists() for table_name in TABLE_NAMES)
         legacy_goals_path = DATA_RAW / f"upl_goals_{season_key(args.season)}.csv"

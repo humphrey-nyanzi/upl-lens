@@ -87,6 +87,10 @@ def get_database_settings() -> DatabaseSettings:
         "password": os.getenv("POSTGRES_PASSWORD"),
         "sslmode": os.getenv("POSTGRES_SSLMODE", "prefer"),
     }
+    values = {
+        key: value.strip() if isinstance(value, str) else value
+        for key, value in values.items()
+    }
 
     missing = [name for name in ("database", "user", "password") if not values[name]]
     if missing:

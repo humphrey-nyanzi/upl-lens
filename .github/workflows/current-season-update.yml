@@ -15,6 +15,11 @@ on:
         options:
           - artifact-only
           - full
+      use_cache:
+        description: "Reuse cached HTML/checkpoint state instead of refreshing from the live source"
+        required: true
+        default: false
+        type: boolean
   schedule:
     - cron: "0 6 * * 1"
 
@@ -24,8 +29,10 @@ jobs:
     timeout-minutes: 60
 
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       UPDATE_SEASON: ${{ github.event.inputs.season || '2025-26' }}
       UPDATE_MODE: ${{ github.event.inputs.mode || 'artifact-only' }}
+      USE_CACHE: ${{ github.event.inputs.use_cache || 'false' }}
       POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
       POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
@@ -62,6 +69,7 @@ jobs:
           python scripts/data_platform/update_current_season.py
           --season "$UPDATE_SEASON"
           --mode "$UPDATE_MODE"
+          ${{ env.USE_CACHE == 'true' && '--use-cache' || '' }}
 
       - name: Upload raw season files
         uses: actions/upload-artifact@v4
