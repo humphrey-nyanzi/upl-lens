@@ -603,6 +603,10 @@ skipped, so it is designed for the limited loader role described above. To apply
 migrations from GitHub Actions, trigger the workflow manually and set
 `apply_migrations` to `true` only while using admin-capable database secrets.
 
+The working automation setup, manual run settings, artifact behavior, and common
+Supabase connection errors are documented in
+[`docs/PHASE5_AUTOMATION.md`](docs/PHASE5_AUTOMATION.md).
+
 Full mode needs these GitHub repository secrets:
 
 ```text
@@ -613,6 +617,10 @@ POSTGRES_USER
 POSTGRES_PASSWORD
 POSTGRES_SSLMODE
 ```
+
+For Supabase pooler connections, the GitHub `POSTGRES_USER` secret may need the
+project reference suffix, for example `upl_actions_loader.<project-ref>`, while
+the database role created inside Postgres remains `upl_actions_loader`.
 
 ## Roadmap
 

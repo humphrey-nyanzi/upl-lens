@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -29,14 +30,19 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.config import (
     CURRENT_SEASON,
+    RAW_TABLE_FILE_PREFIXES,
     raw_season_dir,
     raw_season_failed_matches_file,
+    raw_season_file,
     season_key,
 )
 
-
 SCRIPT_DIR = PROJECT_ROOT / "scripts" / "data_platform"
 DEFAULT_LOG_DIR = PROJECT_ROOT / "outputs" / "automation"
+RAW_SUMMARY_TABLES = (*RAW_TABLE_FILE_PREFIXES.keys(), "failed_matches")
+LOAD_COUNT_PATTERN = re.compile(
+    r"^\s+(?P<table>[a-z_]+): (?P<count>\d+) in-season rows processed\s*$"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -113,7 +119,7 @@ def _timestamp_slug() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
-def _run_step(step_name: str, command: list[str], log_dir: Path) -> None:
+def _run_step(step_name: str, command: list[str], log_dir: Path) -> Path:
     """Run one pipeline step, stream output, and save a log file.
 
     The log file matters in automation because GitHub Actions output can be
@@ -152,6 +158,7 @@ def _run_step(step_name: str, command: list[str], log_dir: Path) -> None:
         )
 
     print(f"[phase5] Finished {step_name}")
+    return log_path
 
 
 def _python_command(script_name: str, *extra_args: str) -> list[str]:
@@ -175,6 +182,116 @@ def _read_failed_matches(season: str) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def _count_csv_rows(csv_path: Path) -> int | None:
+    """Return CSV data-row count, or None when the file is absent.
+
+    GitHub Actions artifacts already contain these files. Printing the same
+    counts at the end of the run gives a fast, human-readable confirmation
+    without requiring someone to download artifacts just to check row totals.
+    """
+
+    if not csv_path.exists():
+        return None
+
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        return sum(1 for _ in csv.DictReader(handle))
+
+
+def _raw_csv_counts(season: str) -> dict[str, int | None]:
+    """Return row counts for the season-scoped raw CSV files."""
+
+    counts = {
+        table_name: _count_csv_rows(raw_season_file(season, table_name))
+        for table_name in RAW_TABLE_FILE_PREFIXES
+    }
+    counts["failed_matches"] = _count_csv_rows(raw_season_failed_matches_file(season))
+    return counts
+
+
+def _extract_raw_load_counts(log_path: Path | None) -> dict[str, int]:
+    """Read raw-loader row totals back from its step log."""
+
+    if log_path is None or not log_path.exists():
+        return {}
+
+    counts: dict[str, int] = {}
+    with log_path.open("r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            match = LOAD_COUNT_PATTERN.match(line)
+            if match:
+                counts[match.group("table")] = int(match.group("count"))
+    return counts
+
+
+def _print_table_counts(title: str, counts: dict[str, int | None]) -> None:
+    """Print a compact table-count block for the final automation summary."""
+
+    print(f"\n{title}:")
+    for table_name in RAW_SUMMARY_TABLES:
+        row_count = counts.get(table_name)
+        if row_count is None:
+            print(f"  {table_name:<14} missing")
+        else:
+            print(f"  {table_name:<14} {row_count}")
+
+
+def _staging_verification_status(log_path: Path | None) -> str:
+    """Return a short status for the staging validation step."""
+
+    if log_path is None:
+        return "skipped"
+    if not log_path.exists():
+        return "completed; log file missing"
+
+    log_text = log_path.read_text(encoding="utf-8", errors="replace")
+    if (
+        "[ok] Staging verification finished without error-level validation issues."
+        in log_text
+    ):
+        return "passed without error-level validation issues"
+    return "completed; review log for validation details"
+
+
+def _print_final_success_summary(
+    *,
+    season: str,
+    mode: str,
+    use_cache: bool,
+    skip_migrations: bool,
+    failed_count: int,
+    step_logs: dict[str, Path],
+    raw_verification_ran: bool,
+    staging_verification_ran: bool,
+) -> None:
+    """Print the human-facing success summary for CI logs."""
+
+    raw_counts = _raw_csv_counts(season)
+    raw_load_counts = _extract_raw_load_counts(step_logs.get("load_raw_to_postgres"))
+    staging_status = _staging_verification_status(
+        step_logs.get("verify_staging_outputs") if staging_verification_ran else None
+    )
+
+    print("\n[phase5] Final run summary")
+    print(f"  Season: {season}")
+    print(f"  Mode: {mode}")
+    print(
+        f"  Source: {'cached HTML/checkpoints allowed' if use_cache else 'fresh live-source refresh'}"
+    )
+    print(f"  Migrations: {'skipped' if skip_migrations else 'applied'}")
+    print(f"  Raw verification: {'completed' if raw_verification_ran else 'skipped'}")
+    print(f"  Staging rebuild: completed")
+    print(f"  Staging verification: {staging_status}")
+    print(f"  Remaining failed matches: {failed_count}")
+
+    _print_table_counts("Raw CSV rows prepared for artifacts", raw_counts)
+    if raw_load_counts:
+        _print_table_counts("Raw rows processed by Postgres loader", raw_load_counts)
+
+    print("\nStep logs:")
+    for step_name, log_path in step_logs.items():
+        print(f"  {step_name:<28} {log_path.relative_to(PROJECT_ROOT)}")
+
+
 def _print_failed_match_summary(season: str, *, max_rows: int = 10) -> int:
     """Print the data-completeness state for the current season update."""
 
@@ -193,7 +310,9 @@ def _print_failed_match_summary(season: str, *, max_rows: int = 10) -> int:
         last_error = failed_match.get("last_error", "")
         print(f"  - {match_url}")
         if attempt_count or last_error:
-            print(f"    attempts={attempt_count or 'unknown'} last_error={last_error or 'unknown'}")
+            print(
+                f"    attempts={attempt_count or 'unknown'} last_error={last_error or 'unknown'}"
+            )
 
     if failed_count > max_rows:
         print(f"  ... and {failed_count - max_rows} more")
@@ -222,13 +341,14 @@ def main() -> None:
     print(f"Season: {season}")
     print(f"Mode: {args.mode}")
     print(f"Raw season folder: {raw_season_dir(season).relative_to(PROJECT_ROOT)}")
+    step_logs: dict[str, Path] = {}
 
     if not args.skip_scrape:
         scrape_command = _python_command("scrape_upl_matches.py", "--season", season)
         if not args.use_cache:
             scrape_command.append("--refresh-source")
 
-        _run_step(
+        step_logs["scrape_current_season"] = _run_step(
             "scrape_current_season",
             scrape_command,
             log_dir,
@@ -255,29 +375,33 @@ def main() -> None:
             "This is expected for routine least-privilege update runs."
         )
     else:
-        _run_step("apply_db_migrations", _python_command("apply_db_migrations.py"), log_dir)
+        step_logs["apply_db_migrations"] = _run_step(
+            "apply_db_migrations",
+            _python_command("apply_db_migrations.py"),
+            log_dir,
+        )
 
-    _run_step(
+    step_logs["load_raw_to_postgres"] = _run_step(
         "load_raw_to_postgres",
         _python_command("load_raw_to_postgres.py", "--season", season),
         log_dir,
     )
 
     if not args.skip_raw_verification:
-        _run_step(
+        step_logs["verify_raw_postgres_counts"] = _run_step(
             "verify_raw_postgres_counts",
             _python_command("verify_raw_postgres_counts.py", "--season", season),
             log_dir,
         )
 
-    _run_step(
+    step_logs["build_staging_from_raw"] = _run_step(
         "build_staging_from_raw",
         _python_command("build_staging_from_raw.py", "--season", season),
         log_dir,
     )
 
     if not args.skip_staging_verification:
-        _run_step(
+        step_logs["verify_staging_outputs"] = _run_step(
             "verify_staging_outputs",
             _python_command("verify_staging_outputs.py", "--season", season),
             log_dir,
@@ -287,6 +411,17 @@ def main() -> None:
     _enforce_failed_match_policy(
         failed_count,
         fail_on_remaining=args.fail_on_remaining_failed_matches,
+    )
+
+    _print_final_success_summary(
+        season=season,
+        mode=args.mode,
+        use_cache=args.use_cache,
+        skip_migrations=args.skip_migrations,
+        failed_count=failed_count,
+        step_logs=step_logs,
+        raw_verification_ran=not args.skip_raw_verification,
+        staging_verification_ran=not args.skip_staging_verification,
     )
 
     print("\n[ok] Full current-season update finished.")

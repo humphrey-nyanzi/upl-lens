@@ -471,8 +471,11 @@ Current Phase 5 foundation:
   `--fail-on-remaining-failed-matches`.
 - `.github/workflows/current-season-update.yml` can be triggered manually and
   is also scheduled weekly.
-- The workflow defaults to `artifact-only` until a hosted Postgres database is
-  available through GitHub repository secrets.
+- The workflow now defaults to `full` mode for both manual and scheduled runs.
+  Routine runs skip migrations by default so they can use the least-privilege
+  loader role.
+- `docs/PHASE5_AUTOMATION.md` documents the working GitHub secrets, Supabase
+  pooler username pattern, artifact behavior, and common connection errors.
 
 Target weekly flow:
 
@@ -518,6 +521,9 @@ Phase 5 command pattern:
 - GitHub Actions full mode needs these repository secrets:
   `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`,
   `POSTGRES_PASSWORD`, and optionally `POSTGRES_SSLMODE`.
+- For Supabase pooler connections, `POSTGRES_USER` may need the project suffix,
+  for example `upl_actions_loader.<project-ref>`, while the actual Postgres role
+  remains `upl_actions_loader`.
 
 Acceptance criteria:
 
