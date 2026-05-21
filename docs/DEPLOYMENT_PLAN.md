@@ -269,8 +269,8 @@ Use different database users where possible:
 - Admin or owner credential: manual migrations and setup only.
 - `upl_actions_loader`: scheduled current-season refresh.
 - Optional read-only role: notebooks and public read contexts.
-- API read role: future hardening target. For the first deployment, it can use a
-  limited read-oriented role if one is created.
+- `upl_api_reader`: deployed FastAPI backend reads from `staging.*` and
+  `analytics.*` without write permissions.
 
 Do not put real database passwords in `.env.example`, docs, screenshots, or chat.
 
@@ -285,12 +285,14 @@ Recommended first database path:
 2. Apply `database/migrations/*.sql` from a trusted admin connection.
 3. Create the least-privilege loader role using
    `database/permissions/001_create_upl_actions_loader.sql`.
-4. Load existing raw season CSVs into hosted Postgres from a local trusted
+4. Create the read-only API role using
+   `database/permissions/003_create_upl_api_reader.sql`.
+5. Load existing raw season CSVs into hosted Postgres from a local trusted
    machine.
-5. Rebuild `staging.*`.
-6. Verify with `scripts/data_platform/verify_raw_postgres_counts.py` and
+6. Rebuild `staging.*`.
+7. Verify with `scripts/data_platform/verify_raw_postgres_counts.py` and
    `scripts/data_platform/verify_staging_outputs.py`.
-7. Point FastAPI and GitHub Actions to the hosted database.
+8. Point FastAPI and GitHub Actions to the hosted database.
 
 This keeps schema changes versioned and avoids manual database edits becoming
 the hidden source of truth.
@@ -368,8 +370,10 @@ After this plan is approved, the first narrow implementation slice should be:
 1. Add production CORS configuration to FastAPI with an `ALLOWED_ORIGINS`
    environment variable. **Completed as the first Phase 7 implementation step.**
 2. Add a minimal Render deploy note or config for the FastAPI service.
+   **Completed: `render.yaml` and `requirements-api.txt` now define the API
+   service build/start path.**
 3. Add a frontend deployment note for Cloudflare Pages or Vercel, including
-   `VITE_API_BASE_URL`.
+   `VITE_API_BASE_URL`. **Completed in `docs/PHASE7_DEPLOYMENT_RUNBOOK.md`.**
 4. Update `.env.example` and `frontend/.env.example` only with non-secret
    placeholders.
 5. Run local verification:

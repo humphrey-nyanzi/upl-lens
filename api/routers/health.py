@@ -11,6 +11,18 @@ from src.api.schemas import HealthResponse
 router = APIRouter(tags=["health"])
 
 
+@router.get("/health/live")
+def liveness_check() -> dict[str, str]:
+    """Confirm that the FastAPI process is running.
+
+    Hosting platforms use this kind of check to decide whether the web process
+    should stay up. It intentionally does not touch Postgres; `/health` remains
+    the deeper API-plus-database readiness check.
+    """
+
+    return {"status": "ok", "api": "ok"}
+
+
 @router.get("/health", response_model=HealthResponse)
 def health_check() -> HealthResponse:
     """Confirm that FastAPI can connect to Postgres."""
@@ -27,4 +39,3 @@ def health_check() -> HealthResponse:
                 "message": str(exc),
             },
         ) from exc
-

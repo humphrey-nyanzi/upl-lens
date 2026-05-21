@@ -1,0 +1,17 @@
+# UPL Match Intelligence API dependencies
+#
+# This file is for the hosted FastAPI service. It intentionally stays smaller
+# than requirements.txt because the public API does not need notebooks,
+# plotting, scraping, or validation tooling at startup.
+
+# Environment loading
+python-dotenv>=1.0.0
+
+# Postgres access
+sqlalchemy>=2.0.0
+psycopg[binary]>=3.2.0
+
+# FastAPI backend
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.10.0
