@@ -8,13 +8,18 @@ on:
         required: true
         default: "2025-26"
       mode:
-        description: "Use full only after POSTGRES_* secrets point to a reachable database"
+        description: "artifact-only uploads refreshed raw files; full also refreshes Postgres/staging"
         required: true
-        default: "artifact-only"
+        default: "full"
         type: choice
         options:
           - artifact-only
           - full
+      apply_migrations:
+        description: "Admin setup only: apply database migrations before loading data"
+        required: true
+        default: false
+        type: boolean
       use_cache:
         description: "Reuse cached HTML/checkpoint state instead of refreshing from the live source"
         required: true
@@ -31,7 +36,8 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       UPDATE_SEASON: ${{ github.event.inputs.season || '2025-26' }}
-      UPDATE_MODE: ${{ github.event.inputs.mode || 'artifact-only' }}
+      UPDATE_MODE: ${{ github.event.inputs.mode || 'full' }}
+      APPLY_MIGRATIONS: ${{ github.event.inputs.apply_migrations || 'false' }}
       USE_CACHE: ${{ github.event.inputs.use_cache || 'false' }}
       POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
       POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
@@ -69,6 +75,7 @@ jobs:
           python scripts/data_platform/update_current_season.py
           --season "$UPDATE_SEASON"
           --mode "$UPDATE_MODE"
+          ${{ env.APPLY_MIGRATIONS != 'true' && '--skip-migrations' || '' }}
           ${{ env.USE_CACHE == 'true' && '--use-cache' || '' }}
 
       - name: Upload raw season files

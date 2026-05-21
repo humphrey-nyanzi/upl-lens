@@ -11,6 +11,7 @@ python scripts/data_platform/update_current_season.py --season 2025-26
 python scripts/data_platform/update_current_season.py --mode artifact-only
 python scripts/data_platform/update_current_season.py --skip-scrape
 python scripts/data_platform/update_current_season.py --use-cache
+python scripts/data_platform/update_current_season.py --skip-migrations
 """
 
 from __future__ import annotations
@@ -80,6 +81,14 @@ def parse_args() -> argparse.Namespace:
         "--skip-staging-verification",
         action="store_true",
         help="Skip the staging validation summary check.",
+    )
+    parser.add_argument(
+        "--skip-migrations",
+        action="store_true",
+        help=(
+            "Skip database migrations in full mode. Use this for routine "
+            "scheduled refreshes that run with a least-privilege loader role."
+        ),
     )
     parser.add_argument(
         "--log-dir",
@@ -240,7 +249,14 @@ def main() -> None:
         )
         return
 
-    _run_step("apply_db_migrations", _python_command("apply_db_migrations.py"), log_dir)
+    if args.skip_migrations:
+        print(
+            "\n[phase5] Skipping database migrations. "
+            "This is expected for routine least-privilege update runs."
+        )
+    else:
+        _run_step("apply_db_migrations", _python_command("apply_db_migrations.py"), log_dir)
+
     _run_step(
         "load_raw_to_postgres",
         _python_command("load_raw_to_postgres.py", "--season", season),

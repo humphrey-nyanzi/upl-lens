@@ -573,12 +573,37 @@ you want automation to fail if any match still needs a retry:
 .venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --fail-on-remaining-failed-matches
 ```
 
+### Routine Updates Versus Admin Migrations
+
+There are two different database jobs in Phase 5:
+
+- **Admin/migration setup** changes the database structure by creating schemas,
+  tables, indexes, and migration records. Run this manually with a trusted
+  Supabase/Postgres admin credential when the schema changes.
+- **Routine current-season refresh** updates rows in the existing `raw` and
+  `staging` tables. This is what the weekly GitHub Actions job should do.
+
+For routine automation, skip migrations and use a least-privilege loader role:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-migrations
+```
+
+The template at `database/permissions/001_create_upl_actions_loader.sql` creates
+an example `upl_actions_loader` role for routine updates. Run it only in a
+secure admin SQL session, replace the password placeholder there, and then store
+that loader role's connection values in GitHub repository secrets. Do not paste
+real Supabase passwords, connection strings, or API keys into chat or committed
+files.
+
 GitHub Actions has a starter workflow at
 `.github/workflows/current-season-update.yml`. It can be triggered manually and
-also runs weekly. For now, the scheduled workflow defaults to `artifact-only`
-mode, which refreshes raw files from the live source and uploads logs/artifacts
-without touching a database. Use `full` mode only after GitHub repository
-secrets point to a hosted Postgres database:
+also runs weekly. The scheduled workflow runs `full` mode with migrations
+skipped, so it is designed for the limited loader role described above. To apply
+migrations from GitHub Actions, trigger the workflow manually and set
+`apply_migrations` to `true` only while using admin-capable database secrets.
+
+Full mode needs these GitHub repository secrets:
 
 ```text
 POSTGRES_HOST

@@ -458,6 +458,9 @@ Current Phase 5 foundation:
     rebuilds staging tables, and runs verification checks.
   - `artifact-only` runs the scraper and leaves refreshed raw files/logs for
     GitHub Actions artifacts without changing a database.
+- `full` mode supports `--skip-migrations` for routine scheduled jobs. This
+  lets GitHub Actions use a limited loader role that can refresh rows without
+  being allowed to change database structure.
 - Phase 5 updates refresh from the live source by default. This bypasses cached
   HTML and old checkpoint state so current-season automation does not silently
   reuse stale match lists.
@@ -491,6 +494,8 @@ GitHub Actions tasks:
 - Add scheduled workflow. Initial version exists.
 - Add manual dispatch option. Initial version exists.
 - Configure secrets for database connection only when needed.
+- Use a least-privilege database role for routine scheduled updates. Admin or
+  owner credentials should be reserved for manual migration setup.
 - Save logs or failed-match artifacts. Initial version uploads raw files and
   automation logs as workflow artifacts.
 - Avoid committing scraped data unless the project explicitly decides to track
@@ -504,6 +509,8 @@ Phase 5 command pattern:
   `python scripts/data_platform/update_current_season.py --season 2025-26 --use-cache`
 - Reuse existing raw files and only refresh Postgres/staging:
   `python scripts/data_platform/update_current_season.py --season 2025-26 --skip-scrape`
+- Run the routine least-privilege refresh without migrations:
+  `python scripts/data_platform/update_current_season.py --season 2025-26 --skip-migrations`
 - Run scraper-only artifact mode for CI or source-data snapshots:
   `python scripts/data_platform/update_current_season.py --season 2025-26 --mode artifact-only`
 - Fail strict automation when any match still needs a retry:
