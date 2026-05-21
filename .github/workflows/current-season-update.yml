@@ -54,9 +54,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements-automation.txt
 
       - name: Install Python dependencies
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements-automation.txt
 
       - name: Check database secrets for full mode
         if: env.UPDATE_MODE == 'full'

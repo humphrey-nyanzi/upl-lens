@@ -248,6 +248,8 @@ h2 {
 
 .metric-card span,
 .insight-strip span,
+.goal-timing-summary span,
+.goal-timing-row span,
 .match-row span,
 .section-heading span,
 .breakdown-row span {
@@ -305,6 +307,68 @@ h2 {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
+}
+
+.goal-timing-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.goal-timing-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid #edf0e8;
+  background: #f7f9f1;
+}
+
+.goal-timing-summary div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+.goal-timing-summary div + div {
+  border-left: 1px solid #edf0e8;
+}
+
+.goal-timing-summary strong {
+  color: #18211c;
+  font-size: 18px;
+}
+
+.goal-timing-chart {
+  display: grid;
+  gap: 10px;
+}
+
+.goal-timing-row {
+  display: grid;
+  grid-template-columns: 72px minmax(120px, 1fr) minmax(110px, max-content);
+  gap: 12px;
+  align-items: center;
+}
+
+.goal-timing-row strong {
+  color: #26352c;
+  font-size: 14px;
+  text-align: right;
+}
+
+.goal-timing-bar-track {
+  height: 18px;
+  overflow: hidden;
+  border: 1px solid #d8ddcf;
+  background: #edf0e8;
+}
+
+.goal-timing-bar {
+  height: 100%;
+  background: #5f7b68;
+}
+
+.goal-timing-bar.peak {
+  background: #cfdf43;
 }
 
 .match-list,
@@ -443,6 +507,7 @@ td {
 
   .metric-grid,
   .insight-strip,
+  .goal-timing-summary,
   .content-grid,
   .future-grid {
     grid-template-columns: 1fr;
@@ -453,6 +518,14 @@ td {
   }
 
   .score-block {
+    text-align: left;
+  }
+
+  .goal-timing-row {
+    grid-template-columns: 1fr;
+  }
+
+  .goal-timing-row strong {
     text-align: left;
   }
 }

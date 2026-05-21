@@ -35,6 +35,22 @@ export type SeasonOverviewResponse = {
   event_breakdown: EventBreakdownItem[];
 };
 
+export type GoalTimingInterval = {
+  interval: string;
+  start_minute: number;
+  end_minute: number;
+  goals: number;
+  share: number;
+  rank: number | null;
+};
+
+export type GoalTimingInsightResponse = {
+  season: string;
+  total_regular_time_goals: number;
+  peak_interval: string | null;
+  intervals: GoalTimingInterval[];
+};
+
 export type MatchSummary = {
   match_id: number;
   season: string;

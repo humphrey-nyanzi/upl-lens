@@ -1,0 +1,22 @@
+# UPL Match Intelligence automation dependencies
+#
+# This smaller requirements file is for the GitHub Actions current-season
+# workflow. It intentionally skips notebooks, plotting, FastAPI, test tools, and
+# formatters so scheduled data refreshes install faster.
+
+# Core tabular processing used by scraping, cleaning, and staging rebuilds.
+numpy>=2.1.0
+pandas>=2.2.0
+
+# Web scraping and source-page parsing.
+requests>=2.32.0
+beautifulsoup4>=4.12.0
+lxml>=5.3.0
+urllib3>=2.2.0
+
+# Environment loading for Postgres settings.
+python-dotenv>=1.0.0
+
+# Postgres access used by raw loading, migrations, staging, and verification.
+sqlalchemy>=2.0.0
+psycopg[binary]>=3.2.0

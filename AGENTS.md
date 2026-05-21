@@ -147,6 +147,59 @@ Follow the roadmap phases:
 
 Avoid jumping ahead into UI work before the database model can support it.
 
+## Feature Promotion Workflow
+
+Phase 6 notebook experiments should use the feature package workflow documented
+in [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md).
+Use [docs/FEATURE_DATA_ACCESS.md](docs/FEATURE_DATA_ACCESS.md) for notebook data
+source rules and read-only research access. Use
+[docs/FEATURE_REGISTRY.md](docs/FEATURE_REGISTRY.md) to track feature lifecycle
+status, and [docs/ANALYTICS_VIEW_CONVENTIONS.md](docs/ANALYTICS_VIEW_CONVENTIONS.md)
+to decide when stable notebook metrics should become `analytics.*` views.
+
+When starting a new experimental feature, copy:
+
+```text
+notebooks/features/_feature_template/
+```
+
+into a numbered feature folder such as:
+
+```text
+notebooks/features/feature_02_card_trends/
+```
+
+Each feature package should contain:
+
+- `analysis.ipynb` for exploratory research.
+- `research_brief.md` for the football question, metric definitions, finding, and
+  caveats.
+- `product_plan.md` for the promotion plan, later change requests, desired
+  React UI, validation plan, and implementation history.
+- `outputs/` for reference notebook exports only.
+
+When creating a feature package, add it to `docs/FEATURE_REGISTRY.md` and update
+its lifecycle status as it moves from research to promotion.
+
+For notebook data access, default to cleaned Postgres `staging.*` tables through
+`src.research.read_sql`. Use `raw.*` only for source-data debugging, CSVs only
+for legacy comparison, and `analytics.*` for stable promoted views or summaries.
+
+Use a direct API query for small first slices. Use an `analytics.*` view when a
+metric becomes stable, reusable, or complex enough to deserve a named database
+contract. Use stored analytics tables or materialized views only when a normal
+view is too slow or snapshot history is required.
+
+When promoting or modifying a feature, treat `research_brief.md` and
+`product_plan.md` as the source of truth, then use the notebook as
+supporting evidence. Keep the promoted product path as:
+
+```text
+Postgres staging/analytics -> FastAPI endpoint -> JSON -> React dashboard
+```
+
+Do not make React read CSV files, notebooks, or exported notebook images.
+
 ## Product Principles
 
 This project should not merely recreate the official UPL website. The official

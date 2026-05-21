@@ -126,15 +126,27 @@ upl-goal-timing/
 │   └── routers/
 ├── database/
 │   ├── migrations/
+│   ├── permissions/
 │   └── seeds/
 ├── docs/
+│   ├── ANALYTICS_VIEW_CONVENTIONS.md
+│   ├── FEATURE_DATA_ACCESS.md
+│   ├── FEATURE_REGISTRY.md
+│   ├── FEATURE_PROMOTION_WORKFLOW.md
+│   ├── PHASE5_AUTOMATION.md
 │   └── PROJECT_ROADMAP.md
 ├── frontend/
 ├── notebooks/
 │   └── features/
+│       ├── _feature_template/
+│       │   ├── analysis.ipynb
+│       │   ├── research_brief.md
+│       │   └── product_plan.md
 │       └── feature_01_goal_timing/
 │           ├── analysis.ipynb
-│           └── analysis_v2.ipynb
+│           ├── analysis_v2.ipynb
+│           ├── research_brief.md
+│           └── product_plan.md
 ├── outputs/
 │   └── features/
 │       └── feature_01_goal_timing/
@@ -152,6 +164,7 @@ upl-goal-timing/
     ├── db/
     ├── features/
     │   └── feature_01_goal_timing/
+    ├── research/
     ├── scraping/
     ├── validation/
     ├── cleaning.py
@@ -240,6 +253,26 @@ Open the Feature 1 research notebooks:
 
 ```text
 notebooks/features/feature_01_goal_timing/
+```
+
+Start a new experimental feature from the template:
+
+```powershell
+Copy-Item -Recurse notebooks\features\_feature_template notebooks\features\feature_02_card_trends
+```
+
+Track notebook-to-product features:
+
+```text
+docs/FEATURE_REGISTRY.md
+```
+
+Use these Phase 6 guides when researching or promoting a feature:
+
+```text
+docs/FEATURE_PROMOTION_WORKFLOW.md
+docs/FEATURE_DATA_ACCESS.md
+docs/ANALYTICS_VIEW_CONVENTIONS.md
 ```
 
 ## Phase 1 Database Setup
@@ -440,6 +473,7 @@ Initial endpoints:
 GET /health
 GET /seasons
 GET /seasons/{season}/overview
+GET /insights/goal-timing
 GET /matches
 GET /matches/{match_id}
 GET /teams
@@ -453,6 +487,7 @@ Example endpoint checks:
 curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/seasons
 curl "http://127.0.0.1:8000/seasons/2025_26/overview"
+curl "http://127.0.0.1:8000/insights/goal-timing?season=2025_26"
 curl "http://127.0.0.1:8000/matches?season=2025_26&limit=5"
 curl "http://127.0.0.1:8000/matches/15463"
 curl "http://127.0.0.1:8000/teams?season=2025_26"
@@ -483,7 +518,7 @@ React League Overview
 ```
 
 The frontend does not read CSV files. It uses the existing API endpoints for
-health, seasons, season overview, matches, teams, and events.
+health, seasons, season overview, goal timing, matches, teams, and events.
 
 Start the local API server from the repository root:
 
@@ -519,8 +554,10 @@ What the pilot shows:
 - API/database health from `/health`
 - available seasons from `/seasons`
 - season-level totals from `/seasons/{season}/overview`
+- the Feature 1 goal timing insight from `/insights/goal-timing?season=...`
 - a season selector
 - summary cards for matches, teams, goals, and cards
+- a Goal Timing Explorer panel for regular-time goals by 15-minute interval
 - recent matches from `/matches?season=...`
 - team records from `/teams?season=...`
 - event breakdown from `/events?season=...`
@@ -607,6 +644,11 @@ The working automation setup, manual run settings, artifact behavior, and common
 Supabase connection errors are documented in
 [`docs/PHASE5_AUTOMATION.md`](docs/PHASE5_AUTOMATION.md).
 
+The workflow installs `requirements-automation.txt` instead of the full
+`requirements.txt`, and `actions/setup-python` caches pip downloads. This keeps
+scheduled refreshes lighter while leaving notebook, API, testing, and formatting
+dependencies in the full development requirements file.
+
 Full mode needs these GitHub repository secrets:
 
 ```text
@@ -621,6 +663,76 @@ POSTGRES_SSLMODE
 For Supabase pooler connections, the GitHub `POSTGRES_USER` secret may need the
 project reference suffix, for example `upl_actions_loader.<project-ref>`, while
 the database role created inside Postgres remains `upl_actions_loader`.
+
+## Phase 6 Notebook Insight Promotion
+
+Phase 6 starts the repeatable path from notebook research into the product.
+New experiments should use the feature package workflow documented in
+[`docs/FEATURE_PROMOTION_WORKFLOW.md`](docs/FEATURE_PROMOTION_WORKFLOW.md) and
+the notebook data-access standard documented in
+[`docs/FEATURE_DATA_ACCESS.md`](docs/FEATURE_DATA_ACCESS.md).
+
+Feature package shape:
+
+```text
+notebooks/features/feature_xx_short_name/
+  README.md
+  analysis.ipynb
+  research_brief.md
+  product_plan.md
+  outputs/
+```
+
+In plain English:
+
+- `analysis.ipynb` is the lab where the football logic is tested.
+- `research_brief.md` explains the question, finding, metrics, and caveats.
+- `product_plan.md` tells an AI agent what to build or change in Postgres/FastAPI/React.
+- `outputs/` stores reference charts only; the product must not depend on them.
+
+Research notebooks should use cleaned Postgres `staging.*` tables by default.
+Use `raw.*` only for source-data debugging, CSVs only for legacy comparison, and
+`analytics.*` when a promoted metric becomes stable and reusable. For safer
+notebook queries, use:
+
+```python
+from src.research import read_sql
+```
+
+The optional read-only research role template lives at:
+
+```text
+database/permissions/002_create_upl_research_reader.sql
+```
+
+The first promoted slice is Feature 1 goal timing:
+
+```text
+Feature 1 notebook finding
+  -> staging.events regular-time goal query
+  -> GET /insights/goal-timing?season=...
+  -> React Goal Timing Explorer panel
+```
+
+This endpoint intentionally excludes added-time goals from the interval chart,
+matching the original pilot caveat. It counts regular-time goal events in these
+15-minute windows: `0-15`, `16-30`, `31-45`, `46-60`, `61-75`, and `76-90`.
+
+Verify the first Phase 6 slice locally:
+
+```powershell
+.venv\Scripts\python.exe -m compileall api src scripts
+.venv\Scripts\python.exe -m uvicorn api.main:app --reload
+```
+
+Then check:
+
+```powershell
+curl "http://127.0.0.1:8000/insights/goal-timing?season=2025_26"
+cd frontend
+npm run build
+npm run dev
+```
 
 ## Roadmap
 

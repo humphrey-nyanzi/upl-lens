@@ -37,6 +37,22 @@ class EventBreakdownItem(ApiModel):
     count: int
 
 
+class GoalTimingInterval(ApiModel):
+    interval: str
+    start_minute: int
+    end_minute: int
+    goals: int
+    share: float
+    rank: int | None = None
+
+
+class GoalTimingInsightResponse(ApiModel):
+    season: str
+    total_regular_time_goals: int
+    peak_interval: str | None = None
+    intervals: list[GoalTimingInterval]
+
+
 class SeasonOverviewResponse(ApiModel):
     season: str
     match_count: int

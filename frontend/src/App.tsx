@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "./api/client";
 import type {
   EventResponse,
+  GoalTimingInsightResponse,
   HealthResponse,
   MatchSummary,
   SeasonOverviewResponse,
@@ -16,12 +17,13 @@ type DashboardData = {
   health: HealthResponse | null;
   seasons: SeasonResponse[];
   overview: SeasonOverviewResponse | null;
+  goalTiming: GoalTimingInsightResponse | null;
   matches: MatchSummary[];
   teams: TeamResponse[];
   events: EventResponse[];
 };
 
-const futurePages = ["Match Explorer", "Goal Timing Explorer", "Discipline Dashboard", "Team Profile"];
+const futurePages = ["Match Explorer", "Discipline Dashboard", "Team Profile"];
 
 const eventLabels: Record<string, string> = {
   goal: "Goals",
@@ -56,11 +58,16 @@ function eventLabel(eventType: string | null) {
   return eventLabels[eventType] ?? eventType.replaceAll("_", " ");
 }
 
+function formatPercent(value: number) {
+  return `${Math.round(value * 1000) / 10}%`;
+}
+
 function App() {
   const [data, setData] = useState<DashboardData>({
     health: null,
     seasons: [],
     overview: null,
+    goalTiming: null,
     matches: [],
     teams: [],
     events: [],
@@ -109,15 +116,16 @@ function App() {
       setErrorMessage("");
 
       try {
-        const [overview, matches, teams, events] = await Promise.all([
+        const [overview, goalTiming, matches, teams, events] = await Promise.all([
           apiClient.getSeasonOverview(selectedSeason),
+          apiClient.getGoalTimingInsight(selectedSeason),
           apiClient.getMatches(selectedSeason, 200),
           apiClient.getTeams(selectedSeason, 200),
           apiClient.getEvents(selectedSeason, 200),
         ]);
 
         if (!ignore) {
-          setData((current) => ({ ...current, overview, matches, teams, events }));
+          setData((current) => ({ ...current, overview, goalTiming, matches, teams, events }));
           setLoadState("success");
         }
       } catch (error) {
@@ -137,6 +145,7 @@ function App() {
 
   const selectedSeasonInfo = data.seasons.find((season) => season.season === selectedSeason);
   const overview = data.overview?.season === selectedSeason ? data.overview : null;
+  const goalTiming = data.goalTiming?.season === selectedSeason ? data.goalTiming : null;
 
   const summary = {
     matches: overview?.match_count ?? selectedSeasonInfo?.match_count ?? data.matches.length,
@@ -189,6 +198,9 @@ function App() {
         apiClient.getSeasonOverview(selectedSeason).then((overview) =>
           setData((current) => ({ ...current, overview })),
         ),
+        apiClient.getGoalTimingInsight(selectedSeason).then((goalTiming) =>
+          setData((current) => ({ ...current, goalTiming })),
+        ),
         apiClient.getMatches(selectedSeason, 200).then((matches) =>
           setData((current) => ({ ...current, matches })),
         ),
@@ -219,6 +231,9 @@ function App() {
         <nav className="nav-list" aria-label="Future dashboard pages">
           <a className="nav-item active" href="#overview">
             League Overview
+          </a>
+          <a className="nav-item" href="#goal-timing">
+            Goal Timing
           </a>
           {futurePages.map((page) => (
             <a className="nav-item disabled" href="#future-pages" key={page} aria-disabled="true">
@@ -305,6 +320,8 @@ function App() {
             <strong>{data.health?.latest_staging_completed_at ? formatDate(data.health.latest_staging_completed_at) : "Unknown"}</strong>
           </div>
         </section>
+
+        <GoalTimingPanel goalTiming={goalTiming} loadState={loadState} />
 
         <div className="content-grid">
           <section className="panel wide">
@@ -397,6 +414,66 @@ function App() {
         </section>
       </section>
     </main>
+  );
+}
+
+function GoalTimingPanel({
+  goalTiming,
+  loadState,
+}: {
+  goalTiming: GoalTimingInsightResponse | null;
+  loadState: LoadState;
+}) {
+  const maxGoals = Math.max(...(goalTiming?.intervals.map((interval) => interval.goals) ?? [0]), 1);
+
+  return (
+    <section className="panel goal-timing-panel" id="goal-timing">
+      <div className="section-heading">
+        <div>
+          <h2>Goal Timing Explorer</h2>
+          <p>Regular-time goal distribution promoted from the Feature 1 notebook.</p>
+        </div>
+        <span>{loadState === "loading" ? "Loading..." : goalTiming?.peak_interval ?? "No peak yet"}</span>
+      </div>
+
+      {goalTiming ? (
+        <>
+          <div className="goal-timing-summary">
+            <div>
+              <span>Regular-time goals</span>
+              <strong>{goalTiming.total_regular_time_goals.toLocaleString()}</strong>
+            </div>
+            <div>
+              <span>Peak interval</span>
+              <strong>{goalTiming.peak_interval ?? "Unavailable"}</strong>
+            </div>
+          </div>
+
+          <div className="goal-timing-chart" aria-label="Regular-time goals by 15-minute interval">
+            {goalTiming.intervals.map((interval) => {
+              const width = `${Math.max((interval.goals / maxGoals) * 100, interval.goals > 0 ? 8 : 0)}%`;
+
+              return (
+                <div className="goal-timing-row" key={interval.interval}>
+                  <span>{interval.interval}</span>
+                  <div className="goal-timing-bar-track">
+                    <div
+                      className={interval.rank === 1 ? "goal-timing-bar peak" : "goal-timing-bar"}
+                      style={{ width }}
+                    />
+                  </div>
+                  <strong>
+                    {interval.goals.toLocaleString()} ({formatPercent(interval.share)})
+                  </strong>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <EmptyState message="No goal timing insight returned for this season yet." />
+      )}
+    </section>
   );
 }
 

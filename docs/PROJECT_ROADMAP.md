@@ -313,7 +313,7 @@ Current Phase 3 foundation:
 
 - `api/main.py` creates the FastAPI app and registers route modules.
 - `api/routers/` contains thin endpoint modules for health, seasons, matches,
-  teams, events, and officials.
+  teams, events, officials, and insights.
 - `src/api/queries.py` contains the Postgres SQL query layer.
 - `src/api/schemas.py` contains the initial Pydantic response models.
 - The API reads from Postgres `staging.*` tables, not raw CSV files.
@@ -323,6 +323,7 @@ Initial endpoints:
 - `GET /health`
 - `GET /seasons`
 - `GET /seasons/{season}/overview`
+- `GET /insights/goal-timing`
 - `GET /matches`
 - `GET /matches/{match_id}`
 - `GET /teams`
@@ -381,13 +382,15 @@ Current Phase 4 pilot foundation:
 - `frontend/src/api/client.ts` is the small API service layer.
 - `frontend/src/api/types.ts` mirrors the current FastAPI response shapes.
 - The first screen is a League Overview dashboard that calls `/health`,
-  `/seasons`, `/seasons/{season}/overview`, `/matches`, `/teams`, and
-  `/events`.
+  `/seasons`, `/seasons/{season}/overview`, `/insights/goal-timing`,
+  `/matches`, `/teams`, and `/events`.
 - `GET /seasons/{season}/overview` gives the frontend season-wide totals for
   matches, teams, goals, cards, event totals, and event breakdowns without
   paging through every event row in the browser.
 - FastAPI allows local Vite origins with CORS for browser development.
 - The frontend reads FastAPI JSON only; it does not read CSV files.
+- The first Phase 6 insight panel promotes Feature 1 goal timing into the
+  dashboard through `/insights/goal-timing?season=...`.
 
 Initial pages:
 
@@ -476,6 +479,8 @@ Current Phase 5 foundation:
   loader role.
 - `docs/PHASE5_AUTOMATION.md` documents the working GitHub secrets, Supabase
   pooler username pattern, artifact behavior, and common connection errors.
+- The workflow installs `requirements-automation.txt` with pip caching instead
+  of installing the full notebook/API/developer `requirements.txt`.
 
 Target weekly flow:
 
@@ -501,6 +506,8 @@ GitHub Actions tasks:
   owner credentials should be reserved for manual migration setup.
 - Save logs or failed-match artifacts. Initial version uploads raw files and
   automation logs as workflow artifacts.
+- Keep workflow installs lean. Current implementation uses
+  `requirements-automation.txt` plus `actions/setup-python` pip caching.
 - Avoid committing scraped data unless the project explicitly decides to track
   small public snapshots.
 
@@ -537,15 +544,50 @@ Acceptance criteria:
 Objective: Build a repeatable path from exploratory analysis to dashboard
 feature.
 
+Current Phase 6 foundation:
+
+- Feature 1 goal timing is the first promoted notebook insight.
+- `docs/FEATURE_PROMOTION_WORKFLOW.md` defines the standard feature package
+  workflow for future notebook experiments.
+- `docs/FEATURE_DATA_ACCESS.md` defines safe notebook data-source rules:
+  default to `staging.*`, use `raw.*` for source debugging, use CSVs for legacy
+  comparison only, and move stable reusable logic into `analytics.*`.
+- `docs/FEATURE_REGISTRY.md` tracks each feature's lifecycle status, source,
+  endpoint, and frontend surface.
+- `docs/ANALYTICS_VIEW_CONVENTIONS.md` explains when promoted notebook logic
+  should become a direct API query, an `analytics.*` SQL view, or a stored
+  analytics table/materialized view.
+- `src.research.read_sql` provides a read-only pandas helper for feature
+  notebooks.
+- `database/permissions/002_create_upl_research_reader.sql` provides an optional
+  read-only Postgres role template for notebook research.
+- New research features should start by copying
+  `notebooks/features/_feature_template/`.
+- Each feature package should include `analysis.ipynb`, `research_brief.md`,
+  `product_plan.md`, and `outputs/`.
+- `GET /insights/goal-timing?season=...` summarizes regular-time goal events
+  from `staging.events` by 15-minute interval.
+- The endpoint excludes added-time goals from the interval distribution, matching
+  the original notebook caveat.
+- The React dashboard includes a Goal Timing Explorer panel that reads this API
+  response instead of calculating the insight from CSVs or paged event rows.
+
 Promotion process:
 
-1. Explore a question in a notebook.
-2. Validate that the pattern is real and useful.
-3. Write down the finding and caveats.
-4. Create a SQL view or API query that reproduces it.
-5. Add an API endpoint.
-6. Add a React visualization.
-7. Update documentation.
+1. Copy `notebooks/features/_feature_template/` into a new feature folder.
+2. Add the feature to `docs/FEATURE_REGISTRY.md` with status `researching`.
+3. Explore a question in `analysis.ipynb`.
+4. Use `staging.*` through `src.research.read_sql` unless the feature clearly
+   needs raw-source debugging.
+5. Validate that the pattern is real and useful.
+6. Write down the finding and caveats in `research_brief.md`.
+7. Write the promotion plan or change requests in `product_plan.md`.
+8. Mark the registry status `promotion_ready`.
+9. Create an analytics view or direct API query that reproduces the final
+   metric.
+10. Add an API endpoint.
+11. Add a React visualization.
+12. Update documentation, implementation history, and the registry.
 
 Candidate research tracks:
 
@@ -564,6 +606,9 @@ Acceptance criteria:
 
 - Dashboard insights can be traced back to reproducible notebook or SQL work.
 - Caveats are documented, especially where source data is incomplete.
+- Feature status and production location are discoverable from
+  `docs/FEATURE_REGISTRY.md`.
+- Reusable promoted metrics have a clear direct-query or `analytics.*` decision.
 
 ## Phase 7 - Deployment And Portfolio Polish
 

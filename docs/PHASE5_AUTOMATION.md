@@ -34,6 +34,12 @@ apply_migrations=false
 use_cache=false
 ```
 
+The workflow installs `requirements-automation.txt`, not the full
+`requirements.txt`. That keeps scheduled runs faster by excluding notebook,
+plotting, API, testing, and formatting packages that are not needed for the data
+refresh. `actions/setup-python` also caches pip downloads using
+`requirements-automation.txt` as the cache key.
+
 In plain English:
 
 - `mode=full` means the workflow updates Postgres and staging, not just
@@ -174,4 +180,3 @@ A healthy routine run should show:
 - `build_staging_from_raw` finished.
 - `verify_staging_outputs` finished without error-level validation issues.
 - The final Phase 5 summary prints row counts and log paths.
-

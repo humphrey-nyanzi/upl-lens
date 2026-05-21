@@ -1,5 +1,6 @@
 import type {
   EventResponse,
+  GoalTimingInsightResponse,
   HealthResponse,
   MatchSummary,
   SeasonOverviewResponse,
@@ -38,6 +39,8 @@ export const apiClient = {
   getSeasons: () => getJson<SeasonResponse[]>("/seasons"),
   getSeasonOverview: (season: string) =>
     getJson<SeasonOverviewResponse>(`/seasons/${season}/overview`),
+  getGoalTimingInsight: (season: string) =>
+    getJson<GoalTimingInsightResponse>("/insights/goal-timing", { season }),
   getMatches: (season: string, limit = 200) =>
     getJson<MatchSummary[]>("/matches", { season, limit }),
   getTeams: (season: string, limit = 200) => getJson<TeamResponse[]>("/teams", { season, limit }),
