@@ -179,11 +179,14 @@ upl-goal-timing/
 │   ├── FEATURE_DATA_ACCESS.md
 │   ├── FEATURE_REGISTRY.md
 │   ├── FEATURE_PROMOTION_WORKFLOW.md
+│   ├── FRONTEND_UX_REQUESTS.md
 │   ├── OPERATIONS.md
 │   ├── PHASE5_AUTOMATION.md
 │   ├── PHASE7_DEPLOYMENT_RUNBOOK.md
 │   ├── PROJECT_ROADMAP.md
-│   └── START_HERE.md
+│   ├── RESEARCH_IDEAS.md
+│   ├── START_HERE.md
+│   └── UI_UX_GUIDELINES.md
 ├── frontend/
 ├── notebooks/
 │   └── features/
@@ -313,6 +316,7 @@ Copy-Item -Recurse notebooks\features\_feature_template notebooks\features\featu
 Track notebook-to-product features:
 
 ```text
+docs/RESEARCH_IDEAS.md
 docs/FEATURE_REGISTRY.md
 ```
 
@@ -612,6 +616,18 @@ What the pilot shows:
 - team records from `/teams?season=...`
 - event breakdown from `/events?season=...`
 - placeholders for the next product areas
+
+Frontend UI/UX planning is tracked in:
+
+```text
+docs/FRONTEND_UX_REQUESTS.md
+```
+
+Approved durable design and UX decisions are tracked in:
+
+```text
+docs/UI_UX_GUIDELINES.md
+```
 
 ## Data Reliability & Operations: Current-Season Automation
 

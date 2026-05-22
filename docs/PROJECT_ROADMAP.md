@@ -173,6 +173,7 @@ dashboard decoration.
 Owns:
 
 - feature notebooks
+- research ideas in `docs/RESEARCH_IDEAS.md`
 - research briefs and product plans
 - metric definitions and source-data caveats
 - feature registry status
@@ -195,6 +196,8 @@ Known weaknesses:
 Next useful work:
 
 - start Feature 2, likely discipline/card trends
+- use `docs/RESEARCH_IDEAS.md` to compare candidate football questions before
+  creating a feature package
 - validate a second useful football question in a notebook
 - decide whether the metric should use a direct API query or `analytics.*` view
 - promote the validated metric into FastAPI and React
@@ -219,6 +222,8 @@ Owns:
 - frontend API client and response types
 - browser-facing error handling for API offline states and free-tier cold starts
 - product navigation and UI/UX quality
+- frontend change requests in `docs/FRONTEND_UX_REQUESTS.md`
+- approved UI/UX decisions in `docs/UI_UX_GUIDELINES.md`
 
 Current strengths:
 
@@ -238,6 +243,9 @@ Known weaknesses:
 Next useful work:
 
 - redesign the frontend into real product pages
+- use `docs/FRONTEND_UX_REQUESTS.md` as the editable source of truth before
+  implementation
+- move approved durable decisions into `docs/UI_UX_GUIDELINES.md`
 - add stronger loading, empty, and error states
 - add API endpoints only when product features prove the need
 - create a visible path from summary views to match/team detail views

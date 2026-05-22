@@ -94,6 +94,7 @@ Read first:
 
 - [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
 - [FEATURE_DATA_ACCESS.md](FEATURE_DATA_ACCESS.md)
+- [RESEARCH_IDEAS.md](RESEARCH_IDEAS.md)
 - [FEATURE_REGISTRY.md](FEATURE_REGISTRY.md)
 - [ANALYTICS_VIEW_CONVENTIONS.md](ANALYTICS_VIEW_CONVENTIONS.md)
 
@@ -133,6 +134,8 @@ Read first:
 - `frontend/src/App.tsx`
 - `frontend/src/api/client.ts`
 - `frontend/src/api/types.ts`
+- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
+- [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md)
 
 Useful commands:
 
@@ -259,12 +262,15 @@ If you want to refresh data:
 
 If you want to add a football insight:
 
+- [RESEARCH_IDEAS.md](RESEARCH_IDEAS.md)
 - [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
 - [FEATURE_DATA_ACCESS.md](FEATURE_DATA_ACCESS.md)
 - [FEATURE_REGISTRY.md](FEATURE_REGISTRY.md)
 
 If you want to improve the app:
 
+- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
+- [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md)
 - `api/`
 - `src/api/`
 - `frontend/src/`

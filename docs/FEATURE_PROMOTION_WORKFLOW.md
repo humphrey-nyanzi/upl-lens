@@ -8,6 +8,8 @@ or engineer handles the production promotion and later implementation changes.
 
 Related docs:
 
+- `docs/RESEARCH_IDEAS.md` tracks rough football questions before they become
+  formal feature packages.
 - `docs/FEATURE_REGISTRY.md` tracks feature lifecycle status and where promoted
   features live.
 - `docs/FEATURE_DATA_ACCESS.md` explains which data sources notebooks should
@@ -115,16 +117,18 @@ evidence and comparison only. The product dashboard should not depend on them.
 
 ## Human Workflow
 
-1. Copy the template folder.
-2. Rename it with the next feature number and a short slug.
-3. Add a row to `docs/FEATURE_REGISTRY.md` with status `researching`.
-4. Work in `analysis.ipynb`.
-5. Keep experimenting until the analysis has a useful final answer.
-6. Fill in `research_brief.md`.
-7. Fill in the **Promotion Plan** and readiness checklist in
+1. Start with an idea in `docs/RESEARCH_IDEAS.md`.
+2. Mark the idea `selected` when it is ready to become a feature package.
+3. Copy the template folder.
+4. Rename it with the next feature number and a short slug.
+5. Add a row to `docs/FEATURE_REGISTRY.md` with status `researching`.
+6. Work in `analysis.ipynb`.
+7. Keep experimenting until the analysis has a useful final answer.
+8. Fill in `research_brief.md`.
+9. Fill in the **Promotion Plan** and readiness checklist in
    `product_plan.md`.
-8. Update the registry status to `promotion_ready`.
-9. Ask an AI agent to promote the feature.
+10. Update the registry status to `promotion_ready`.
+11. Ask an AI agent to promote the feature.
 
 Suggested first-promotion prompt:
 
@@ -183,24 +187,25 @@ When asked to promote a feature, an AI agent should:
 
 1. Read `AGENTS.md`, `.github/copilot-instructions.md`, and this workflow doc.
 2. Read `docs/FEATURE_DATA_ACCESS.md`.
-3. Read `docs/FEATURE_REGISTRY.md` and
+3. Read `docs/RESEARCH_IDEAS.md`.
+4. Read `docs/FEATURE_REGISTRY.md` and
    `docs/ANALYTICS_VIEW_CONVENTIONS.md`.
-4. Read the feature folder's `README.md`, `research_brief.md`, and
+5. Read the feature folder's `README.md`, `research_brief.md`, and
    `product_plan.md`.
-5. Inspect the notebook only enough to understand the evidence and final metric.
-6. Confirm whether the notebook used `staging.*`, `raw.*`, CSVs, or
+6. Inspect the notebook only enough to understand the evidence and final metric.
+7. Confirm whether the notebook used `staging.*`, `raw.*`, CSVs, or
    `analytics.*`, and map the result to a production-safe Postgres source.
-7. Identify the production data source.
-8. Decide whether to use a direct API query, an analytics SQL view, or a stored
+8. Identify the production data source.
+9. Decide whether to use a direct API query, an analytics SQL view, or a stored
    analytics table.
-9. Add query logic in the backend query/service layer.
-10. Add or extend a thin FastAPI route.
-11. Add typed response models.
-12. Add or extend a React client method and typed frontend response shape.
-13. Add a responsive dashboard component.
-14. Update docs, `product_plan.md` implementation history, and
+10. Add query logic in the backend query/service layer.
+11. Add or extend a thin FastAPI route.
+12. Add typed response models.
+13. Add or extend a React client method and typed frontend response shape.
+14. Add a responsive dashboard component.
+15. Update docs, `product_plan.md` implementation history, and
     `docs/FEATURE_REGISTRY.md`.
-15. Run relevant verification commands.
+16. Run relevant verification commands.
 
 The AI agent should not:
 

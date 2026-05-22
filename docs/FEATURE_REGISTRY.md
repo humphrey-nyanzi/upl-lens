@@ -13,6 +13,9 @@ The registry should stay small and factual. Detailed football thinking belongs
 in each feature's `research_brief.md`; detailed implementation requests belong
 in each feature's `product_plan.md`.
 
+Rough ideas that are not feature packages yet belong in
+[RESEARCH_IDEAS.md](RESEARCH_IDEAS.md).
+
 ## Lifecycle Statuses
 
 Use these statuses for feature folders and registry rows.
@@ -48,9 +51,10 @@ Use these statuses for feature folders and registry rows.
 
 When starting a feature:
 
-1. Copy `notebooks/features/_feature_template/`.
-2. Add a registry row with status `researching`.
-3. Work in the notebook.
+1. Start from a `selected` idea in `docs/RESEARCH_IDEAS.md`.
+2. Copy `notebooks/features/_feature_template/`.
+3. Add a registry row with status `researching`.
+4. Work in the notebook.
 
 When the notebook has a useful result:
 
