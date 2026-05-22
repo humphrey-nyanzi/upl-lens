@@ -5,6 +5,11 @@
 This document is the working plan for evolving the project from a goal timing
 analysis into a full-stack Uganda Premier League data platform.
 
+The initial launch build moved through a set of phases so each layer could be
+created in order. That launch foundation now exists at a basic public-product
+level. Future work should be planned through four continuous development areas,
+not through the old phase sequence.
+
 The goal is not to copy the official UPL website. The official site provides
 match pages and source data. This project should turn that data into searchable,
 modeled, and meaningful football intelligence.
@@ -103,6 +108,249 @@ Preferred user request flow:
 React component -> FastAPI route -> query/service layer -> Postgres -> JSON -> chart/table
 ```
 
+## Continuous Development Areas
+
+Use these four areas for new planning, review, and prioritization.
+
+### 1. Data Reliability & Operations
+
+Purpose: keep the data platform trustworthy from source scrape to public
+deployment.
+
+Owns:
+
+- scraper reliability and source-site change handling
+- raw files, cache behavior, and failed-match manifests
+- Postgres migrations, schemas, indexes, and permissions
+- raw-to-staging rebuilds
+- validation checks and issue severity
+- stage logs, run summaries, and workflow artifacts
+- current-season automation through GitHub Actions
+- deployment health, CORS, hosted database limits, and database roles
+- unit tests around high-risk data parsing and pipeline orchestration
+
+Current strengths:
+
+- structured scraper outputs exist for matches, events, lineups, staff,
+  officials, stats, and failed matches
+- raw CSVs can load into Postgres idempotently
+- staging tables rebuild from Postgres `raw.*`
+- validation runs and validation issues are stored in staging
+- current-season automation exists locally and in GitHub Actions
+- deployment uses hosted React, FastAPI, and Postgres services
+
+Known weaknesses:
+
+- source-site HTML changes can still break scraping
+- validation coverage is useful but still early
+- stage logs and run summaries should become more consistent
+- unit tests are not yet a real safety net
+- free-tier backend/database behavior can affect public reliability
+
+Next useful work:
+
+- add a small observability and test foundation
+- make stage logs and run summaries more standardized
+- add tests for event-minute parsing, event normalization, team-name
+  normalization, staging validation rules, and automation flags
+- keep routine automation separate from admin migration paths
+- monitor hosted database size and failed-match patterns
+
+Escalate when:
+
+- the scraper cannot reach or parse source pages
+- raw loaded counts disagree with source files
+- staging validation finds structural errors
+- the public API would serve misleading data
+- routine automation requires admin database privileges
+- credentials or secrets are exposed
+
+### 2. Research & Football Intelligence
+
+Purpose: turn UPL data into validated football insight instead of ungrounded
+dashboard decoration.
+
+Owns:
+
+- feature notebooks
+- research briefs and product plans
+- metric definitions and source-data caveats
+- feature registry status
+- direct API query versus `analytics.*` view decisions
+- promotion from notebook finding to API and React
+
+Current strengths:
+
+- Feature 1 goal timing is promoted into FastAPI and React
+- feature templates and registry exist
+- notebook data-access rules prefer cleaned Postgres `staging.*`
+- analytics view conventions exist for reusable metrics
+
+Known weaknesses:
+
+- only one insight has been promoted so far
+- the next football feature needs research validation before UI work
+- caveats need to stay visible when source data is incomplete
+
+Next useful work:
+
+- start Feature 2, likely discipline/card trends
+- validate a second useful football question in a notebook
+- decide whether the metric should use a direct API query or `analytics.*` view
+- promote the validated metric into FastAPI and React
+
+Escalate when:
+
+- a proposed dashboard metric lacks a reproducible notebook, SQL query, or
+  documented product plan
+- a feature depends on raw data or CSVs without a clear reason
+- the source data caveats are too large to present without explanation
+
+### 3. Product Experience
+
+Purpose: make the API and React app useful, understandable, and polished for
+people exploring the league.
+
+Owns:
+
+- FastAPI routes and response models
+- query/service functions under `src/api/`
+- React pages, filters, charts, tables, and loading states
+- frontend API client and response types
+- browser-facing error handling for API offline states and free-tier cold starts
+- product navigation and UI/UX quality
+
+Current strengths:
+
+- FastAPI exposes seasons, overview, matches, teams, events, officials, health,
+  and goal timing insight endpoints
+- route functions are thin and query logic is centralized
+- React reads FastAPI JSON instead of CSV files
+- the deployed app proves the full public request flow
+
+Known weaknesses:
+
+- the frontend is still a pilot, not a rich analytical product
+- Match Explorer, Team Profile, and Discipline Dashboard are not built out
+- API tests and frontend smoke tests are still thin
+- UI caveats and data freshness signals can be clearer
+
+Next useful work:
+
+- redesign the frontend into real product pages
+- add stronger loading, empty, and error states
+- add API endpoints only when product features prove the need
+- create a visible path from summary views to match/team detail views
+
+Escalate when:
+
+- React starts duplicating durable SQL or backend logic
+- the frontend needs data that no API endpoint exposes cleanly
+- API response changes can break the dashboard
+- UI presentation makes incomplete data look certain
+
+### 4. Developer Experience & Documentation
+
+Purpose: keep the project readable, runnable, and teachable for a junior
+developer, reviewer, future contributor, or AI agent.
+
+Owns:
+
+- onboarding and documentation navigation
+- local setup instructions
+- command guides and troubleshooting docs
+- testing instructions
+- beginner-readable explanations
+- repo conventions in `AGENTS.md` and related guidance
+- keeping docs aligned with actual commands and deployed behavior
+
+Current strengths:
+
+- the project has detailed docs for roadmap, automation, deployment, and feature
+  promotion
+- `AGENTS.md` captures repo-specific AI working rules
+- README explains the live demo and core architecture
+
+Known weaknesses:
+
+- documentation became launch-history heavy
+- there are enough docs that a new reader may not know where to begin
+- some docs still speak in old phases because that was how the foundation was
+  built
+
+Next useful work:
+
+- use `docs/START_HERE.md` as the beginner entrypoint
+- keep README short and public-facing
+- keep this roadmap as the planning map
+- keep detailed automation/deployment/feature docs as references
+- add or consolidate local development and operations guides when the current
+  docs start repeating each other
+
+Escalate when:
+
+- docs give conflicting commands
+- local setup depends on hidden machine state
+- a new developer cannot tell which doc to read first
+- a code path changes without corresponding documentation updates
+
+## Logs, Tests, Validation, And Escalation
+
+Logs, tests, validation, and escalation belong primarily to Data Reliability &
+Operations, with documentation support from Developer Experience.
+
+Use this distinction:
+
+```text
+Logs = what happened during a real run.
+Tests = what should always be true when code changes.
+Validation = whether the current real data is safe and coherent.
+Escalation = what to do when logs, tests, or validation reveal risk.
+```
+
+Recommended log shape:
+
+```text
+outputs/automation/
+  scrape.log
+  raw-load.log
+  raw-verify.log
+  staging-build.log
+  staging-verify.log
+  run-summary.md or run-summary.json
+```
+
+Recommended severity ladder:
+
+```text
+INFO    Normal progress, such as loaded row counts.
+WARNING Odd or incomplete, but not blocking.
+ERROR   A stage failed or data quality is unsafe.
+FATAL   The run cannot continue.
+```
+
+Recommended escalation ladder:
+
+```text
+Level 0: Record only
+Level 1: Warn in logs or summaries
+Level 2: Record a validation issue
+Level 3: Fail the automation run
+Level 4: Require manual/admin intervention
+```
+
+Initial test targets:
+
+- event-minute parsing
+- event normalization
+- team-name normalization
+- staging validation rules
+- API response shapes
+- automation mode and flag behavior
+
+Do not fail the whole pipeline for every source-data imperfection. Do fail when
+the app would publish structurally broken or misleading data.
+
 ## Current Data Assets
 
 The current scraper collects structured per-match data into these tables:
@@ -120,7 +368,13 @@ visible as the first proof that the platform can turn raw UPL match data into a
 clear football insight. The new data expands the project beyond goals into team
 behavior, discipline, players, officials, match stats, and lineups.
 
-## Phase 0 - Stabilize The Current Scraper
+## Completed Launch History
+
+The sections below preserve the original launch plan and implementation
+criteria. Treat them as historical reference and detailed background. New work
+should be planned through the four continuous development areas above.
+
+## Launch Milestone 0 - Stabilize The Current Scraper
 
 Objective: Make the current scraper output reliable enough to become the source
 for database ingestion.
@@ -153,7 +407,7 @@ Suggested validation:
 - Compare counts across `matches`, `events`, `lineups`, `officials`, and
   `stats`.
 
-## Phase 1 - Postgres Foundation
+## Launch Milestone 1 - Postgres Foundation
 
 Objective: Move from CSV-only storage toward a real relational data model.
 
@@ -222,7 +476,7 @@ Tasks:
 - Write a loading script that imports current raw CSVs into Postgres.
 - Make ingestion idempotent with upserts or truncate/reload by season.
 
-Phase 1 implementation command pattern:
+Implementation command pattern:
 
 - Create database: `psql -U postgres -c "CREATE DATABASE upl_match_intelligence;"`
 - Apply migrations: `python scripts/data_platform/apply_db_migrations.py`
@@ -237,11 +491,11 @@ Acceptance criteria:
 - Re-running ingestion does not duplicate records.
 - Basic SQL queries can answer match, team, event, and card questions.
 
-## Phase 2 - Cleaning, Validation, And Analytics Models
+## Launch Milestone 2 - Cleaning, Validation, And Analytics Models
 
 Objective: Make the database trustworthy and useful for analysis.
 
-Current Phase 2 foundation:
+Current foundation:
 
 - `database/migrations/002_create_staging_foundation.sql` creates the first
   `staging` tables and a `staging.validation_issues` table.
@@ -251,9 +505,9 @@ Current Phase 2 foundation:
   tables from Postgres `raw.*`.
 - `scripts/data_platform/verify_staging_outputs.py` summarizes staging row
   counts and validation issues.
-- The source for Phase 2 cleaning is Postgres `raw.*`, not the raw CSV files.
+- The source for staging cleaning is Postgres `raw.*`, not the raw CSV files.
 
-Phase 2 command pattern:
+Command pattern:
 
 - Apply migrations: `python scripts/data_platform/apply_db_migrations.py`
 - Build all staging tables: `python scripts/data_platform/build_staging_from_raw.py`
@@ -305,11 +559,11 @@ Acceptance criteria:
 - Known data issues are logged instead of silently ignored.
 - Analytics views can support the first API endpoints.
 
-## Phase 3 - FastAPI Backend
+## Launch Milestone 3 - FastAPI Backend
 
 Objective: Expose the modeled data through a clean read API.
 
-Current Phase 3 foundation:
+Current foundation:
 
 - `api/main.py` creates the FastAPI app and registers route modules.
 - `api/routers/` contains thin endpoint modules for health, seasons, matches,
@@ -352,7 +606,7 @@ Implementation guidance:
 - Add pagination for list endpoints.
 - Return consistent error shapes.
 
-Phase 3 command pattern:
+Command pattern:
 
 - Run the local API: `python -m uvicorn api.main:app --reload`
 - Open API docs: `http://127.0.0.1:8000/docs`
@@ -372,11 +626,11 @@ Acceptance criteria:
 - Match, team, event, and season endpoints return real Postgres data.
 - OpenAPI docs are usable for development.
 
-## Phase 4 - React Frontend
+## Launch Milestone 4 - React Frontend
 
 Objective: Build a real interactive product, not another notebook dashboard.
 
-Current Phase 4 pilot foundation:
+Current pilot foundation:
 
 - `frontend/` contains a Vite + React + TypeScript app.
 - `frontend/src/api/client.ts` is the small API service layer.
@@ -389,7 +643,7 @@ Current Phase 4 pilot foundation:
   paging through every event row in the browser.
 - FastAPI allows local Vite origins with CORS for browser development.
 - The frontend reads FastAPI JSON only; it does not read CSV files.
-- The first Phase 6 insight panel promotes Feature 1 goal timing into the
+- The first promoted insight panel promotes Feature 1 goal timing into the
   dashboard through `/insights/goal-timing?season=...`.
 
 Initial pages:
@@ -436,7 +690,7 @@ Acceptance criteria:
 - At least one flagship insight is presented interactively.
 - The app can run locally with documented commands.
 
-Phase 4 command pattern:
+Command pattern:
 
 - Run the local API:
   `.venv\Scripts\python.exe -m uvicorn api.main:app --reload`
@@ -448,11 +702,11 @@ Phase 4 command pattern:
 - Open the frontend:
   `http://127.0.0.1:5173`
 
-## Phase 5 - Automation With GitHub Actions
+## Launch Milestone 5 - Automation With GitHub Actions
 
 Objective: Keep the current season updated without manual scraping.
 
-Current Phase 5 foundation:
+Current foundation:
 
 - `scripts/data_platform/update_current_season.py` is the local orchestration
   script for the current-season update pipeline.
@@ -464,7 +718,7 @@ Current Phase 5 foundation:
 - `full` mode supports `--skip-migrations` for routine scheduled jobs. This
   lets GitHub Actions use a limited loader role that can refresh rows without
   being allowed to change database structure.
-- Phase 5 updates refresh from the live source by default. This bypasses cached
+- Current-season updates refresh from the live source by default. This bypasses cached
   HTML and old checkpoint state so current-season automation does not silently
   reuse stale match lists.
 - `--use-cache` is available for faster local development runs that should
@@ -511,7 +765,7 @@ GitHub Actions tasks:
 - Avoid committing scraped data unless the project explicitly decides to track
   small public snapshots.
 
-Phase 5 command pattern:
+Command pattern:
 
 - Run the full local update against local Postgres:
   `python scripts/data_platform/update_current_season.py --season 2025-26`
@@ -539,12 +793,12 @@ Acceptance criteria:
 - Failed runs provide enough logs to debug.
 - Successful runs update the database or produce a clearly documented artifact.
 
-## Phase 6 - Promote Notebook Research Into Product Features
+## Launch Milestone 6 - Promote Notebook Research Into Product Features
 
 Objective: Build a repeatable path from exploratory analysis to dashboard
 feature.
 
-Current Phase 6 foundation:
+Current foundation:
 
 - Feature 1 goal timing is the first promoted notebook insight.
 - `docs/FEATURE_PROMOTION_WORKFLOW.md` defines the standard feature package
@@ -610,7 +864,7 @@ Acceptance criteria:
   `docs/FEATURE_REGISTRY.md`.
 - Reusable promoted metrics have a clear direct-query or `analytics.*` decision.
 
-## Phase 7 - Deployment And Portfolio Polish
+## Launch Milestone 7 - Deployment And Portfolio Polish
 
 Objective: Make the project understandable and usable by people outside the
 local machine.
@@ -703,21 +957,25 @@ Acceptance criteria:
 - Use GitHub Actions for automation.
 - Keep notebooks as research, not production.
 - Keep CSVs as raw/intermediate artifacts, not the long-term serving layer.
-- Build incrementally and keep each phase runnable.
+- Build incrementally and keep each continuous area runnable.
 
 ## Near-Term Next Steps
 
-The next best implementation sequence is:
+The next best implementation sequence should use the four continuous areas:
 
-1. Document raw scraper table schemas.
-2. Add a Postgres schema draft.
-3. Add local database configuration documentation.
-4. Build a first CSV-to-Postgres ingestion script.
-5. Add basic validation checks.
-6. Add a minimal FastAPI app with `/health`, `/seasons`, and `/matches`.
-7. Add a minimal React app that consumes `/matches`.
-8. Promote Feature 1 goal timing into the app as the first public analysis.
-9. Expand toward discipline and other Feature 2+ analyses.
+1. **Developer Experience & Documentation**: keep `docs/START_HERE.md`,
+   `README.md`, and this roadmap aligned so new contributors know where to
+   begin.
+2. **Data Reliability & Operations**: add a small observability and test
+   foundation around stage logs, run summaries, validation severity, and the
+   highest-risk parser/transform functions.
+3. **Product Experience**: redesign the React app from a pilot overview into a
+   more useful analytical product with clearer navigation, loading states,
+   filters, and detail paths.
+4. **Research & Football Intelligence**: start Feature 2, likely a discipline
+   or card-trends package, and validate it in a notebook before promoting it to
+   FastAPI and React.
 
-This sequence creates a useful vertical slice before the project becomes too
-large.
+This keeps the project growing in stable loops: trustworthy data, validated
+football ideas, useful product surfaces, and documentation that remains
+navigable.

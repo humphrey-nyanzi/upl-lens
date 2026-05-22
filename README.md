@@ -10,7 +10,7 @@ scheduled updates.
 
 ## Live Demo
 
-The first public Phase 7 deployment is available here:
+The first public deployment is available here:
 
 - Frontend: [UPL Match Intelligence](https://upl-match-intelligence.pages.dev/)
 - API: [UPL Match Intelligence API](https://upl-match-intelligence-api.onrender.com/)
@@ -32,7 +32,24 @@ If the app loads in one browser profile but reports the API as offline in
 another, check browser extensions before changing deployment settings. Privacy
 or ad-blocking extensions can block the hosted Render API request and surface as
 `net::ERR_BLOCKED_BY_CLIENT`; Ghostery was the confirmed blocker during the
-first Phase 7 verification pass.
+first deployment verification pass.
+
+## Start Here
+
+The project has moved beyond the initial launch phases. New work should be
+planned and discussed through four continuous development areas:
+
+1. **Data Reliability & Operations** - scraper, Postgres, staging validation,
+   automation, deployment, logs, tests, and escalation.
+2. **Research & Football Intelligence** - notebooks, feature packages, metric
+   definitions, caveats, and promotion decisions.
+3. **Product Experience** - FastAPI endpoints, React pages, UI/UX, charts,
+   filters, loading states, and browser-facing product behavior.
+4. **Developer Experience & Documentation** - onboarding, local setup, command
+   guides, troubleshooting, testing instructions, and documentation navigation.
+
+Read [docs/START_HERE.md](docs/START_HERE.md) first if you are new to the
+project or deciding where a change belongs.
 
 ## What This Project Is Becoming
 
@@ -92,8 +109,8 @@ The pilot analysis answered:
 3. Are decisive late goals becoming more or less common relative to the rest of
    the match?
 
-The next phase is to keep this analysis as Feature 1 and promote its most useful
-findings into the future API and React dashboard.
+This analysis is now Feature 1 and its most useful finding has been promoted
+into the FastAPI and React product path.
 
 ## Platform Architecture
 
@@ -109,7 +126,9 @@ official UPL website
   -> React web app
 ```
 
-The project is organized into three tracks.
+The architecture still has three product tracks, but ongoing work is managed
+through the four continuous development areas described in
+[docs/START_HERE.md](docs/START_HERE.md).
 
 ### 1. Data Platform
 
@@ -156,11 +175,14 @@ upl-goal-timing/
 │   └── seeds/
 ├── docs/
 │   ├── ANALYTICS_VIEW_CONVENTIONS.md
+│   ├── DEPLOYMENT_PLAN.md
 │   ├── FEATURE_DATA_ACCESS.md
 │   ├── FEATURE_REGISTRY.md
 │   ├── FEATURE_PROMOTION_WORKFLOW.md
 │   ├── PHASE5_AUTOMATION.md
-│   └── PROJECT_ROADMAP.md
+│   ├── PHASE7_DEPLOYMENT_RUNBOOK.md
+│   ├── PROJECT_ROADMAP.md
+│   └── START_HERE.md
 ├── frontend/
 ├── notebooks/
 │   └── features/
@@ -227,7 +249,7 @@ Create the local Postgres database:
 CREATE DATABASE upl_match_intelligence;
 ```
 
-Apply the Phase 1 database migrations:
+Apply the database migrations:
 
 ```bash
 python scripts/data_platform/apply_db_migrations.py
@@ -293,7 +315,7 @@ Track notebook-to-product features:
 docs/FEATURE_REGISTRY.md
 ```
 
-Use these Phase 6 guides when researching or promoting a feature:
+Use these feature-promotion guides when researching or promoting a feature:
 
 ```text
 docs/FEATURE_PROMOTION_WORKFLOW.md
@@ -301,9 +323,9 @@ docs/FEATURE_DATA_ACCESS.md
 docs/ANALYTICS_VIEW_CONVENTIONS.md
 ```
 
-## Phase 1 Database Setup
+## Data Reliability & Operations: Database Setup
 
-Phase 1 introduces the first real Postgres foundation for the project.
+The first real Postgres foundation for the project includes:
 
 - `database/migrations/001_create_raw_schema.sql` creates the `raw`,
   `staging`, and `analytics` schemas.
@@ -375,7 +397,7 @@ Inspect one season:
 psql -U postgres -d upl_match_intelligence -c "SELECT season, COUNT(*) AS matches FROM raw.matches GROUP BY season ORDER BY season;"
 ```
 
-Run the repeatable Phase 1 verification script:
+Run the repeatable raw-count verification script:
 
 ```bash
 python scripts/data_platform/verify_raw_postgres_counts.py
@@ -387,9 +409,10 @@ Verify just one season:
 python scripts/data_platform/verify_raw_postgres_counts.py --season 2025-26
 ```
 
-## Phase 2 Cleaning, Validation, And Staging
+## Data Reliability & Operations: Cleaning, Validation, And Staging
 
-Phase 2 starts the cleaned database layer.
+The cleaned database layer turns source-shaped raw records into app-facing
+staging tables.
 
 Plain-English database layers:
 
@@ -400,8 +423,8 @@ Plain-English database layers:
 - `analytics` will come later. It will hold facts, dimensions, summaries, and
   views that are easier for FastAPI and React to query.
 
-The Phase 2 pipeline reads from Postgres `raw.*` tables, not directly from CSVs.
-This matters because the Phase 1 loader already protects `raw.*` from known
+The staging pipeline reads from Postgres `raw.*` tables, not directly from CSVs.
+This matters because the raw loader already protects `raw.*` from known
 historical season contamination.
 
 Apply the staging migration:
@@ -446,7 +469,7 @@ GROUP BY severity, check_name, table_name
 ORDER BY severity, check_name, table_name;
 ```
 
-Initial Phase 2 cleaning handles:
+Initial staging cleaning handles:
 
 - day-first date parsing
 - padded/blank text normalization
@@ -459,9 +482,9 @@ Initial Phase 2 cleaning handles:
 - season consistency checks
 - match-reference checks from child tables back to `staging.matches`
 
-## Phase 3 FastAPI Read Backend
+## Product Experience: FastAPI Read Backend
 
-Phase 3 starts the public product layer without building React yet.
+The read-first API exposes cleaned Postgres data to the product layer.
 
 Plain-English API flow:
 
@@ -529,9 +552,9 @@ Useful filters:
 - `event_type`, for event lists such as `goal`, `yellow_card`, or `red_card`
 - `limit` and `offset`, for list pagination
 
-## Phase 4 React Frontend Pilot
+## Product Experience: React Frontend Pilot
 
-Phase 4 starts the browser product layer with a narrow League Overview screen.
+The browser product currently starts with a narrow League Overview screen.
 The important flow is:
 
 ```text
@@ -589,11 +612,10 @@ What the pilot shows:
 - event breakdown from `/events?season=...`
 - placeholders for the next product areas
 
-## Phase 5 Current-Season Automation
+## Data Reliability & Operations: Current-Season Automation
 
-Phase 5 begins the automation layer. Instead of manually remembering every
-pipeline command, use one orchestrator that runs the current-season update steps
-in order.
+Instead of manually remembering every pipeline command, use one orchestrator
+that runs the current-season update steps in order.
 
 Run the full local update from the repository root:
 
@@ -612,7 +634,7 @@ scraper
   -> staging validation summary
 ```
 
-By default, the Phase 5 update refreshes from the live UPL source. That means it
+By default, the update refreshes from the live UPL source. That means it
 bypasses cached HTML and old checkpoint state so the current-season match list
 does not become stale. For faster development runs where you intentionally want
 to reuse cached pages and resume from checkpoints, add `--use-cache`:
@@ -638,7 +660,7 @@ you want automation to fail if any match still needs a retry:
 
 ### Routine Updates Versus Admin Migrations
 
-There are two different database jobs in Phase 5:
+There are two different database jobs:
 
 - **Admin/migration setup** changes the database structure by creating schemas,
   tables, indexes, and migration records. Run this manually with a trusted
@@ -690,9 +712,10 @@ For Supabase pooler connections, the GitHub `POSTGRES_USER` secret may need the
 project reference suffix, for example `upl_actions_loader.<project-ref>`, while
 the database role created inside Postgres remains `upl_actions_loader`.
 
-## Phase 6 Notebook Insight Promotion
+## Research & Football Intelligence: Notebook Insight Promotion
 
-Phase 6 starts the repeatable path from notebook research into the product.
+Notebook insight promotion is the repeatable path from research into the
+product.
 New experiments should use the feature package workflow documented in
 [`docs/FEATURE_PROMOTION_WORKFLOW.md`](docs/FEATURE_PROMOTION_WORKFLOW.md) and
 the notebook data-access standard documented in
@@ -731,7 +754,7 @@ The optional read-only research role template lives at:
 database/permissions/002_create_upl_research_reader.sql
 ```
 
-The first promoted slice is Feature 1 goal timing:
+The first promoted insight is Feature 1 goal timing:
 
 ```text
 Feature 1 notebook finding
@@ -744,7 +767,7 @@ This endpoint intentionally excludes added-time goals from the interval chart,
 matching the original pilot caveat. It counts regular-time goal events in these
 15-minute windows: `0-15`, `16-30`, `31-45`, `46-60`, `61-75`, and `76-90`.
 
-Verify the first Phase 6 slice locally:
+Verify the promoted goal timing slice locally:
 
 ```powershell
 .venv\Scripts\python.exe -m compileall api src scripts
@@ -762,18 +785,9 @@ npm run dev
 
 ## Roadmap
 
-The detailed implementation plan lives in
-[docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md).
-
-Near-term phases:
-
-1. Stabilize the structured scraper outputs.
-2. Add Postgres schema and ingestion.
-3. Add validation and analytics models.
-4. Build a read-first FastAPI backend.
-5. Build a React frontend with the goal timing pilot as Feature 1.
-6. Add GitHub Actions for scheduled current-season updates.
-7. Promote new notebook analyses into dashboard features.
+The detailed roadmap lives in
+[docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md). It is now organized around
+the four continuous development areas rather than the completed launch phases.
 
 ## Data Note
 
