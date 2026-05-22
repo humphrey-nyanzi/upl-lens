@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { apiClient } from "./api/client";
+import { API_BASE_URL, apiClient } from "./api/client";
 import type {
   EventResponse,
   GoalTimingInsightResponse,
@@ -285,7 +285,10 @@ function App() {
           <section className="error-panel" role="alert">
             <h2>FastAPI is not returning data yet</h2>
             <p>{errorMessage}</p>
-            <p>Start the API on port 8000, then refresh this page.</p>
+            <p>
+              Check that the API is reachable at {API_BASE_URL}. If this only happens in one browser
+              profile, disable privacy or ad-blocking extensions for this site and refresh.
+            </p>
           </section>
         ) : null}
 
@@ -407,7 +410,7 @@ function App() {
             {futurePages.map((page) => (
               <div key={page}>
                 <strong>{page}</strong>
-                <p>Reserved for Phase 4 expansion after this API-connected overview is stable.</p>
+                <p>Reserved for future dashboard expansion after the deployed overview is stable.</p>
               </div>
             ))}
           </div>

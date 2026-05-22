@@ -338,6 +338,7 @@ platform being maintained, not just a static demo.
 | Backend cold start | Render free web services sleep after idle time. First API load may be slow. | Make frontend loading/error states clear. Document free-tier behavior. Upgrade backend later if traffic matters. |
 | Database pause or storage limit | Supabase free projects can pause after inactivity and have a 500 MB database limit. | Monitor size. Keep hosted data lean. Move to Neon or paid Supabase if needed. |
 | CORS must include the hosted frontend | Browsers will block the hosted React app if its origin is missing from `ALLOWED_ORIGINS`. | Add the final frontend URL to the backend environment before public deployment. |
+| Browser extensions can block the API | Privacy/ad-blocking extensions can block requests to the hosted Render API and report `net::ERR_BLOCKED_BY_CLIENT`. | Verify in guest/private profiles, then disable or allow-list blocking extensions such as Ghostery. |
 | Secrets sprawl | API, Actions, and admin setup need different credentials. | Use least-privilege roles and document exactly where each secret lives. |
 | Render free filesystem is ephemeral | Local files disappear across redeploys or sleep. | Do not store data in the backend filesystem. Keep Postgres as durable storage and Actions artifacts for logs/raw files. |
 | Source-site scraping can fail | UPL source pages may time out or change HTML. | Keep failed-match artifacts and validation logs from GitHub Actions. |
@@ -358,6 +359,15 @@ Domain: free subdomains first, Cloudflare-managed custom domain later
 This is the best balance of zero-budget, professional presentation, low setup
 pain, and long-term credibility.
 
+Phase 7 used this recommended architecture. The deployed URLs are:
+
+```text
+Frontend: https://upl-match-intelligence.pages.dev/
+Backend: https://upl-match-intelligence-api.onrender.com/
+Liveness: https://upl-match-intelligence-api.onrender.com/health/live
+Readiness: https://upl-match-intelligence-api.onrender.com/health
+```
+
 If implementation testing shows Supabase pausing or pooler behavior is painful,
 switch the database recommendation to Neon before public launch. If Render cold
 starts feel too rough, test Koyeb as the backend alternative before paying for a
@@ -375,13 +385,16 @@ After this plan is approved, the first narrow implementation slice should be:
 3. Add a frontend deployment note for Cloudflare Pages or Vercel, including
    `VITE_API_BASE_URL`. **Completed in `docs/PHASE7_DEPLOYMENT_RUNBOOK.md`.**
 4. Update `.env.example` and `frontend/.env.example` only with non-secret
-   placeholders.
+   placeholders. **Completed.**
 5. Run local verification:
    - `.venv\Scripts\python.exe -m compileall api src scripts`
    - `cd frontend`
    - `npm run build`
+   **Completed during Phase 7 implementation.**
 
-Do not deploy until those configuration changes are reviewed.
+The essential Phase 7 deployment is complete. Optional follow-up work now belongs
+to product polish, custom domains, monitoring, or future paid infrastructure
+decisions rather than the initial deployment milestone.
 
 ## Official Sources Checked
 

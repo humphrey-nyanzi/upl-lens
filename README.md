@@ -8,6 +8,32 @@ full-stack football intelligence system: Python scraping and cleaning, Postgres
 storage, FastAPI access, React presentation, notebook-based research, and
 scheduled updates.
 
+## Live Demo
+
+The first public Phase 7 deployment is available here:
+
+- Frontend: [UPL Match Intelligence](https://upl-match-intelligence.pages.dev/)
+- API: [UPL Match Intelligence API](https://upl-match-intelligence-api.onrender.com/)
+- API liveness check:
+  [`/health/live`](https://upl-match-intelligence-api.onrender.com/health/live)
+- API/database health check:
+  [`/health`](https://upl-match-intelligence-api.onrender.com/health)
+
+The deployed app uses the same production path as the local architecture:
+
+```text
+React UI -> FastAPI endpoint -> Supabase Postgres query/view -> JSON -> chart/table
+```
+
+The backend currently runs on a free Render web service, so the first request
+after an idle period can be slow while the service wakes up.
+
+If the app loads in one browser profile but reports the API as offline in
+another, check browser extensions before changing deployment settings. Privacy
+or ad-blocking extensions can block the hosted Render API request and surface as
+`net::ERR_BLOCKED_BY_CLIENT`; Ghostery was the confirmed blocker during the
+first Phase 7 verification pass.
+
 ## What This Project Is Becoming
 
 The official UPL website is the source archive. UPL Match Intelligence is the
