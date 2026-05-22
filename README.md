@@ -179,6 +179,7 @@ upl-goal-timing/
 │   ├── FEATURE_DATA_ACCESS.md
 │   ├── FEATURE_REGISTRY.md
 │   ├── FEATURE_PROMOTION_WORKFLOW.md
+│   ├── OPERATIONS.md
 │   ├── PHASE5_AUTOMATION.md
 │   ├── PHASE7_DEPLOYMENT_RUNBOOK.md
 │   ├── PROJECT_ROADMAP.md
@@ -691,6 +692,8 @@ migrations from GitHub Actions, trigger the workflow manually and set
 The working automation setup, manual run settings, artifact behavior, and common
 Supabase connection errors are documented in
 [`docs/PHASE5_AUTOMATION.md`](docs/PHASE5_AUTOMATION.md).
+The post-launch log, summary, testing, and escalation standard is documented in
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
 The workflow installs `requirements-automation.txt` instead of the full
 `requirements.txt`, and `actions/setup-python` caches pip downloads. This keeps

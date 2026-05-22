@@ -56,6 +56,7 @@ Owns:
 Read first:
 
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+- [OPERATIONS.md](OPERATIONS.md)
 - [PHASE5_AUTOMATION.md](PHASE5_AUTOMATION.md)
 - [PHASE7_DEPLOYMENT_RUNBOOK.md](PHASE7_DEPLOYMENT_RUNBOOK.md)
 
@@ -252,6 +253,7 @@ If you want to run the project locally:
 
 If you want to refresh data:
 
+- [OPERATIONS.md](OPERATIONS.md)
 - [PHASE5_AUTOMATION.md](PHASE5_AUTOMATION.md)
 - `scripts/data_platform/update_current_season.py`
 
@@ -272,4 +274,3 @@ If you want to understand deployment:
 
 - [PHASE7_DEPLOYMENT_RUNBOOK.md](PHASE7_DEPLOYMENT_RUNBOOK.md)
 - [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)
-

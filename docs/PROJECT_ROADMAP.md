@@ -281,6 +281,7 @@ Known weaknesses:
 Next useful work:
 
 - use `docs/START_HERE.md` as the beginner entrypoint
+- use `docs/OPERATIONS.md` for log, summary, test, and escalation rules
 - keep README short and public-facing
 - keep this roadmap as the planning map
 - keep detailed automation/deployment/feature docs as references

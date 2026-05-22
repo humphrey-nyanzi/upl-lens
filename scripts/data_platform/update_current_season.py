@@ -1,8 +1,8 @@
-"""Run the Phase 5 current-season update pipeline.
+"""Run the current-season operations update pipeline.
 
-This script is the small conductor for the automation phase. It reuses the
-existing scraper, Postgres loader, staging builder, and verification scripts
-instead of creating a second version of the data pipeline.
+This script is the small conductor for the routine data-refresh workflow. It
+reuses the existing scraper, Postgres loader, staging builder, and verification
+scripts instead of creating a second version of the data pipeline.
 
 Usage examples
 --------------
@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
 import subprocess
 import sys
@@ -75,7 +76,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help=(
             "Allow the scraper to reuse cached HTML and checkpoint state. "
-            "By default, Phase 5 refreshes from the live source."
+            "By default, routine operations refresh from the live source."
         ),
     )
     parser.add_argument(
@@ -119,6 +120,15 @@ def _timestamp_slug() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
+def _display_path(path: Path) -> str:
+    """Return a readable path, preferring repo-relative paths when possible."""
+
+    try:
+        return str(path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def _run_step(step_name: str, command: list[str], log_dir: Path) -> Path:
     """Run one pipeline step, stream output, and save a log file.
 
@@ -130,9 +140,9 @@ def _run_step(step_name: str, command: list[str], log_dir: Path) -> Path:
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"{_timestamp_slug()}_{step_name}.log"
 
-    print(f"\n[phase5] Starting {step_name}")
-    print(f"[phase5] Command: {' '.join(command)}")
-    print(f"[phase5] Log: {log_path.relative_to(PROJECT_ROOT)}")
+    print(f"\n[operations] Starting {step_name}")
+    print(f"[operations] Command: {' '.join(command)}")
+    print(f"[operations] Log: {_display_path(log_path)}")
 
     with log_path.open("w", encoding="utf-8") as log_file:
         log_file.write(f"Step: {step_name}\n")
@@ -154,10 +164,10 @@ def _run_step(step_name: str, command: list[str], log_dir: Path) -> Path:
 
     if process.wait() != 0:
         raise SystemExit(
-            f"\n[error] Phase 5 step failed: {step_name}. Review {log_path}."
+            f"\n[error] Operations step failed: {step_name}. Review {log_path}."
         )
 
-    print(f"[phase5] Finished {step_name}")
+    print(f"[operations] Finished {step_name}")
     return log_path
 
 
@@ -271,7 +281,7 @@ def _print_final_success_summary(
         step_logs.get("verify_staging_outputs") if staging_verification_ran else None
     )
 
-    print("\n[phase5] Final run summary")
+    print("\n[operations] Final run summary")
     print(f"  Season: {season}")
     print(f"  Mode: {mode}")
     print(
@@ -289,7 +299,75 @@ def _print_final_success_summary(
 
     print("\nStep logs:")
     for step_name, log_path in step_logs.items():
-        print(f"  {step_name:<28} {log_path.relative_to(PROJECT_ROOT)}")
+        print(f"  {step_name:<28} {_display_path(log_path)}")
+
+
+def _run_summary_payload(
+    *,
+    season: str,
+    mode: str,
+    use_cache: bool,
+    skip_migrations: bool,
+    failed_count: int,
+    step_logs: dict[str, Path],
+    raw_verification_ran: bool,
+    staging_verification_ran: bool,
+) -> dict[str, object]:
+    """Return the structured final run summary written beside step logs."""
+
+    raw_counts = _raw_csv_counts(season)
+    raw_load_counts = _extract_raw_load_counts(step_logs.get("load_raw_to_postgres"))
+    staging_status = _staging_verification_status(
+        step_logs.get("verify_staging_outputs") if staging_verification_ran else None
+    )
+
+    return {
+        "season": season,
+        "mode": mode,
+        "source": "cached HTML/checkpoints allowed" if use_cache else "fresh live-source refresh",
+        "migrations": "skipped" if skip_migrations else "applied",
+        "raw_verification": "completed" if raw_verification_ran else "skipped",
+        "staging_rebuild": "completed",
+        "staging_verification": staging_status,
+        "remaining_failed_matches": failed_count,
+        "raw_csv_rows": raw_counts,
+        "raw_loader_rows": raw_load_counts,
+        "step_logs": {
+            step_name: _display_path(log_path)
+            for step_name, log_path in step_logs.items()
+        },
+    }
+
+
+def _write_run_summary_json(
+    *,
+    season: str,
+    mode: str,
+    use_cache: bool,
+    skip_migrations: bool,
+    failed_count: int,
+    step_logs: dict[str, Path],
+    raw_verification_ran: bool,
+    staging_verification_ran: bool,
+    log_dir: Path,
+) -> Path:
+    """Write a machine-readable run summary for artifacts and troubleshooting."""
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+    summary_path = log_dir / f"{_timestamp_slug()}_run_summary.json"
+    payload = _run_summary_payload(
+        season=season,
+        mode=mode,
+        use_cache=use_cache,
+        skip_migrations=skip_migrations,
+        failed_count=failed_count,
+        step_logs=step_logs,
+        raw_verification_ran=raw_verification_ran,
+        staging_verification_ran=staging_verification_ran,
+    )
+    summary_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    print(f"\n[operations] Run summary artifact: {_display_path(summary_path)}")
+    return summary_path
 
 
 def _print_failed_match_summary(season: str, *, max_rows: int = 10) -> int:
@@ -298,7 +376,7 @@ def _print_failed_match_summary(season: str, *, max_rows: int = 10) -> int:
     failed_matches = _read_failed_matches(season)
     failed_count = len(failed_matches)
 
-    print("\n[phase5] Data completeness summary")
+    print("\n[operations] Data completeness summary")
     if failed_count == 0:
         print("[ok] No remaining failed matches were recorded for this season.")
         return 0
@@ -337,7 +415,7 @@ def main() -> None:
     normalized_season = season_key(season)
     log_dir = args.log_dir / normalized_season
 
-    print("UPL Match Intelligence - Phase 5 Current Season Update")
+    print("UPL Match Intelligence - Current Season Operations Update")
     print(f"Season: {season}")
     print(f"Mode: {args.mode}")
     print(f"Raw season folder: {raw_season_dir(season).relative_to(PROJECT_ROOT)}")
@@ -354,7 +432,7 @@ def main() -> None:
             log_dir,
         )
     else:
-        print("\n[phase5] Skipping scraper and reusing existing raw season files.")
+        print("\n[operations] Skipping scraper and reusing existing raw season files.")
 
     if args.mode == "artifact-only":
         failed_count = _print_failed_match_summary(season)
@@ -371,7 +449,7 @@ def main() -> None:
 
     if args.skip_migrations:
         print(
-            "\n[phase5] Skipping database migrations. "
+            "\n[operations] Skipping database migrations. "
             "This is expected for routine least-privilege update runs."
         )
     else:
@@ -422,6 +500,17 @@ def main() -> None:
         step_logs=step_logs,
         raw_verification_ran=not args.skip_raw_verification,
         staging_verification_ran=not args.skip_staging_verification,
+    )
+    _write_run_summary_json(
+        season=season,
+        mode=args.mode,
+        use_cache=args.use_cache,
+        skip_migrations=args.skip_migrations,
+        failed_count=failed_count,
+        step_logs=step_logs,
+        raw_verification_ran=not args.skip_raw_verification,
+        staging_verification_ran=not args.skip_staging_verification,
+        log_dir=log_dir,
     )
 
     print("\n[ok] Full current-season update finished.")

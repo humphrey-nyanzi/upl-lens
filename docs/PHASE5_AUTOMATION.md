@@ -1,7 +1,8 @@
 # Phase 5 Current-Season Automation
 
 This note documents the working GitHub Actions setup for refreshing the current
-UPL season.
+UPL season. It is the detailed automation reference; the post-launch operations
+standard lives in [OPERATIONS.md](OPERATIONS.md).
 
 Phase 5 has two different jobs:
 
@@ -132,7 +133,8 @@ least-privilege loader role before relying on scheduled runs.
 The workflow uploads artifacts even when a run fails:
 
 - `raw-season-<season>` contains the refreshed raw CSV files.
-- `automation-logs-<season>` contains the step logs under `outputs/automation/`.
+- `automation-logs-<season>` contains the step logs and run summary under
+  `outputs/automation/`.
 
 This is intentional. A failed database load can still leave useful scraped files
 and logs for debugging.
@@ -179,4 +181,6 @@ A healthy routine run should show:
 - `verify_raw_postgres_counts` finished.
 - `build_staging_from_raw` finished.
 - `verify_staging_outputs` finished without error-level validation issues.
-- The final Phase 5 summary prints row counts and log paths.
+- The final operations summary prints row counts and log paths.
+- The run also writes `<timestamp>_run_summary.json` under
+  `outputs/automation/<season>/`.
