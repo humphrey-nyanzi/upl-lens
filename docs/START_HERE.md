@@ -186,6 +186,7 @@ Read first:
 
 - [README.md](../README.md)
 - [START_HERE.md](START_HERE.md)
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 - [../AGENTS.md](../AGENTS.md)
 
@@ -265,6 +266,8 @@ Start here when you are unsure where a change belongs. Then use:
 
 - [README.md](../README.md) for the public project overview and live demo.
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for current planning and priorities.
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for local setup, common
+  commands, verification, and troubleshooting.
 - [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) for a file-by-file guide to every
   docs file.
 - [OPERATIONS.md](OPERATIONS.md) for logs, tests, validation, and escalation.
@@ -280,6 +283,7 @@ current roadmap, then update the stale doc in the smallest useful place.
 
 If you want to run the project locally:
 
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
 - [README.md](../README.md)
 - `.env.example`
 - `frontend/.env.example`

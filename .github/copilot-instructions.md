@@ -174,6 +174,7 @@ in `README.md`, `docs/START_HERE.md`, `docs/OPERATIONS.md`, this file, and
 Keep these commands current when their flags, requirements, or expected output
 change:
 
+- Local setup and common commands in `docs/LOCAL_DEVELOPMENT.md`.
 - Postgres setup and migration commands.
 - Database ingestion and staging rebuild commands.
 - FastAPI dev server command.

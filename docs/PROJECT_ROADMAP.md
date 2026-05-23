@@ -276,8 +276,9 @@ Current strengths:
 
 - the project has detailed docs for roadmap, automation, deployment, and feature
   promotion
-- `docs/START_HERE.md` and `docs/DOCUMENTATION_MAP.md` give new readers a
-  beginner-friendly entrypoint and a file-by-file documentation index
+- `docs/START_HERE.md`, `docs/LOCAL_DEVELOPMENT.md`, and
+  `docs/DOCUMENTATION_MAP.md` give new readers a beginner-friendly entrypoint,
+  a runnable local setup guide, and a file-by-file documentation index
 - `AGENTS.md` captures repo-specific AI working rules
 - README explains the live demo and core architecture
 
@@ -291,6 +292,8 @@ Known weaknesses:
 Next useful work:
 
 - use `docs/START_HERE.md` as the beginner entrypoint
+- use `docs/LOCAL_DEVELOPMENT.md` for setup, command, verification, and local
+  troubleshooting guidance
 - use `docs/DOCUMENTATION_MAP.md` as the file-by-file navigation aid
 - use `docs/OPERATIONS.md` for log, summary, test, and escalation rules
 - keep README short and public-facing

@@ -129,6 +129,9 @@ Current workflow:
 Use `.venv\Scripts\python.exe` instead of `python` when working inside the local
 Windows virtual environment.
 
+For a fuller local setup, command, verification, and troubleshooting guide, use
+[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md).
+
 The pytest suite is still early. Validate changes by running the relevant test,
 script, notebook, API endpoint, or frontend page end to end.
 
@@ -325,8 +328,8 @@ GitHub Actions is the preferred automation path for portfolio visibility.
 ## AI Agent Rules
 
 - Before coding, check [docs/START_HERE.md](docs/START_HERE.md),
-  [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md), and the current files
-  related to the task.
+  [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md), any relevant developer or
+  feature guide, and the current files related to the task.
 - Explain work systematically and beginner-consciously. For each implementation
   step, briefly state what is being changed, why it matters, and how to run or
   verify it.

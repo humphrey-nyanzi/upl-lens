@@ -110,8 +110,8 @@ tests/        early pytest coverage for risky logic
 
 ## Run Locally
 
-For full setup, start with [docs/START_HERE.md](docs/START_HERE.md). After
-configuring `.env` and a local Postgres database, the short version is:
+For full setup, use [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md).
+After configuring `.env` and a local Postgres database, the short version is:
 
 ```powershell
 # Python dependencies
@@ -148,6 +148,7 @@ Use these docs instead of trying to learn the whole repository from the README:
 | Need | Start here |
 |------|------------|
 | First orientation | [docs/START_HERE.md](docs/START_HERE.md) |
+| Local setup and common commands | [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) |
 | Which doc to open | [docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md) |
 | Roadmap and current priorities | [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) |
 | Operations, logs, tests, validation, escalation | [docs/OPERATIONS.md](docs/OPERATIONS.md) |

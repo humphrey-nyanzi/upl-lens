@@ -18,7 +18,7 @@ flowchart TD
     A --> E["Improve the dashboard"]
     A --> F["Find the right documentation"]
 
-    B --> B1["START_HERE.md"]
+    B --> B1["START_HERE.md and LOCAL_DEVELOPMENT.md"]
     C --> C1["OPERATIONS.md"]
     D --> D1["RESEARCH_IDEAS.md and FEATURE_PROMOTION_WORKFLOW.md"]
     E --> E1["FRONTEND_UX_REQUESTS.md and UI_UX_GUIDELINES.md"]
@@ -41,6 +41,7 @@ These docs describe how the project should be understood now.
 | Doc | Status | Open it when |
 |-----|--------|--------------|
 | [START_HERE.md](START_HERE.md) | Primary entrypoint | You are new, choosing a work area, or checking the four-area model. |
+| [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Local developer guide | You need setup steps, common commands, verification checks, or local troubleshooting. |
 | [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Current planning map plus launch history | You need priorities, architecture direction, or historical milestone context. |
 | [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) | Navigation aid | You need to find the right doc without reading everything. |
 
@@ -87,6 +88,7 @@ alignment.
 | Doc | Status | Open it when |
 |-----|--------|--------------|
 | [START_HERE.md](START_HERE.md) | Primary contributor entrypoint | You need beginner-readable orientation or work-area boundaries. |
+| [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Local developer guide | You need first-run setup, common commands, verification guidance, or troubleshooting. |
 | [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) | Doc navigation index | You need to know what every docs file is for. |
 | [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Current planning map | You need to keep documentation changes aligned with project direction. |
 
@@ -118,6 +120,8 @@ Use these rules:
 
 - Update [OPERATIONS.md](OPERATIONS.md) when logs, tests, validation, or
   escalation behavior changes.
+- Update [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) when local setup, common
+  commands, verification steps, or local troubleshooting changes.
 - Update [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md),
   [FEATURE_DATA_ACCESS.md](FEATURE_DATA_ACCESS.md), or
   [FEATURE_REGISTRY.md](FEATURE_REGISTRY.md) when research promotion behavior
