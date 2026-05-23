@@ -279,6 +279,9 @@ Current strengths:
 - `docs/START_HERE.md`, `docs/LOCAL_DEVELOPMENT.md`, and
   `docs/DOCUMENTATION_MAP.md` give new readers a beginner-friendly entrypoint,
   a runnable local setup guide, and a file-by-file documentation index
+- `docs/diagram_collection.md` gives maintainers and agents a visual overview
+  of the codebase, data pipeline, database shape, API flow, and scraper
+  lifecycle
 - `AGENTS.md` captures repo-specific AI working rules
 - README explains the live demo and core architecture
 
@@ -295,6 +298,8 @@ Next useful work:
 - use `docs/LOCAL_DEVELOPMENT.md` for setup, command, verification, and local
   troubleshooting guidance
 - use `docs/DOCUMENTATION_MAP.md` as the file-by-file navigation aid
+- maintain `docs/diagram_collection.md` when high-level codebase structure or
+  known gaps change
 - use `docs/OPERATIONS.md` for log, summary, test, and escalation rules
 - keep README short and public-facing
 - keep this roadmap as the planning map

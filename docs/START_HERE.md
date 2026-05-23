@@ -268,6 +268,8 @@ Start here when you are unsure where a change belongs. Then use:
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for current planning and priorities.
 - [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for local setup, common
   commands, verification, and troubleshooting.
+- [diagram_collection.md](diagram_collection.md) for a visual overview of the
+  codebase, pipeline, database, API flow, and scraper lifecycle.
 - [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) for a file-by-file guide to every
   docs file.
 - [OPERATIONS.md](OPERATIONS.md) for logs, tests, validation, and escalation.
@@ -287,6 +289,11 @@ If you want to run the project locally:
 - [README.md](../README.md)
 - `.env.example`
 - `frontend/.env.example`
+
+If you want a visual codebase overview:
+
+- [diagram_collection.md](diagram_collection.md)
+- [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md)
 
 If you want to refresh data:
 

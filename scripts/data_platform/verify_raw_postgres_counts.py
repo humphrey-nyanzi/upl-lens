@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import csv
 import sys
+from collections import Counter
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -54,17 +55,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _count_csv_rows(csv_path: Path, expected_season: str) -> tuple[int, int]:
+def _count_csv_rows(csv_path: Path, expected_season: str) -> tuple[int, int, dict[str, int]]:
     """Count valid and cross-season rows in one CSV file.
 
     Returns
     -------
-    tuple[int, int]
-        `(valid_rows, contaminated_rows)` for the target season folder.
+    tuple[int, int, dict[str, int]]
+        `(valid_rows, contaminated_rows, spill_seasons)` for the target season
+        folder. `spill_seasons` groups skipped rows by the season value found
+        inside the row itself.
     """
 
     valid_rows = 0
     contaminated_rows = 0
+    spill_seasons: Counter[str] = Counter()
     with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
@@ -72,24 +76,36 @@ def _count_csv_rows(csv_path: Path, expected_season: str) -> tuple[int, int]:
                 valid_rows += 1
             else:
                 contaminated_rows += 1
-    return valid_rows, contaminated_rows
+                row_season = (row.get("season") or "").strip() or "<missing>"
+                spill_seasons[row_season] += 1
+    return valid_rows, contaminated_rows, dict(spill_seasons)
 
 
-def _csv_counts_by_season(seasons: list[str]) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, int]]]:
+def _csv_counts_by_season(
+    seasons: list[str],
+) -> tuple[
+    dict[str, dict[str, int]],
+    dict[str, dict[str, int]],
+    dict[str, dict[str, dict[str, int]]],
+]:
     """Return valid and contaminated CSV row counts for each season and table."""
 
     valid_counts: dict[str, dict[str, int]] = {}
     contaminated_counts: dict[str, dict[str, int]] = {}
+    spill_seasons_by_table: dict[str, dict[str, dict[str, int]]] = {}
     for season in seasons:
         table_counts: dict[str, int] = {}
         spill_counts: dict[str, int] = {}
+        table_spill_seasons: dict[str, dict[str, int]] = {}
         for table_name, csv_path in season_table_paths(season).items():
-            valid_rows, contaminated_rows = _count_csv_rows(csv_path, season)
+            valid_rows, contaminated_rows, spill_seasons = _count_csv_rows(csv_path, season)
             table_counts[table_name] = valid_rows
             spill_counts[table_name] = contaminated_rows
+            table_spill_seasons[table_name] = spill_seasons
         valid_counts[season] = table_counts
         contaminated_counts[season] = spill_counts
-    return valid_counts, contaminated_counts
+        spill_seasons_by_table[season] = table_spill_seasons
+    return valid_counts, contaminated_counts, spill_seasons_by_table
 
 
 def _database_counts_by_season(seasons: list[str]) -> dict[str, dict[str, int]]:
@@ -124,6 +140,7 @@ def _print_results(
     csv_counts: dict[str, dict[str, int]],
     contaminated_counts: dict[str, dict[str, int]],
     database_counts: dict[str, dict[str, int]],
+    spill_seasons_by_table: dict[str, dict[str, dict[str, int]]] | None = None,
 ) -> bool:
     """Print a comparison table and return whether loaded counts match.
 
@@ -156,6 +173,18 @@ def _print_results(
             "\n[warning] Some season folders contain cross-season spill rows. "
             "The raw loader skipped them; review only if the spill pattern looks unexpected."
         )
+        if spill_seasons_by_table:
+            print("Spill source-season breakdown:")
+            for season in seasons:
+                for table_name in RAW_TABLES:
+                    spill_seasons = spill_seasons_by_table.get(season, {}).get(table_name, {})
+                    if not spill_seasons:
+                        continue
+                    formatted_spill = ", ".join(
+                        f"{source_season}={row_count}"
+                        for source_season, row_count in sorted(spill_seasons.items())
+                    )
+                    print(f"  {season}.{table_name}: {formatted_spill}")
 
     return all_match
 
@@ -169,9 +198,15 @@ def main() -> None:
     print("UPL Match Intelligence - Verify Raw CSV Counts Against Postgres")
     print(f"Target seasons: {', '.join(target_seasons)}")
 
-    csv_counts, contaminated_counts = _csv_counts_by_season(target_seasons)
+    csv_counts, contaminated_counts, spill_seasons_by_table = _csv_counts_by_season(target_seasons)
     database_counts = _database_counts_by_season(target_seasons)
-    all_match = _print_results(target_seasons, csv_counts, contaminated_counts, database_counts)
+    all_match = _print_results(
+        target_seasons,
+        csv_counts,
+        contaminated_counts,
+        database_counts,
+        spill_seasons_by_table,
+    )
 
     if all_match:
         print("\n[ok] Valid in-season CSV counts match the Postgres raw tables.")

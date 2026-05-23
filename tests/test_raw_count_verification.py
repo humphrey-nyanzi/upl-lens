@@ -27,12 +27,14 @@ def test_raw_count_verification_allows_spill_when_valid_counts_match(capsys) -> 
     csv_counts = _counts(240)
     database_counts = _counts(240)
     spill_counts = _counts(10)
+    spill_sources = {"2024_25": {"matches": {"2025/26": 10}}}
 
-    assert _print_results(["2024_25"], csv_counts, spill_counts, database_counts) is True
+    assert _print_results(["2024_25"], csv_counts, spill_counts, database_counts, spill_sources) is True
 
     output = capsys.readouterr().out
     assert "spill=10" in output
     assert "[warning] Some season folders contain cross-season spill rows." in output
+    assert "2024_25.matches: 2025/26=10" in output
 
 
 def test_raw_count_verification_fails_when_valid_counts_do_not_match() -> None:

@@ -6,6 +6,7 @@ import pandas as pd
 
 from src import config
 from src.db.staging_loader import (
+    _has_error_level_issues,
     _normalize_goal_type,
     _normalize_team,
     _parse_minute,
@@ -87,3 +88,10 @@ def test_standardize_label_and_team_name_normalization() -> None:
     assert _normalize_team("kcca") == "KCCA FC"
     assert _normalize_team("Ondupraka FC") == "Onduparaka FC"
 
+
+def test_error_level_validation_issues_block_staging_writes() -> None:
+    """Error-level validation issues should stop before FK-breaking inserts."""
+
+    assert _has_error_level_issues(pd.DataFrame(columns=["severity"])) is False
+    assert _has_error_level_issues(pd.DataFrame([{"severity": "warning"}])) is False
+    assert _has_error_level_issues(pd.DataFrame([{"severity": "error"}])) is True

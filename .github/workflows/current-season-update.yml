@@ -35,6 +35,11 @@ on:
         required: true
         default: false
         type: boolean
+      disable_postgres_change_detection:
+        description: "Scrape every calendar match instead of using raw Postgres change detection"
+        required: true
+        default: false
+        type: boolean
   schedule:
     - cron: "0 6 * * 1"
 
@@ -52,6 +57,7 @@ jobs:
       USE_CACHE: ${{ github.event.inputs.use_cache || 'false' }}
       SKIP_SCRAPE: ${{ github.event.inputs.skip_scrape || 'false' }}
       SKIP_RAW_LOAD: ${{ github.event.inputs.skip_raw_load || 'false' }}
+      DISABLE_POSTGRES_CHANGE_DETECTION: ${{ github.event.inputs.disable_postgres_change_detection || 'false' }}
       POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
       POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
@@ -94,6 +100,7 @@ jobs:
           ${{ env.SKIP_RAW_LOAD == 'true' && '--skip-raw-load' || '' }}
           ${{ env.APPLY_MIGRATIONS != 'true' && '--skip-migrations' || '' }}
           ${{ env.USE_CACHE == 'true' && '--use-cache' || '' }}
+          ${{ env.DISABLE_POSTGRES_CHANGE_DETECTION == 'true' && '--disable-postgres-change-detection' || '' }}
 
       - name: Upload raw season files
         uses: actions/upload-artifact@v4

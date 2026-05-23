@@ -66,6 +66,8 @@ target/
 
 # DotEnv configuration
 .env
+.env.*
+!.env.example
 
 # Database
 *.db
@@ -107,3 +109,5 @@ target/
 
 # Phase 5 local automation logs are useful while debugging but should not be committed.
 /outputs/automation/
+/outputs/sync/
+/outputs/test_artifacts/

@@ -175,6 +175,7 @@ Keep these commands current when their flags, requirements, or expected output
 change:
 
 - Local setup and common commands in `docs/LOCAL_DEVELOPMENT.md`.
+- Visual architecture and workflow diagrams in `docs/diagram_collection.md`.
 - Postgres setup and migration commands.
 - Database ingestion and staging rebuild commands.
 - FastAPI dev server command.

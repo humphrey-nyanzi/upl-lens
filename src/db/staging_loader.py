@@ -58,6 +58,21 @@ class StagingBuildResult:
     issue_counts: dict[str, int]
 
 
+@dataclass(frozen=True)
+class StagingValidationError(Exception):
+    """Raised after validation evidence is recorded for an unsafe staging build."""
+
+    run_id: str
+    seasons: list[str]
+    issue_counts: dict[str, int]
+
+    def __str__(self) -> str:
+        return (
+            "Staging validation found error-level issues before table writes. "
+            f"Run ID: {self.run_id}."
+        )
+
+
 def _season_key_series(series: pd.Series) -> pd.Series:
     """Normalize season text so `2025/26`, `2025-26`, and `2025_26` compare equally."""
 
@@ -1207,6 +1222,14 @@ def _write_validation_run(
         progress("Recorded staging.validation_runs row")
 
 
+def _has_error_level_issues(issues_df: pd.DataFrame) -> bool:
+    """Return whether validation found issues that should block staging writes."""
+
+    if issues_df.empty or "severity" not in issues_df.columns:
+        return False
+    return bool((issues_df["severity"] == "error").any())
+
+
 def _configure_staging_session(connection, progress: ProgressCallback | None = None) -> None:
     """Set database timeouts so hosted rebuilds fail clearly instead of hanging.
 
@@ -1250,6 +1273,7 @@ def build_staging_from_raw(
         progress(f"Created staging run_id={run_id}")
         progress("Creating SQLAlchemy engine")
     engine = create_sqlalchemy_engine(settings=settings)
+    validation_error: StagingValidationError | None = None
 
     with engine.begin() as connection:
         _configure_staging_session(connection, progress)
@@ -1270,14 +1294,31 @@ def build_staging_from_raw(
         if progress:
             progress(f"Prepared validation issues: {len(validation_issues)} rows")
 
-        _delete_staging_season_rows(connection, season_names, progress)
-        row_counts = _write_staging_tables(connection, staging_tables, progress)
-        issue_counts = _write_validation_issues(connection, validation_issues, progress)
-        _write_validation_run(connection, run_id, season_names, row_counts, issue_counts, progress)
+        if _has_error_level_issues(validation_issues):
+            if progress:
+                progress("Validation found error-level issues; recording evidence before staging writes")
+            row_counts = {table_name: 0 for table_name in STAGING_INSERT_ORDER}
+            issue_counts = _write_validation_issues(connection, validation_issues, progress)
+            _write_validation_run(connection, run_id, season_names, row_counts, issue_counts, progress)
+            validation_error = StagingValidationError(
+                run_id=run_id,
+                seasons=season_names,
+                issue_counts=issue_counts,
+            )
+            if progress:
+                progress("Skipping staging table writes because validation errors were recorded")
+        else:
+            _delete_staging_season_rows(connection, season_names, progress)
+            row_counts = _write_staging_tables(connection, staging_tables, progress)
+            issue_counts = _write_validation_issues(connection, validation_issues, progress)
+            _write_validation_run(connection, run_id, season_names, row_counts, issue_counts, progress)
 
     if progress:
         progress("Disposing SQLAlchemy engine")
     engine.dispose()
+
+    if validation_error is not None:
+        raise validation_error
 
     return StagingBuildResult(
         run_id=run_id,

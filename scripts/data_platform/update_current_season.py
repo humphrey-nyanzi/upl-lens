@@ -46,6 +46,9 @@ RAW_SUMMARY_TABLES = (*RAW_TABLE_FILE_PREFIXES.keys(), "failed_matches")
 LOAD_COUNT_PATTERN = re.compile(
     r"^\s+(?P<table>[a-z_]+): (?P<count>\d+) in-season rows processed\s*$"
 )
+STAGING_COUNT_PATTERN = re.compile(
+    r"^\s+staging\.(?P<table>[a-z_]+): (?P<count>\d+) rows\s*$"
+)
 
 
 @dataclass
@@ -94,6 +97,15 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Allow the scraper to reuse cached HTML and checkpoint state. "
             "By default, routine operations refresh from the live source."
+        ),
+    )
+    parser.add_argument(
+        "--disable-postgres-change-detection",
+        action="store_true",
+        help=(
+            "Scrape every calendar match instead of using raw Postgres rows to "
+            "skip already-complete matches. Use this for investigation or a full "
+            "scrape rebuild."
         ),
     )
     parser.add_argument(
@@ -262,6 +274,21 @@ def _extract_raw_load_counts(log_path: Path | None) -> dict[str, int]:
     return counts
 
 
+def _extract_staging_row_counts(log_path: Path | None) -> dict[str, int]:
+    """Read staging row totals back from the staging-build step log."""
+
+    if log_path is None or not log_path.exists():
+        return {}
+
+    counts: dict[str, int] = {}
+    with log_path.open("r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            match = STAGING_COUNT_PATTERN.match(line)
+            if match:
+                counts[match.group("table")] = int(match.group("count"))
+    return counts
+
+
 def _print_table_counts(title: str, counts: dict[str, int | None]) -> None:
     """Print a compact table-count block for the final automation summary."""
 
@@ -306,6 +333,9 @@ def _print_final_success_summary(
 
     raw_counts = _raw_csv_counts(season)
     raw_load_counts = _extract_raw_load_counts(step_logs.get("load_raw_to_postgres"))
+    staging_row_counts = _extract_staging_row_counts(
+        step_logs.get("build_staging_from_raw")
+    )
     staging_status = _staging_verification_status(
         step_logs.get("verify_staging_outputs") if staging_verification_ran else None
     )
@@ -325,6 +355,8 @@ def _print_final_success_summary(
     _print_table_counts("Raw CSV rows prepared for artifacts", raw_counts)
     if raw_load_counts:
         _print_table_counts("Raw rows processed by Postgres loader", raw_load_counts)
+    if staging_row_counts:
+        _print_table_counts("Staging rows written", staging_row_counts)
 
     print("\nStep logs:")
     for step_name, log_path in step_logs.items():
@@ -346,6 +378,9 @@ def _run_summary_payload(
 
     raw_counts = _raw_csv_counts(season)
     raw_load_counts = _extract_raw_load_counts(step_logs.get("load_raw_to_postgres"))
+    staging_row_counts = _extract_staging_row_counts(
+        step_logs.get("build_staging_from_raw")
+    )
     staging_status = _staging_verification_status(
         step_logs.get("verify_staging_outputs") if staging_verification_ran else None
     )
@@ -362,6 +397,7 @@ def _run_summary_payload(
         "remaining_failed_matches": failed_count,
         "raw_csv_rows": raw_counts,
         "raw_loader_rows": raw_load_counts,
+        "staging_rows": staging_row_counts,
         "step_logs": {
             step_name: _display_path(log_path)
             for step_name, log_path in step_logs.items()
@@ -638,6 +674,8 @@ def _run_update_pipeline(
         scrape_command = _python_command("scrape_upl_matches.py", "--season", season)
         if not args.use_cache:
             scrape_command.append("--refresh-source")
+        if args.mode == "full" and not args.disable_postgres_change_detection:
+            scrape_command.append("--postgres-change-detection")
 
         step_logs["scrape_current_season"] = _run_step(
             "scrape_current_season",

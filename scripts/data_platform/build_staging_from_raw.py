@@ -17,7 +17,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.db.staging_loader import build_staging_from_raw
+from src.db.staging_loader import StagingValidationError, build_staging_from_raw
 
 
 def _print_progress(message: str) -> None:
@@ -50,7 +50,20 @@ def main() -> None:
         f"Requested seasons: {', '.join(args.seasons) if args.seasons else 'all raw database seasons'}",
         flush=True,
     )
-    result = build_staging_from_raw(seasons=args.seasons, progress=_print_progress)
+    try:
+        result = build_staging_from_raw(seasons=args.seasons, progress=_print_progress)
+    except StagingValidationError as error:
+        print(f"\n[error] {error}")
+        print("Staging table writes were skipped so unsafe child rows do not hit foreign keys.")
+        print("Validation evidence was recorded. Review issues with:")
+        print(
+            "  SELECT severity, check_name, table_name, COUNT(*) "
+            "FROM staging.validation_issues "
+            f"WHERE run_id = '{error.run_id}' "
+            "GROUP BY severity, check_name, table_name "
+            "ORDER BY severity, check_name, table_name;"
+        )
+        raise SystemExit(1) from error
 
     print(f"Run ID: {result.run_id}")
     print(f"Target seasons: {', '.join(result.seasons)}")

@@ -11,6 +11,7 @@ from scripts.data_platform import update_current_season as updater
 from scripts.data_platform.update_current_season import (
     OperationsStepError,
     _extract_raw_load_counts,
+    _extract_staging_row_counts,
     _failed_run_summary_payload,
     _run_summary_payload,
     _run_step,
@@ -56,6 +57,25 @@ def test_extract_raw_load_counts_reads_loader_log() -> None:
     }
 
 
+def test_extract_staging_row_counts_reads_build_log() -> None:
+    """The final summary should expose staging rows written by the rebuild."""
+
+    log_path = FakeLogPath(
+        "\n".join(
+            [
+                "[ok] Staging rebuild finished.",
+                "  staging.matches: 199 rows",
+                "  staging.events: 2813 rows",
+            ]
+        )
+    )
+
+    assert _extract_staging_row_counts(log_path) == {
+        "matches": 199,
+        "events": 2813,
+    }
+
+
 def test_staging_verification_status_detects_passing_log() -> None:
     """A known passing staging-verification line should become a clear status."""
 
@@ -89,6 +109,7 @@ def test_run_summary_payload_keeps_operational_decisions_visible() -> None:
     assert payload["raw_verification"] == "completed"
     assert payload["staging_verification"] == "skipped"
     assert payload["remaining_failed_matches"] == 2
+    assert "staging_rows" in payload
     assert payload["step_logs"]["scrape_current_season"].endswith("scrape.log")
 
 

@@ -351,4 +351,7 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   to run the new component.
 - If adding generated artifacts, make sure they belong in the repo before
   committing them.
+- If a change affects architecture, major workflows, endpoints, database tables,
+  deployment shape, or known gaps, check whether
+  [docs/diagram_collection.md](docs/diagram_collection.md) needs an update.
 - Copilot instructions also exist at `.github/copilot-instructions.md`.

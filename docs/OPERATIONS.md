@@ -40,6 +40,81 @@ Use `--skip-migrations` for routine refreshes because scheduled operations
 should use a least-privilege loader role. Schema changes belong to a separate
 admin/migration path.
 
+Full-mode current-season updates use Postgres change detection by default. The
+scraper reads existing `raw.*` rows first, keeps completed matches in the output
+CSV without re-fetching their pages, and scrapes only:
+
+- matches missing from Postgres
+- unplayed or incomplete matches
+- previously failed match URLs
+- a small tail of recent completed matches, so late source corrections are
+  still picked up
+
+Use this only when you intentionally need a whole-season scrape:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-migrations --disable-postgres-change-detection
+```
+
+Artifact-only runs do not use Postgres change detection because they may run
+without database credentials.
+
+## Local Versus Hosted Operations Sync
+
+Do not put hosted Supabase credentials in the local repository. The sync check
+uses GitHub Actions logs as the hosted evidence and local operations summaries
+as the local evidence.
+
+The practical question is:
+
+```text
+After hosted GitHub Actions refreshes Supabase, did the equivalent local run
+produce the same loaded raw counts, staging row counts, verification status, and
+remaining failed-match count?
+```
+
+Run a local mirror check after a hosted workflow run:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\verify_operations_log_sync.py --season 2025-26 --latest-github-run --run-local-update
+```
+
+That command:
+
+1. Finds the latest successful hosted GitHub Actions run for the season through
+   the GitHub CLI.
+2. Runs the local current-season update with `--skip-migrations`.
+3. Compares hosted log evidence with the newest local
+   `outputs/automation/<season>/*_run_summary.json`.
+4. Writes a JSON sync report under `outputs/sync/`.
+5. Exits with an error if loaded raw counts, staging counts, verification
+   status, or remaining failed matches differ.
+
+The command requires the GitHub CLI to be authenticated locally:
+
+```powershell
+gh auth login
+```
+
+If you already downloaded a hosted job log, compare from the file instead:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\verify_operations_log_sync.py --season 2025-26 --hosted-log path\to\github-job.log
+```
+
+Raw CSV artifact row-count differences are warnings by default because loaded
+raw rows and staging rows are the database-safe sync signal. Use
+`--strict-artifacts` if raw file row counts should also fail the sync check.
+
+If the report says `out_of_sync`, escalate for investigation before assuming
+the local and hosted systems are equivalent. The usual next checks are:
+
+- Hosted row counts are behind: rerun the GitHub Actions season refresh.
+- Local row counts are behind: rerun the local mirror update.
+- Loaded raw counts match but staging counts differ: rebuild staging on the
+  stale target.
+- Verification status differs: inspect the relevant `verify_*` step logs.
+
 ## Logs And Run Summaries
 
 Each operations run writes step logs under:
@@ -129,6 +204,7 @@ Escalate to a failed run when:
 - a required stage exits with an error
 - raw loaded counts disagree with season CSV counts
 - staging verification reports error-level validation issues
+- the staging rebuild records error-level validation issues before table writes
 - remaining failed matches should block this specific run and
   `--fail-on-remaining-failed-matches` was requested
 
@@ -177,11 +253,25 @@ When a routine update fails, check in this order:
 7. If permissions failed, confirm the job is using the correct routine or admin
    database role for the task.
 
+The staging rebuild validates the prepared tables before writing them. If
+error-level validation issues are found, it records those issues and the
+validation run, skips staging table writes, and exits with an error. This keeps
+unsafe child rows from crashing into foreign key constraints before the useful
+diagnostic evidence is saved.
+
 Cross-season spill rows during raw count verification are warning-level when
 `csv_valid` equals the Postgres count. They mean the source calendar included
 rows outside the requested season folder, and the loader skipped them as
 designed. Escalate only if the valid in-season count disagrees with Postgres or
 the spill pattern looks surprising enough to suggest a scraper/source change.
+The raw verifier prints a source-season breakdown, such as `2025/26=12`, so the
+log shows where the leaked rows came from.
+
+The scraper also filters rows by the requested season before writing raw CSVs.
+That keeps new raw artifacts season-scoped even when the official calendar
+temporarily leaks match URLs from another season. Older raw folders may still
+contain historical spill rows until they are refreshed; the raw loader and raw
+verifier remain defensive so those old artifacts do not contaminate Postgres.
 
 When a scrape and raw load already succeeded, rerun the workflow with
 `skip_scrape=true` and `skip_raw_load=true` to debug staging against the existing

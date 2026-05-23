@@ -149,6 +149,7 @@ Use these docs instead of trying to learn the whole repository from the README:
 |------|------------|
 | First orientation | [docs/START_HERE.md](docs/START_HERE.md) |
 | Local setup and common commands | [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) |
+| Visual codebase overview | [docs/diagram_collection.md](docs/diagram_collection.md) |
 | Which doc to open | [docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md) |
 | Roadmap and current priorities | [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) |
 | Operations, logs, tests, validation, escalation | [docs/OPERATIONS.md](docs/OPERATIONS.md) |

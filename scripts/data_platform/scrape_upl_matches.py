@@ -15,6 +15,7 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,7 @@ from src.config import (
     raw_season_file,
     season_key,
 )
+from src.db.connection import get_psycopg_connection
 from src.dataset import save_dataframe
 
 
@@ -178,6 +180,15 @@ TABLE_COLUMNS = {
     "stats": STAT_COLUMNS,
 }
 
+RAW_DATABASE_TABLE_COLUMNS = {
+    "matches": MATCH_COLUMNS,
+    "events": EVENT_COLUMNS,
+    "lineups": LINEUP_COLUMNS,
+    "staff": STAFF_COLUMNS,
+    "officials": OFFICIAL_COLUMNS,
+    "stats": STAT_COLUMNS,
+}
+
 LEGACY_GOAL_COLUMNS = [
     "Date",
     "Time",
@@ -191,6 +202,19 @@ LEGACY_GOAL_COLUMNS = [
     "player_name",
     "goal_type",
 ]
+
+
+@dataclass(frozen=True)
+class PostgresScrapePlan:
+    """Database-backed decision about which match pages need refreshing."""
+
+    existing_tables: dict[str, list[dict[str, Any]]]
+    skip_urls: set[str]
+    pending_reasons: dict[str, str]
+    complete_match_count: int
+    incomplete_match_count: int
+    failed_match_count: int
+    recent_refresh_count: int
 
 
 class RateLimiter:
@@ -964,6 +988,183 @@ def _save_failed_matches_manifest(season: str, failed_urls: dict[str, dict[str, 
     save_dataframe(failed_df, manifest_path)
 
 
+def _query_raw_table_rows(table_name: str, season: str) -> list[dict[str, Any]]:
+    """Read existing raw rows for one season from Postgres.
+
+    The scraper CSVs do not include loader-only columns such as `source_file`
+    or `ingested_at`, so this query exports only the columns the scraper itself
+    writes. That lets skipped DB rows be preserved in the next raw CSV output.
+    """
+
+    columns = RAW_DATABASE_TABLE_COLUMNS[table_name]
+    column_sql = ", ".join(columns)
+    query = f"""
+        SELECT {column_sql}
+        FROM raw.{table_name}
+        WHERE REPLACE(REPLACE(season, '-', '_'), '/', '_') = %s
+        ORDER BY match_id;
+    """
+
+    with get_psycopg_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (season_key(season),))
+            column_names = [column.name for column in cursor.description]
+            return [
+                dict(zip(column_names, row, strict=True))
+                for row in cursor.fetchall()
+            ]
+
+
+def _query_raw_match_refresh_state(season: str) -> list[dict[str, Any]]:
+    """Return match-level state used to choose what should be re-scraped."""
+
+    query = """
+        SELECT
+            match_url,
+            match_id,
+            date,
+            match_day,
+            home_score,
+            away_score,
+            ingested_at
+        FROM raw.matches
+        WHERE REPLACE(REPLACE(season, '-', '_'), '/', '_') = %s
+        ORDER BY match_day NULLS LAST, date NULLS LAST, match_id;
+    """
+
+    with get_psycopg_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (season_key(season),))
+            column_names = [column.name for column in cursor.description]
+            return [
+                dict(zip(column_names, row, strict=True))
+                for row in cursor.fetchall()
+            ]
+
+
+def _query_failed_match_urls(season: str) -> set[str]:
+    """Return match URLs that failed in the previous raw Postgres state."""
+
+    query = """
+        SELECT match_url
+        FROM raw.failed_matches
+        WHERE REPLACE(REPLACE(season, '-', '_'), '/', '_') = %s;
+    """
+
+    with get_psycopg_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (season_key(season),))
+            return {str(row[0]) for row in cursor.fetchall() if row[0]}
+
+
+def _load_existing_raw_tables_from_postgres(season: str) -> dict[str, list[dict[str, Any]]]:
+    """Export existing raw season rows so skipped matches remain in CSV output."""
+
+    return {
+        table_name: _query_raw_table_rows(table_name, season)
+        for table_name in TABLE_NAMES
+    }
+
+
+def _filter_existing_tables_to_calendar(
+    existing_tables: dict[str, list[dict[str, Any]]],
+    match_urls: list[str],
+) -> dict[str, list[dict[str, Any]]]:
+    """Keep only existing DB rows still present in the current source calendar."""
+
+    calendar_urls = set(match_urls)
+    return {
+        table_name: [
+            row for row in rows
+            if row.get("match_url") in calendar_urls
+        ]
+        for table_name, rows in existing_tables.items()
+    }
+
+
+def _is_complete_match(row: dict[str, Any]) -> bool:
+    """Return whether a raw match row looks played enough to skip safely."""
+
+    return row.get("home_score") is not None and row.get("away_score") is not None
+
+
+def _recent_completed_urls(
+    match_rows: list[dict[str, Any]],
+    *,
+    limit: int,
+) -> set[str]:
+    """Choose recent completed matches as practical updated-data candidates.
+
+    The UPL source pages do not expose a reliable last-modified field in the
+    calendar. Rechecking a small tail of recent completed matches catches late
+    lineup, stats, or result corrections without re-fetching the whole season.
+    """
+
+    if limit <= 0:
+        return set()
+
+    complete_rows = [row for row in match_rows if _is_complete_match(row) and row.get("match_url")]
+    recent_rows = sorted(
+        complete_rows,
+        key=lambda row: (
+            row.get("date") or "",
+            row.get("match_day") or -1,
+            row.get("match_id") or -1,
+        ),
+        reverse=True,
+    )
+    return {str(row["match_url"]) for row in recent_rows[:limit]}
+
+
+def _build_postgres_scrape_plan(
+    season: str,
+    match_urls: list[str],
+    *,
+    recent_completed_limit: int,
+) -> PostgresScrapePlan:
+    """Build a Postgres-backed plan for incremental scraping."""
+
+    existing_tables = _filter_existing_tables_to_calendar(
+        _load_existing_raw_tables_from_postgres(season),
+        match_urls,
+    )
+    match_rows = _query_raw_match_refresh_state(season)
+    failed_match_urls = _query_failed_match_urls(season)
+    complete_urls = {
+        str(row["match_url"])
+        for row in match_rows
+        if row.get("match_url") and _is_complete_match(row)
+    }
+    incomplete_urls = {
+        str(row["match_url"])
+        for row in match_rows
+        if row.get("match_url") and not _is_complete_match(row)
+    }
+    recent_urls = _recent_completed_urls(match_rows, limit=recent_completed_limit)
+    existing_urls = complete_urls.union(incomplete_urls)
+    pending_reasons: dict[str, str] = {}
+
+    for url in match_urls:
+        if url in failed_match_urls:
+            pending_reasons[url] = "previously_failed"
+        elif url not in existing_urls:
+            pending_reasons[url] = "missing_from_postgres"
+        elif url in incomplete_urls:
+            pending_reasons[url] = "unplayed_or_incomplete"
+        elif url in recent_urls:
+            pending_reasons[url] = "recent_completed_refresh"
+
+    return PostgresScrapePlan(
+        existing_tables=existing_tables,
+        skip_urls=set(match_urls).difference(pending_reasons),
+        pending_reasons=pending_reasons,
+        complete_match_count=len(complete_urls),
+        incomplete_match_count=len(incomplete_urls),
+        failed_match_count=len(failed_match_urls),
+        recent_refresh_count=len(recent_urls),
+    )
+
+
 def _load_checkpoint(season: str) -> tuple[set[str], dict[str, list[dict[str, Any]]], dict[str, dict[str, Any]]]:
     """
     Load saved progress from disk if it exists.
@@ -1019,6 +1220,17 @@ def _append_match_payload(aggregated_tables: dict[str, list[dict[str, Any]]], ma
         aggregated_tables[table_name].extend(match_payload[table_name])
 
 
+def _remove_match_rows(aggregated_tables: dict[str, list[dict[str, Any]]], match_url: str) -> None:
+    """Remove stale rows for one match before appending its refreshed payload."""
+
+    for table_name in list(aggregated_tables):
+        aggregated_tables[table_name] = [
+            row
+            for row in aggregated_tables[table_name]
+            if row.get("match_url") != match_url
+        ]
+
+
 def _fetch_and_parse_match(client: ScraperClient, url: str) -> tuple[str, dict[str, Any]]:
     """
     Download one match page and return all normalized table rows for that match.
@@ -1071,10 +1283,42 @@ def _build_legacy_goal_dataframe(events_df: pd.DataFrame) -> pd.DataFrame:
     return goal_events[LEGACY_GOAL_COLUMNS]
 
 
+def _filter_tables_to_requested_season(
+    season: str,
+    season_tables: dict[str, pd.DataFrame],
+) -> tuple[dict[str, pd.DataFrame], dict[str, int]]:
+    """Keep raw season outputs scoped to the requested season folder.
+
+    The official calendar can occasionally expose match URLs whose match page
+    belongs to a different season. We filter those rows before writing CSVs so
+    `data/raw/<season>/` remains a true season slice. The raw Postgres loader
+    has the same guard, but catching it here keeps artifacts cleaner too.
+    """
+
+    expected_season = season_key(season)
+    filtered_tables: dict[str, pd.DataFrame] = {}
+    spill_counts: dict[str, int] = {}
+
+    for table_name, df in season_tables.items():
+        if df.empty or "season" not in df.columns:
+            filtered_tables[table_name] = df.copy()
+            spill_counts[table_name] = 0
+            continue
+
+        normalized_seasons = df["season"].fillna("").astype(str).str.strip().map(season_key)
+        in_season_mask = normalized_seasons == expected_season
+        spill_counts[table_name] = int((~in_season_mask).sum())
+        filtered_tables[table_name] = df.loc[in_season_mask].copy()
+
+    return filtered_tables, spill_counts
+
+
 def scrape_season(
     season: str,
     *,
     refresh_source: bool = False,
+    use_postgres_change_detection: bool = False,
+    recent_completed_limit: int = 10,
 ) -> tuple[dict[str, pd.DataFrame], dict[str, Any]]:
     """
     Scrape all structured match data for a season.
@@ -1106,20 +1350,47 @@ def scrape_season(
         print("[ok] Refresh source enabled: bypassing cached HTML and checkpoint state")
 
     match_urls = fetch_match_urls(client, season)
-    if refresh_source:
+    postgres_plan: PostgresScrapePlan | None = None
+    if use_postgres_change_detection:
+        postgres_plan = _build_postgres_scrape_plan(
+            season,
+            match_urls,
+            recent_completed_limit=recent_completed_limit,
+        )
+        completed_urls = postgres_plan.skip_urls.copy()
+        all_tables = postgres_plan.existing_tables
+        failed_urls = {}
+        print("[ok] Postgres change detection enabled")
+        print(f"[ok] Existing complete matches in Postgres: {postgres_plan.complete_match_count}")
+        print(f"[ok] Existing incomplete/unplayed matches in Postgres: {postgres_plan.incomplete_match_count}")
+        print(f"[ok] Previously failed matches in Postgres: {postgres_plan.failed_match_count}")
+        print(f"[ok] Recent completed matches selected for refresh: {postgres_plan.recent_refresh_count}")
+    elif refresh_source:
         completed_urls, all_tables, failed_urls = set(), _empty_scraped_tables(), {}
     else:
         completed_urls, all_tables, failed_urls = _load_checkpoint(season)
     starting_completed_count = len(completed_urls)
-    pending_urls = [url for url in match_urls if url not in completed_urls]
+    pending_urls = [
+        url for url in match_urls
+        if url not in completed_urls
+    ]
     retry_first_urls = [url for url in pending_urls if url in failed_urls]
     new_pending_urls = [url for url in pending_urls if url not in failed_urls]
     pending_urls = retry_first_urls + new_pending_urls
 
     print(f"\nScraping {len(match_urls)} matches...")
-    if completed_urls:
+    if use_postgres_change_detection:
+        print(f"[ok] Skipping {len(completed_urls)} complete matches from Postgres")
+    elif completed_urls:
         print(f"[ok] Skipping {len(completed_urls)} matches already saved in checkpoint")
     print(f"[ok] {len(pending_urls)} matches left to fetch")
+    if postgres_plan and postgres_plan.pending_reasons:
+        reason_counts: dict[str, int] = {}
+        for reason in postgres_plan.pending_reasons.values():
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+        print("[ok] Postgres scrape reasons:")
+        for reason, row_count in sorted(reason_counts.items()):
+            print(f"  {reason}: {row_count}")
     if retry_first_urls:
         print(f"[ok] Prioritizing {len(retry_first_urls)} previously failed matches")
 
@@ -1135,6 +1406,7 @@ def scrape_season(
 
                 try:
                     completed_url, match_payload = future.result()
+                    _remove_match_rows(all_tables, completed_url)
                     _append_match_payload(all_tables, match_payload)
                     completed_urls.add(completed_url)
                     failed_urls.pop(completed_url, None)
@@ -1161,12 +1433,14 @@ def scrape_season(
         table_name: _build_output_dataframe(all_tables[table_name], TABLE_COLUMNS[table_name])
         for table_name in TABLE_NAMES
     }
+    season_tables, spill_counts = _filter_tables_to_requested_season(season, season_tables)
     scrape_summary = {
         "match_urls_found": len(match_urls),
         "starting_completed_matches": starting_completed_count,
         "completed_matches": len(completed_urls),
         "successful_fetches": len(completed_urls) - starting_completed_count,
         "failed_matches": len(failed_urls),
+        "spill_rows_filtered": spill_counts,
     }
     return season_tables, scrape_summary
 
@@ -1190,6 +1464,23 @@ def main() -> int:
         action="store_true",
         help="Bypass cached HTML and checkpoint state so the season is scraped from the live source.",
     )
+    parser.add_argument(
+        "--postgres-change-detection",
+        action="store_true",
+        help=(
+            "Query Postgres raw tables first and scrape only missing, incomplete, "
+            "previously failed, or recent completed matches."
+        ),
+    )
+    parser.add_argument(
+        "--recent-completed-limit",
+        type=int,
+        default=10,
+        help=(
+            "When --postgres-change-detection is enabled, refresh this many recent "
+            "completed matches as updated-data candidates. Defaults to 10."
+        ),
+    )
     args = parser.parse_args()
 
     print(f"\n{'=' * 60}")
@@ -1200,12 +1491,23 @@ def main() -> int:
         season_tables, scrape_summary = scrape_season(
             args.season,
             refresh_source=args.refresh_source,
+            use_postgres_change_detection=args.postgres_change_detection,
+            recent_completed_limit=args.recent_completed_limit,
         )
 
         season_outputs_exist = all(raw_season_file(args.season, table_name).exists() for table_name in TABLE_NAMES)
         legacy_goals_path = DATA_RAW / f"upl_goals_{season_key(args.season)}.csv"
-        should_write_structured_outputs = scrape_summary["successful_fetches"] > 0 or not season_outputs_exist
-        should_write_legacy_goals = scrape_summary["successful_fetches"] > 0 or not legacy_goals_path.exists()
+        total_spill_rows = sum(scrape_summary["spill_rows_filtered"].values())
+        should_write_structured_outputs = (
+            scrape_summary["successful_fetches"] > 0
+            or total_spill_rows > 0
+            or not season_outputs_exist
+        )
+        should_write_legacy_goals = (
+            scrape_summary["successful_fetches"] > 0
+            or total_spill_rows > 0
+            or not legacy_goals_path.exists()
+        )
 
         if should_write_structured_outputs:
             _save_structured_outputs(args.season, season_tables)
@@ -1227,6 +1529,11 @@ def main() -> int:
             print(f"  {table_name}: {len(season_tables[table_name])} rows")
         print(f"  Successful fetches this run: {scrape_summary['successful_fetches']}")
         print(f"  Remaining failed matches: {scrape_summary['failed_matches']}")
+        if total_spill_rows:
+            print("  Cross-season spill rows filtered before CSV write:")
+            for table_name, row_count in scrape_summary["spill_rows_filtered"].items():
+                if row_count:
+                    print(f"    {table_name}: {row_count}")
         print(f"  Legacy goals export: {legacy_goals_path}")
         return 0
 
