@@ -44,7 +44,7 @@ Use these statuses for feature folders and registry rows.
 
 | Feature | Status | Feature Package | Research Source | Production Source | API Endpoint | Frontend Surface | Notes |
 |---------|--------|-----------------|-----------------|-------------------|--------------|------------------|-------|
-| Feature 1 - Goal Timing | `promoted` | `notebooks/features/feature_01_goal_timing/` | `staging.events` via notebook and API query | Direct query on `staging.events`; no `analytics.*` view yet | `GET /insights/goal-timing?season=...` | Goal Timing Explorer panel | First Phase 6 vertical slice. Counts regular-time goal events by 15-minute interval and excludes added-time goals. |
+| Feature 1 - Goal Timing | `promoted` | `notebooks/features/feature_01_goal_timing/` | `staging.events` via notebook and API query | Direct query on `staging.events`; no `analytics.*` view yet | `GET /insights/goal-timing?season=...` | Goal Timing Explorer panel | First promoted research-to-product vertical slice. Counts regular-time goal events by 15-minute interval and excludes added-time goals. |
 | Feature XX - Template | `idea` | `notebooks/features/_feature_template/` | `staging.*` by default | choose during promotion | none yet | none yet | Copy this folder to start a new experimental feature. |
 
 ## How To Use This Registry

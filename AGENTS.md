@@ -10,8 +10,10 @@ clean and model it for analysis, expose it through a FastAPI backend, and presen
 the best insights in a React web app. Notebooks remain the research lab where new
 questions are explored before they become dashboard features.
 
-Use [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) as the main planning
-reference for architecture, phases, and implementation priorities.
+Use [docs/START_HERE.md](docs/START_HERE.md) as the first orientation document
+and [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) as the main planning
+reference. The old launch phases are historical context; new work should be
+planned through the four continuous development areas.
 
 ## Current State
 
@@ -104,7 +106,7 @@ docs/
 ```
 
 Do not create all of this at once unless the task calls for it. Grow the
-structure phase by phase.
+structure only when the current area of work needs it.
 
 ## Build / Run
 
@@ -118,39 +120,41 @@ Current workflow:
 - Verify raw Postgres counts: `python scripts/data_platform/verify_raw_postgres_counts.py`
 - Build cleaned staging tables: `python scripts/data_platform/build_staging_from_raw.py`
 - Verify staging outputs: `python scripts/data_platform/verify_staging_outputs.py`
+- Run the current-season refresh: `python scripts/data_platform/update_current_season.py --season 2025-26 --skip-migrations`
+- Run tests: `python -m pytest`
+- Run the FastAPI dev server: `python -m uvicorn api.main:app --reload`
+- Build the React frontend: from `frontend/`, run `npm run build`
 - Open notebooks from `notebooks/features/feature_01_goal_timing/` for the pilot analysis.
 
-Future workflow should add:
+Use `.venv\Scripts\python.exe` instead of `python` when working inside the local
+Windows virtual environment.
 
-- Postgres startup/configuration instructions.
-- Database migration command.
-- Data loading command.
-- Raw-to-staging cleaning command.
-- Staging validation command.
-- FastAPI dev server command.
-- React dev server command.
-- GitHub Actions scheduled update workflow.
-
-No formal test suite exists yet. Validate changes by running the relevant
+The pytest suite is still early. Validate changes by running the relevant test,
 script, notebook, API endpoint, or frontend page end to end.
 
-## Implementation Priorities
+## Continuous Development Areas
 
-Follow the roadmap phases:
+Use these areas for planning, review, and scoping:
 
-1. Stabilize scraped outputs and schemas.
-2. Add Postgres schema and ingestion.
-3. Add FastAPI read endpoints.
-4. Add React app with the goal timing pilot as Feature 1.
-5. Add GitHub Actions automation for current-season updates.
-6. Promote notebook discoveries into production views and dashboard features.
+1. **Data Reliability & Operations** - scraper behavior, Postgres, staging
+   validation, automation, deployment health, logs, tests, and escalation.
+2. **Research & Football Intelligence** - notebooks, football questions,
+   feature packages, metric definitions, caveats, and promotion decisions.
+3. **Product Experience** - FastAPI endpoints, query/service logic, React pages,
+   UI/UX, filters, tables, charts, and browser-facing states.
+4. **Developer Experience & Documentation** - onboarding, setup instructions,
+   command guides, troubleshooting, repo conventions, and documentation
+   navigation.
 
-Avoid jumping ahead into UI work before the database model can support it.
+Keep changes area-appropriate and scoped. Do not jump from a documentation,
+research, or data-reliability task into unrelated product UI work unless the
+user explicitly changes the scope.
 
 ## Feature Promotion Workflow
 
-Phase 6 notebook experiments should use the feature package workflow documented
-in [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md).
+Research & Football Intelligence notebook experiments should use the feature
+package workflow documented in
+[docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md).
 Use [docs/FEATURE_DATA_ACCESS.md](docs/FEATURE_DATA_ACCESS.md) for notebook data
 source rules and read-only research access. Use
 [docs/FEATURE_REGISTRY.md](docs/FEATURE_REGISTRY.md) to track feature lifecycle
@@ -248,9 +252,9 @@ When adding Postgres support, separate:
 - Staging/cleaned records.
 - Analytics-ready facts, dimensions, and views.
 
-For Phase 2, use Postgres `raw.*` as the input for cleaning. Do not make the new
-staging pipeline read raw CSV files directly; CSV-to-Postgres protection happens
-in Phase 1 ingestion.
+For staging work, use Postgres `raw.*` as the input for cleaning. Do not make
+the staging pipeline read raw CSV files directly; CSV-to-Postgres protection
+happens in the raw ingestion layer.
 
 Useful future concepts:
 
@@ -320,8 +324,9 @@ GitHub Actions is the preferred automation path for portfolio visibility.
 
 ## AI Agent Rules
 
-- Before coding, check [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) and
-  the current files related to the task.
+- Before coding, check [docs/START_HERE.md](docs/START_HERE.md),
+  [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md), and the current files
+  related to the task.
 - Explain work systematically and beginner-consciously. For each implementation
   step, briefly state what is being changed, why it matters, and how to run or
   verify it.
@@ -338,7 +343,7 @@ GitHub Actions is the preferred automation path for portfolio visibility.
 - Do not make the React frontend depend directly on CSV files.
 - Do not introduce a different database unless the user explicitly changes the
   decision. The target production database is Postgres.
-- Keep changes phase-appropriate and scoped.
+- Keep changes area-appropriate and scoped.
 - If adding dependencies, update the relevant dependency file and document how
   to run the new component.
 - If adding generated artifacts, make sure they belong in the repo before

@@ -37,6 +37,19 @@ Notebooks are the research lab. Postgres is the production data store.
 
 ## Four Continuous Development Areas
 
+```mermaid
+flowchart TD
+    A["UPL Match Intelligence"] --> B["Data Reliability & Operations"]
+    A --> C["Research & Football Intelligence"]
+    A --> D["Product Experience"]
+    A --> E["Developer Experience & Documentation"]
+
+    B --> B1["scraper, Postgres, validation, automation, deployment health"]
+    C --> C1["notebooks, football questions, feature packages, caveats"]
+    D --> D1["FastAPI, React, UI/UX, charts, filters, browser states"]
+    E --> E1["onboarding, setup, commands, troubleshooting, doc navigation"]
+```
+
 ### 1. Data Reliability & Operations
 
 Purpose: keep the source data, database, automation, and deployment trustworthy.
@@ -245,6 +258,23 @@ The old launch phases are now historical context:
 
 The phase documents and notes can stay as reference, but new work should be
 planned, discussed, and reviewed through the four areas above.
+
+## How To Navigate The Docs
+
+Start here when you are unsure where a change belongs. Then use:
+
+- [README.md](../README.md) for the public project overview and live demo.
+- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for current planning and priorities.
+- [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) for a file-by-file guide to every
+  docs file.
+- [OPERATIONS.md](OPERATIONS.md) for logs, tests, validation, and escalation.
+- Phase-named docs, such as [PHASE5_AUTOMATION.md](PHASE5_AUTOMATION.md),
+  [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md), and
+  [PHASE7_DEPLOYMENT_RUNBOOK.md](PHASE7_DEPLOYMENT_RUNBOOK.md), as detailed
+  historical references or runbooks.
+
+If two docs disagree, prefer the newer four-area model in this file and the
+current roadmap, then update the stale doc in the smallest useful place.
 
 ## First Things To Read By Task
 

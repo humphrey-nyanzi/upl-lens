@@ -1,5 +1,12 @@
 # Phase 7 Deployment Runbook
 
+Status: **deployment runbook / historical launch-phase reference**.
+
+Current planning home: use [START_HERE.md](START_HERE.md) for the four
+continuous development areas, [OPERATIONS.md](OPERATIONS.md) for operational
+health and escalation, and [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md) for the
+original deployment decision record.
+
 This runbook turns the Phase 7 architecture decision into careful manual steps.
 It is intentionally written for a human operator. Do not paste secrets,
 passwords, connection strings, or API keys into chat or committed files.
@@ -226,7 +233,7 @@ Expected meaning:
 - `/health/live` proves the FastAPI process is running.
 - `/health` proves FastAPI can connect to Supabase.
 - `/seasons` proves the API can read cleaned staging match data.
-- `/insights/goal-timing` proves the promoted Phase 6 feature works from the
+- `/insights/goal-timing` proves the promoted goal-timing feature works from the
   hosted database.
 
 After the frontend is deployed:

@@ -10,6 +10,7 @@ python scripts/data_platform/update_current_season.py
 python scripts/data_platform/update_current_season.py --season 2025-26
 python scripts/data_platform/update_current_season.py --mode artifact-only
 python scripts/data_platform/update_current_season.py --skip-scrape
+python scripts/data_platform/update_current_season.py --skip-scrape --skip-raw-load
 python scripts/data_platform/update_current_season.py --use-cache
 python scripts/data_platform/update_current_season.py --skip-migrations
 """
@@ -85,6 +86,14 @@ def parse_args() -> argparse.Namespace:
         help="Skip the raw CSV versus Postgres count check.",
     )
     parser.add_argument(
+        "--skip-raw-load",
+        action="store_true",
+        help=(
+            "Skip loading raw CSVs into Postgres and reuse the existing raw database rows. "
+            "Use with --skip-scrape when retrying staging after a successful raw load."
+        ),
+    )
+    parser.add_argument(
         "--skip-staging-verification",
         action="store_true",
         help="Skip the staging validation summary check.",
@@ -140,9 +149,9 @@ def _run_step(step_name: str, command: list[str], log_dir: Path) -> Path:
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"{_timestamp_slug()}_{step_name}.log"
 
-    print(f"\n[operations] Starting {step_name}")
-    print(f"[operations] Command: {' '.join(command)}")
-    print(f"[operations] Log: {_display_path(log_path)}")
+    print(f"\n[operations] Starting {step_name}", flush=True)
+    print(f"[operations] Command: {' '.join(command)}", flush=True)
+    print(f"[operations] Log: {_display_path(log_path)}", flush=True)
 
     with log_path.open("w", encoding="utf-8") as log_file:
         log_file.write(f"Step: {step_name}\n")
@@ -159,15 +168,16 @@ def _run_step(step_name: str, command: list[str], log_dir: Path) -> Path:
 
         assert process.stdout is not None
         for line in process.stdout:
-            print(line, end="")
+            print(line, end="", flush=True)
             log_file.write(line)
+            log_file.flush()
 
     if process.wait() != 0:
         raise SystemExit(
             f"\n[error] Operations step failed: {step_name}. Review {log_path}."
         )
 
-    print(f"[operations] Finished {step_name}")
+    print(f"[operations] Finished {step_name}", flush=True)
     return log_path
 
 
@@ -459,13 +469,24 @@ def main() -> None:
             log_dir,
         )
 
-    step_logs["load_raw_to_postgres"] = _run_step(
-        "load_raw_to_postgres",
-        _python_command("load_raw_to_postgres.py", "--season", season),
-        log_dir,
-    )
+    if args.skip_raw_load:
+        print(
+            "\n[operations] Skipping raw Postgres load and reusing existing raw database rows.",
+            flush=True,
+        )
+    else:
+        step_logs["load_raw_to_postgres"] = _run_step(
+            "load_raw_to_postgres",
+            _python_command("load_raw_to_postgres.py", "--season", season),
+            log_dir,
+        )
 
-    if not args.skip_raw_verification:
+    if args.skip_raw_load:
+        print(
+            "\n[operations] Skipping raw verification because raw loading was skipped.",
+            flush=True,
+        )
+    elif not args.skip_raw_verification:
         step_logs["verify_raw_postgres_counts"] = _run_step(
             "verify_raw_postgres_counts",
             _python_command("verify_raw_postgres_counts.py", "--season", season),
@@ -498,7 +519,7 @@ def main() -> None:
         skip_migrations=args.skip_migrations,
         failed_count=failed_count,
         step_logs=step_logs,
-        raw_verification_ran=not args.skip_raw_verification,
+        raw_verification_ran=not args.skip_raw_load and not args.skip_raw_verification,
         staging_verification_ran=not args.skip_staging_verification,
     )
     _write_run_summary_json(
@@ -508,7 +529,7 @@ def main() -> None:
         skip_migrations=args.skip_migrations,
         failed_count=failed_count,
         step_logs=step_logs,
-        raw_verification_ran=not args.skip_raw_verification,
+        raw_verification_ran=not args.skip_raw_load and not args.skip_raw_verification,
         staging_verification_ran=not args.skip_staging_verification,
         log_dir=log_dir,
     )

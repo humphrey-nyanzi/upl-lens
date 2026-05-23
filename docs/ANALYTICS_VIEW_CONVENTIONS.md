@@ -76,9 +76,9 @@ Good fit:
 - the result should be refreshed as part of the data pipeline
 - the calculation cannot be expressed cleanly as a simple view
 
-This project should prefer direct queries and normal views during early Phase 6.
-Stored analytics tables add maintenance work, so they should be introduced only
-when there is a clear reason.
+This project should prefer direct queries and normal views while the research
+and product layers are still small. Stored analytics tables add maintenance
+work, so they should be introduced only when there is a clear reason.
 
 ## Where Derived Metrics Belong
 

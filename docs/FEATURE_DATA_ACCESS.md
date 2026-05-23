@@ -1,7 +1,7 @@
 # Feature Data Access
 
-This guide explains which data sources feature notebooks should use during Phase
-6 research.
+This guide explains which data sources feature notebooks should use during
+Research & Football Intelligence work.
 
 The short version:
 

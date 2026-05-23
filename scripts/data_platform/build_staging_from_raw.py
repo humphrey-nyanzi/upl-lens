@@ -20,6 +20,12 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.db.staging_loader import build_staging_from_raw
 
 
+def _print_progress(message: str) -> None:
+    """Print one staging progress checkpoint immediately."""
+
+    print(f"[staging] {message}", flush=True)
+
+
 def parse_args() -> argparse.Namespace:
     """Parse command-line options for the staging build."""
 
@@ -39,9 +45,13 @@ def main() -> None:
     """Run the repeatable raw-to-staging pipeline and print a summary."""
 
     args = parse_args()
-    result = build_staging_from_raw(seasons=args.seasons)
-
     print("UPL Match Intelligence - Build Staging From Raw Postgres Tables")
+    print(
+        f"Requested seasons: {', '.join(args.seasons) if args.seasons else 'all raw database seasons'}",
+        flush=True,
+    )
+    result = build_staging_from_raw(seasons=args.seasons, progress=_print_progress)
+
     print(f"Run ID: {result.run_id}")
     print(f"Target seasons: {', '.join(result.seasons)}")
 

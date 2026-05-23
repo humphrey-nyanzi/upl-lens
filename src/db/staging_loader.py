@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from json import dumps
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 from sqlalchemy import text
@@ -318,10 +318,25 @@ def _read_raw_table(connection, table_name: str, seasons: list[str]) -> pd.DataF
     return pd.read_sql_query(query, connection, params={"seasons": seasons})
 
 
-def _read_raw_tables(connection, seasons: list[str]) -> dict[str, pd.DataFrame]:
+ProgressCallback = Callable[[str], None]
+
+
+def _read_raw_tables(
+    connection,
+    seasons: list[str],
+    progress: ProgressCallback | None = None,
+) -> dict[str, pd.DataFrame]:
     """Read all raw tables needed by the staging build."""
 
-    return {table_name: _read_raw_table(connection, table_name, seasons) for table_name in RAW_TABLES}
+    raw_tables: dict[str, pd.DataFrame] = {}
+    for table_name in RAW_TABLES:
+        if progress:
+            progress(f"Reading raw.{table_name}")
+        table_df = _read_raw_table(connection, table_name, seasons)
+        raw_tables[table_name] = table_df
+        if progress:
+            progress(f"Read raw.{table_name}: {len(table_df)} rows")
+    return raw_tables
 
 
 def _discover_raw_database_seasons(connection) -> list[str]:
@@ -1081,17 +1096,29 @@ def _validate_staging_tables(
     return pd.DataFrame(issues)
 
 
-def _delete_staging_season_rows(connection, seasons: list[str]) -> None:
+def _delete_staging_season_rows(
+    connection,
+    seasons: list[str],
+    progress: ProgressCallback | None = None,
+) -> None:
     """Delete requested seasons from staging tables before inserting rebuilt rows."""
 
     for table_name in STAGING_RELOAD_ORDER:
+        if progress:
+            progress(f"Deleting old staging.{table_name} rows")
         connection.execute(
             text(f"DELETE FROM staging.{table_name} WHERE season = ANY(:seasons)"),
             {"seasons": seasons},
         )
+        if progress:
+            progress(f"Deleted old staging.{table_name} rows")
 
 
-def _write_staging_tables(connection, staging_tables: dict[str, pd.DataFrame]) -> dict[str, int]:
+def _write_staging_tables(
+    connection,
+    staging_tables: dict[str, pd.DataFrame],
+    progress: ProgressCallback | None = None,
+) -> dict[str, int]:
     """Append cleaned rows into staging tables and return row counts."""
 
     row_counts: dict[str, int] = {}
@@ -1099,7 +1126,11 @@ def _write_staging_tables(connection, staging_tables: dict[str, pd.DataFrame]) -
         table_df = staging_tables[table_name]
         row_counts[table_name] = len(table_df)
         if table_df.empty:
+            if progress:
+                progress(f"Skipping staging.{table_name}: 0 rows")
             continue
+        if progress:
+            progress(f"Writing staging.{table_name}: {len(table_df)} rows")
         table_df.to_sql(
             table_name,
             connection,
@@ -1109,14 +1140,24 @@ def _write_staging_tables(connection, staging_tables: dict[str, pd.DataFrame]) -
             method="multi",
             chunksize=1000,
         )
+        if progress:
+            progress(f"Wrote staging.{table_name}: {len(table_df)} rows")
     return row_counts
 
 
-def _write_validation_issues(connection, issues_df: pd.DataFrame) -> dict[str, int]:
+def _write_validation_issues(
+    connection,
+    issues_df: pd.DataFrame,
+    progress: ProgressCallback | None = None,
+) -> dict[str, int]:
     """Append validation issues and summarize counts by severity."""
 
     if issues_df.empty:
+        if progress:
+            progress("No validation issues to write")
         return {}
+    if progress:
+        progress(f"Writing staging.validation_issues: {len(issues_df)} rows")
     issues_df.to_sql(
         "validation_issues",
         connection,
@@ -1126,6 +1167,8 @@ def _write_validation_issues(connection, issues_df: pd.DataFrame) -> dict[str, i
         method="multi",
         chunksize=1000,
     )
+    if progress:
+        progress(f"Wrote staging.validation_issues: {len(issues_df)} rows")
     return issues_df["severity"].value_counts().sort_index().to_dict()
 
 
@@ -1135,9 +1178,12 @@ def _write_validation_run(
     seasons: list[str],
     row_counts: dict[str, int],
     issue_counts: dict[str, int],
+    progress: ProgressCallback | None = None,
 ) -> None:
     """Record every staging build, including runs with no validation issues."""
 
+    if progress:
+        progress("Recording staging.validation_runs row")
     connection.execute(
         text(
             """
@@ -1157,11 +1203,28 @@ def _write_validation_run(
             "issue_counts": dumps(issue_counts),
         },
     )
+    if progress:
+        progress("Recorded staging.validation_runs row")
+
+
+def _configure_staging_session(connection, progress: ProgressCallback | None = None) -> None:
+    """Set database timeouts so hosted rebuilds fail clearly instead of hanging.
+
+    `lock_timeout` protects against waiting forever behind another database
+    session. `statement_timeout` keeps a single slow SQL statement inside the
+    GitHub Actions job timeout so the real failure can reach the logs.
+    """
+
+    if progress:
+        progress("Configuring database statement and lock timeouts")
+    connection.execute(text("SET LOCAL lock_timeout = '30s';"))
+    connection.execute(text("SET LOCAL statement_timeout = '20min';"))
 
 
 def build_staging_from_raw(
     seasons: list[str] | None = None,
     settings: DatabaseSettings | None = None,
+    progress: ProgressCallback | None = None,
 ) -> StagingBuildResult:
     """Rebuild Phase 2 staging tables from Postgres raw tables.
 
@@ -1172,6 +1235,9 @@ def build_staging_from_raw(
         raw season folders.
     settings : DatabaseSettings | None, optional
         Preloaded database settings.
+    progress : Callable[[str], None] | None, optional
+        Callback used by scripts and automation to expose long-running rebuild
+        stages in logs.
 
     Returns
     -------
@@ -1180,19 +1246,37 @@ def build_staging_from_raw(
     """
 
     run_id = f"staging-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
+    if progress:
+        progress(f"Created staging run_id={run_id}")
+        progress("Creating SQLAlchemy engine")
     engine = create_sqlalchemy_engine(settings=settings)
 
     with engine.begin() as connection:
+        _configure_staging_session(connection, progress)
+        if progress:
+            progress("Resolving target seasons")
         season_names = resolve_seasons(seasons) if seasons else _discover_raw_database_seasons(connection)
-        raw_tables = _read_raw_tables(connection, season_names)
+        if progress:
+            progress(f"Target seasons: {', '.join(season_names)}")
+        raw_tables = _read_raw_tables(connection, season_names, progress)
+        if progress:
+            progress("Transforming raw tables into staging tables")
         staging_tables = _build_staging_tables(raw_tables)
+        if progress:
+            for table_name, table_df in staging_tables.items():
+                progress(f"Prepared staging.{table_name}: {len(table_df)} rows")
+            progress("Running staging validation checks")
         validation_issues = _validate_staging_tables(raw_tables, staging_tables, season_names, run_id)
+        if progress:
+            progress(f"Prepared validation issues: {len(validation_issues)} rows")
 
-        _delete_staging_season_rows(connection, season_names)
-        row_counts = _write_staging_tables(connection, staging_tables)
-        issue_counts = _write_validation_issues(connection, validation_issues)
-        _write_validation_run(connection, run_id, season_names, row_counts, issue_counts)
+        _delete_staging_season_rows(connection, season_names, progress)
+        row_counts = _write_staging_tables(connection, staging_tables, progress)
+        issue_counts = _write_validation_issues(connection, validation_issues, progress)
+        _write_validation_run(connection, run_id, season_names, row_counts, issue_counts, progress)
 
+    if progress:
+        progress("Disposing SQLAlchemy engine")
     engine.dispose()
 
     return StagingBuildResult(

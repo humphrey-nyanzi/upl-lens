@@ -1,10 +1,16 @@
 # Phase 5 Current-Season Automation
 
+Status: **detailed operations reference / historical launch-phase note**.
+
+Current planning home: use [START_HERE.md](START_HERE.md) for the four
+continuous development areas and [OPERATIONS.md](OPERATIONS.md) for the current
+logs, tests, validation, and escalation model.
+
 This note documents the working GitHub Actions setup for refreshing the current
 UPL season. It is the detailed automation reference; the post-launch operations
 standard lives in [OPERATIONS.md](OPERATIONS.md).
 
-Phase 5 has two different jobs:
+The current-season automation setup has two different jobs:
 
 - Routine refreshes update existing data rows.
 - Admin migration runs change the database structure.

@@ -1,5 +1,12 @@
 # Phase 7 Deployment Plan
 
+Status: **historical deployment decision record**.
+
+Current planning home: use [START_HERE.md](START_HERE.md) for the four
+continuous development areas, [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for
+current priorities, and [PHASE7_DEPLOYMENT_RUNBOOK.md](PHASE7_DEPLOYMENT_RUNBOOK.md)
+for the practical deployment steps.
+
 This document is the Phase 7 deployment decision record for UPL Match
 Intelligence. It does not deploy anything by itself. Its job is to choose a
 practical, low-cost architecture before implementation starts.

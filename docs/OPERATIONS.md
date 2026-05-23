@@ -10,6 +10,16 @@ It belongs to the **Data Reliability & Operations** area described in
 
 Operations owns the path from source data refresh to app-safe database tables:
 
+```mermaid
+flowchart LR
+    A["Scrape current season"] --> B["Write raw season CSVs"]
+    B --> C["Load raw.* Postgres tables"]
+    C --> D["Verify raw counts"]
+    D --> E["Rebuild staging.*"]
+    E --> F["Verify staging outputs"]
+    F --> G["Expose app-safe data through FastAPI"]
+```
+
 ```text
 scrape current season
   -> write raw season CSVs
@@ -70,6 +80,13 @@ The run summary records:
 In GitHub Actions, upload both the raw files and `outputs/automation/` logs as
 artifacts. A failed database step can still leave useful scraped files and logs
 for debugging.
+
+The GitHub Actions workflow runs Python with unbuffered output so long-running
+steps stream progress while they run. The staging rebuild should print
+checkpoints for reading raw tables, transforming rows, validation, deleting old
+season rows, writing each staging table, and recording the validation run. If a
+staging rebuild log is empty or stops at one checkpoint, treat that checkpoint as
+the first place to investigate.
 
 ## Severity Ladder
 
@@ -165,3 +182,9 @@ Cross-season spill rows during raw count verification are warning-level when
 rows outside the requested season folder, and the loader skipped them as
 designed. Escalate only if the valid in-season count disagrees with Postgres or
 the spill pattern looks surprising enough to suggest a scraper/source change.
+
+When a scrape and raw load already succeeded, rerun the workflow with
+`skip_scrape=true` and `skip_raw_load=true` to debug staging against the existing
+raw database rows without fetching all match pages again. Do not run multiple
+full refresh workflows for the same season at the same time because concurrent
+staging rebuilds can create avoidable lock contention.

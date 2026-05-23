@@ -15,7 +15,8 @@ Notebooks remain the research lab. They are where analysis ideas are explored
 and validated before becoming SQL views, API endpoints, or React dashboard
 features.
 
-Read `AGENTS.md` and `docs/PROJECT_ROADMAP.md` before making large changes.
+Read `AGENTS.md`, `docs/START_HERE.md`, and `docs/PROJECT_ROADMAP.md` before
+making large changes.
 
 ## Current Project State
 
@@ -52,7 +53,16 @@ site is the source/archive. This project should add an intelligence layer:
 Prefer features that answer questions a user cannot easily answer from
 individual match pages.
 
-## Planned Tracks
+## Planned Tracks And Work Areas
+
+The production system still has three technical tracks: Data Platform, Research
+Lab, and Public Product. New planning should use the four continuous development
+areas in `docs/START_HERE.md`:
+
+- Data Reliability & Operations
+- Research & Football Intelligence
+- Product Experience
+- Developer Experience & Documentation
 
 ### Data Platform
 
@@ -134,8 +144,8 @@ docs/
   PROJECT_ROADMAP.md
 ```
 
-Do not create empty architecture for its own sake. Add structure when a phase
-needs it.
+Do not create empty architecture for its own sake. Add structure when the
+current work area needs it.
 
 ## Current Commands
 
@@ -148,20 +158,28 @@ needs it.
 - Build staging from raw Postgres tables: `python scripts/data_platform/build_staging_from_raw.py`
 - Verify staging outputs: `python scripts/data_platform/verify_staging_outputs.py`
 - Work with Feature 1 notebooks from `notebooks/features/feature_01_goal_timing/`.
+- Run tests with `python -m pytest` or `.venv\Scripts\python.exe -m pytest` in
+  the local Windows virtual environment.
 
-No formal test suite exists yet. Validate by running the relevant script,
+The pytest suite is still early. Validate by running the relevant test, script,
 notebook, API endpoint, or frontend view end to end.
 
-## Future Commands To Document When Added
+## Command Documentation
 
-When these pieces are introduced, update this file and `AGENTS.md`:
+When command behavior changes, update the relevant docs instead of letting setup
+knowledge live only in chat or local machine history. Common command docs live
+in `README.md`, `docs/START_HERE.md`, `docs/OPERATIONS.md`, this file, and
+`AGENTS.md`.
 
-- Postgres setup command.
-- Database migration command.
-- Database ingestion command.
+Keep these commands current when their flags, requirements, or expected output
+change:
+
+- Postgres setup and migration commands.
+- Database ingestion and staging rebuild commands.
 - FastAPI dev server command.
-- React dev server command.
+- React dev server and build commands.
 - Scheduled update workflow behavior.
+- Test and validation commands.
 
 ## Coding Guidance
 
@@ -193,9 +211,9 @@ Use layered modeling:
 - `staging` for cleaned and normalized records.
 - `analytics` for facts, dimensions, summaries, and views.
 
-Phase 2 staging must read from Postgres `raw.*`, not directly from CSV files.
-The raw loader already filters historical season-contaminated rows before they
-enter the trusted raw database layer.
+Staging must read from Postgres `raw.*`, not directly from CSV files. The raw
+loader already filters historical season-contaminated rows before they enter the
+trusted raw database layer.
 
 Likely modeled tables:
 
@@ -262,11 +280,13 @@ The future scheduled workflow should:
 Before making non-trivial changes:
 
 - Read `AGENTS.md`.
+- Read `docs/START_HERE.md`.
 - Read `docs/PROJECT_ROADMAP.md`.
 - Inspect the current files touched by the task.
-- Check whether the task belongs to data platform, research lab, or public
-  product.
-- Keep the change phase-appropriate.
+- Check whether the task belongs to Data Reliability & Operations, Research &
+  Football Intelligence, Product Experience, or Developer Experience &
+  Documentation.
+- Keep the change area-appropriate.
 - Explain each step in beginner-friendly language: what changed, why it matters,
   and how to run or verify it.
 - When adding unfamiliar technologies such as Postgres, SQLAlchemy, Alembic,

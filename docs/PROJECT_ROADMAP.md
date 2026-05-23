@@ -276,19 +276,22 @@ Current strengths:
 
 - the project has detailed docs for roadmap, automation, deployment, and feature
   promotion
+- `docs/START_HERE.md` and `docs/DOCUMENTATION_MAP.md` give new readers a
+  beginner-friendly entrypoint and a file-by-file documentation index
 - `AGENTS.md` captures repo-specific AI working rules
 - README explains the live demo and core architecture
 
 Known weaknesses:
 
 - documentation became launch-history heavy
-- there are enough docs that a new reader may not know where to begin
-- some docs still speak in old phases because that was how the foundation was
-  built
+- there are still enough docs that repeated guidance can become stale
+- phase-named docs are useful references, but should not become the current
+  planning model again
 
 Next useful work:
 
 - use `docs/START_HERE.md` as the beginner entrypoint
+- use `docs/DOCUMENTATION_MAP.md` as the file-by-file navigation aid
 - use `docs/OPERATIONS.md` for log, summary, test, and escalation rules
 - keep README short and public-facing
 - keep this roadmap as the planning map
