@@ -208,6 +208,21 @@ def _parse_dates(series: pd.Series) -> pd.Series:
     return pd.to_datetime(series, dayfirst=True, errors="coerce").dt.date
 
 
+def _is_forfeit_text(value: Any) -> bool:
+    """Return whether source text clearly describes a forfeited match."""
+
+    text_value = _clean_text(value)
+    if text_value is None:
+        return False
+    return bool(
+        re.search(
+            r"\b(forfeit|forfeiture|failed to turn up|failure to honour|walkover|walk over)\b",
+            text_value,
+            flags=re.IGNORECASE,
+        )
+    )
+
+
 def _minute_period(minute_total: int | None) -> str | None:
     """Bucket a match minute into a simple analysis interval."""
 
@@ -384,6 +399,8 @@ def _clean_match_rows(raw_matches: pd.DataFrame) -> pd.DataFrame:
     for column in ("home_team", "away_team", "man_of_the_match_team"):
         df[column] = df[column].map(_normalize_team)
 
+    raw_man_of_the_match = df["man_of_the_match"].copy()
+    df["is_forfeit"] = raw_man_of_the_match.map(_is_forfeit_text)
     motm_values = df.apply(_extract_man_of_match, axis=1)
     df["man_of_the_match"] = [name for name, _ in motm_values]
     df["man_of_the_match_team"] = [team for _, team in motm_values]
@@ -524,6 +541,7 @@ STAGING_COLUMNS: dict[str, tuple[str, ...]] = {
         "goal_difference",
         "result",
         "winner_team",
+        "is_forfeit",
         "home_first_half_goals",
         "away_first_half_goals",
         "home_second_half_goals",
@@ -1093,6 +1111,69 @@ def _validate_man_of_match_quality(
     return issues
 
 
+def _validate_scoreline_timeline_goal_consistency(
+    staging_tables: dict[str, pd.DataFrame],
+    run_id: str,
+) -> list[dict[str, Any]]:
+    """Flag matches where official scoreline goals differ from timeline goals.
+
+    Administrative results and forfeits can make the match score say 3-0 even
+    when the match timeline has fewer actual goal events. That is valid source
+    behavior, but analytical features should know about it and use timeline
+    goals when they mean actual scored goals.
+    """
+
+    issues: list[dict[str, Any]] = []
+    matches = staging_tables["matches"]
+    events = staging_tables["events"]
+    if matches.empty:
+        return issues
+
+    if events.empty:
+        event_goal_counts = pd.DataFrame(columns=["match_id", "timeline_goal_count"])
+    else:
+        goal_events = events.loc[events["event_type"].isin({"goal", "own_goal", "penalty_goal"})]
+        event_goal_counts = (
+            goal_events.groupby("match_id")
+            .size()
+            .reset_index(name="timeline_goal_count")
+        )
+
+    compare = matches.loc[
+        matches["total_goals"].notna(),
+        ["match_id", "season", "home_team", "away_team", "total_goals"],
+    ].merge(event_goal_counts, on="match_id", how="left")
+    compare["timeline_goal_count"] = compare["timeline_goal_count"].fillna(0).astype(int)
+    compare["scoreline_goal_count"] = compare["total_goals"].astype(int)
+    mismatches = compare.loc[compare["scoreline_goal_count"] != compare["timeline_goal_count"]]
+
+    for _, row in mismatches.head(200).iterrows():
+        issue_value = (
+            f"scoreline_goals={row['scoreline_goal_count']}; "
+            f"timeline_goals={row['timeline_goal_count']}"
+        )
+        issues.append(
+            _issue(
+                run_id,
+                "warning",
+                "scoreline_timeline_goal_mismatch",
+                "staging",
+                "matches",
+                (
+                    "Scoreline goals differ from timeline goal events. "
+                    "Treat as a possible forfeit/admin result or source timeline gap; "
+                    "use timeline goals for actual-goals analytics."
+                ),
+                season=row.get("season"),
+                match_id=row.get("match_id"),
+                column_name="total_goals",
+                issue_value=issue_value,
+            )
+        )
+
+    return issues
+
+
 def _validate_staging_tables(
     raw_tables: dict[str, pd.DataFrame],
     staging_tables: dict[str, pd.DataFrame],
@@ -1108,6 +1189,7 @@ def _validate_staging_tables(
     issues.extend(_validate_key_fields(staging_tables, run_id))
     issues.extend(_validate_missing_team_player_values(staging_tables, run_id))
     issues.extend(_validate_man_of_match_quality(raw_tables, staging_tables, run_id))
+    issues.extend(_validate_scoreline_timeline_goal_consistency(staging_tables, run_id))
     return pd.DataFrame(issues)
 
 

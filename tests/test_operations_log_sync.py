@@ -28,6 +28,9 @@ def test_parse_github_log_extracts_hosted_operations_summary() -> None:
             "update-current-season\tRun update\t2026-05-23T07:02:57Z Staging row counts:",
             "update-current-season\tRun update\t2026-05-23T07:02:57Z   staging.matches    2025_26: 210",
             "update-current-season\tRun update\t2026-05-23T07:02:57Z   staging.events     2025_26: 2858",
+            "update-current-season\tRun update\t2026-05-23T07:02:57Z Staging event type counts:",
+            "update-current-season\tRun update\t2026-05-23T07:02:57Z   goal          496",
+            "update-current-season\tRun update\t2026-05-23T07:02:57Z   yellow_card   729",
             "update-current-season\tRun update\t2026-05-23T07:02:57Z Validation summary for run_id=staging-test:",
             "update-current-season\tRun update\t2026-05-23T07:02:57Z   info    man_of_match_quality         staging.matches    1",
         ]
@@ -41,6 +44,7 @@ def test_parse_github_log_extracts_hosted_operations_summary() -> None:
     assert evidence.remaining_failed_matches == 0
     assert evidence.raw_loader_rows == {"matches": 210, "events": 2858}
     assert evidence.staging_rows == {"matches": 210, "events": 2858}
+    assert evidence.staging_event_type_counts == {"goal": 496, "yellow_card": 729}
     assert evidence.validation_issue_counts == {"info": 1}
     assert evidence.run_id == "123"
 
@@ -51,6 +55,7 @@ def _evidence(
     raw_matches: int = 210,
     staging_matches: int = 210,
     raw_csv_matches: int = 220,
+    goals: int = 496,
 ) -> OperationsEvidence:
     """Build a small comparable evidence object."""
 
@@ -67,6 +72,7 @@ def _evidence(
         raw_csv_rows={"matches": raw_csv_matches},
         raw_loader_rows={"matches": raw_matches},
         staging_rows={"matches": staging_matches},
+        staging_event_type_counts={"goal": goals},
         validation_issue_counts={},
         summary_path=str(Path("summary.json")),
         run_id="123" if source == "hosted" else None,
@@ -106,3 +112,15 @@ def test_comparison_payload_treats_raw_artifact_drift_as_warning_by_default() ->
     assert payload["status"] == "warning"
     assert payload["mismatch_count"] == 0
     assert "raw_csv_rows.matches: hosted=220, local=221" in payload["warnings"]
+
+
+def test_comparison_payload_flags_event_type_drift() -> None:
+    """Hosted/local sync should catch metric-level event drift."""
+
+    payload = _comparison_payload(
+        _evidence("hosted", goals=496),
+        _evidence("local", goals=516),
+    )
+
+    assert payload["status"] == "out_of_sync"
+    assert "staging_event_type_counts.goal: hosted=496, local=516" in payload["mismatches"]

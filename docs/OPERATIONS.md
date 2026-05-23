@@ -259,6 +259,19 @@ validation run, skips staging table writes, and exits with an error. This keeps
 unsafe child rows from crashing into foreign key constraints before the useful
 diagnostic evidence is saved.
 
+For public metrics, **actual goals** means timeline goal events from
+`staging.events`, not scoreline totals from `staging.matches`. Scoreline goals
+remain available internally as a separate comparison signal because
+administrative results and forfeits can show a 3-0 scoreline without matching
+goal events in the source timeline. The staging validator records
+`scoreline_timeline_goal_mismatch` warnings so these edge cases are visible
+before analysis or product work depends on the season totals.
+
+Staging also carries `staging.matches.is_forfeit` for matches whose source text
+clearly describes forfeiture, walkover, or a team failing to turn up. Use that
+flag to separate administrative outcomes from normal played matches in future
+analysis.
+
 Cross-season spill rows during raw count verification are warning-level when
 `csv_valid` equals the Postgres count. They mean the source calendar included
 rows outside the requested season folder, and the loader skipped them as

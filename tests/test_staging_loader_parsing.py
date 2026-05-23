@@ -7,9 +7,11 @@ import pandas as pd
 from src import config
 from src.db.staging_loader import (
     _has_error_level_issues,
+    _is_forfeit_text,
     _normalize_goal_type,
     _normalize_team,
     _parse_minute,
+    _validate_scoreline_timeline_goal_consistency,
     _standardize_label,
 )
 
@@ -95,3 +97,40 @@ def test_error_level_validation_issues_block_staging_writes() -> None:
     assert _has_error_level_issues(pd.DataFrame(columns=["severity"])) is False
     assert _has_error_level_issues(pd.DataFrame([{"severity": "warning"}])) is False
     assert _has_error_level_issues(pd.DataFrame([{"severity": "error"}])) is True
+
+
+def test_scoreline_timeline_goal_mismatch_is_flagged_as_warning() -> None:
+    """Forfeit/admin scorelines should be visible without blocking staging."""
+
+    staging_tables = {
+        "matches": pd.DataFrame(
+            [
+                {
+                    "match_id": 1,
+                    "season": "2025_26",
+                    "home_team": "Kitara FC",
+                    "away_team": "Vipers SC",
+                    "total_goals": 3,
+                }
+            ]
+        ),
+        "events": pd.DataFrame(
+            columns=["match_id", "event_type"]
+        ),
+    }
+
+    issues = _validate_scoreline_timeline_goal_consistency(staging_tables, "test-run")
+
+    assert len(issues) == 1
+    assert issues[0]["severity"] == "warning"
+    assert issues[0]["check_name"] == "scoreline_timeline_goal_mismatch"
+    assert issues[0]["issue_value"] == "scoreline_goals=3; timeline_goals=0"
+
+
+def test_forfeit_text_detection_uses_source_notice_language() -> None:
+    """Forfeit/admin source notices should become a stable staging flag."""
+
+    assert _is_forfeit_text("Police FC lose the match by forfeiture.") is True
+    assert _is_forfeit_text("The club failed to turn up for the match.") is True
+    assert _is_forfeit_text("Failure to honour Match pending FUFA Disciplinary Panel Verdict.") is True
+    assert _is_forfeit_text("Pilsner Man of the Match: Jane Doe") is False

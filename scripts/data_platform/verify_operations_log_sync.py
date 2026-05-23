@@ -44,6 +44,9 @@ TABLE_COUNT_PATTERN = re.compile(
 STAGING_VERIFY_COUNT_PATTERN = re.compile(
     r"^\s*staging\.(?P<table>[a-z_]+)\s+(?P<season>\d{4}_\d{2}):\s+(?P<count>\d+)\s*$"
 )
+EVENT_TYPE_COUNT_PATTERN = re.compile(
+    r"^\s*(?:(?P<season>\d{4}_\d{2})\s+)?(?P<event_type>[a-z_]+)\s+(?P<count>\d+)\s*$"
+)
 VALIDATION_ISSUE_PATTERN = re.compile(
     r"^\s*(?P<severity>info|warning|error|fatal)\s+.+?\s+(?P<count>\d+)\s*$"
 )
@@ -65,6 +68,7 @@ class OperationsEvidence:
     raw_csv_rows: dict[str, int | None]
     raw_loader_rows: dict[str, int]
     staging_rows: dict[str, int]
+    staging_event_type_counts: dict[str, int]
     validation_issue_counts: dict[str, int]
     summary_path: str | None = None
     run_id: str | None = None
@@ -205,6 +209,7 @@ def _parse_github_log(text: str, *, source: str, run_id: str | None = None) -> O
     raw_csv_rows: dict[str, int | None] = {}
     raw_loader_rows: dict[str, int] = {}
     staging_rows: dict[str, int] = {}
+    staging_event_type_counts: dict[str, int] = {}
     validation_issue_counts: dict[str, int] = {}
     active_block: str | None = None
 
@@ -219,6 +224,9 @@ def _parse_github_log(text: str, *, source: str, run_id: str | None = None) -> O
             continue
         if "Staging rows written:" in line or "Staging row counts:" in line:
             active_block = "staging"
+            continue
+        if "Staging event type counts:" in line or line.startswith("Event type counts:"):
+            active_block = "event_types"
             continue
         if "Validation summary for run_id=" in line:
             active_block = "validation"
@@ -255,6 +263,14 @@ def _parse_github_log(text: str, *, source: str, run_id: str | None = None) -> O
                 staging_rows[staging_match.group("table")] = int(staging_match.group("count"))
             continue
 
+        if active_block == "event_types":
+            event_match = EVENT_TYPE_COUNT_PATTERN.match(line)
+            if event_match:
+                staging_event_type_counts[event_match.group("event_type")] = int(
+                    event_match.group("count")
+                )
+            continue
+
         if active_block == "validation":
             issue_match = VALIDATION_ISSUE_PATTERN.match(line)
             if issue_match:
@@ -277,6 +293,7 @@ def _parse_github_log(text: str, *, source: str, run_id: str | None = None) -> O
         raw_csv_rows=raw_csv_rows,
         raw_loader_rows=raw_loader_rows,
         staging_rows=staging_rows,
+        staging_event_type_counts=staging_event_type_counts,
         validation_issue_counts=validation_issue_counts,
         run_id=run_id,
     )
@@ -299,6 +316,7 @@ def _evidence_from_local_summary(summary_path: Path) -> OperationsEvidence:
         raw_csv_rows=payload.get("raw_csv_rows", {}),
         raw_loader_rows=payload.get("raw_loader_rows", {}),
         staging_rows=payload.get("staging_rows", {}),
+        staging_event_type_counts=payload.get("staging_event_type_counts", {}),
         validation_issue_counts={},
         summary_path=str(summary_path),
     )
@@ -493,6 +511,13 @@ def _comparison_payload(
             name="staging_rows",
             hosted=hosted.staging_rows,
             local=local.staging_rows,
+        )
+    )
+    mismatches.extend(
+        _compare_counts(
+            name="staging_event_type_counts",
+            hosted=hosted.staging_event_type_counts,
+            local=local.staging_event_type_counts,
         )
     )
 

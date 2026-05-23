@@ -33,6 +33,15 @@ def test_staging_child_tables_reference_staging_matches() -> None:
         assert "match_id BIGINT NOT NULL REFERENCES staging.matches (match_id) ON DELETE CASCADE" in table_sql
 
 
+def test_staging_matches_has_forfeit_flag() -> None:
+    """Forfeited/admin matches should have a stable staging flag for analysis."""
+
+    sql = STAGING_MIGRATION.read_text(encoding="utf-8")
+    matches_sql = _table_block(sql, "matches")
+
+    assert "is_forfeit BOOLEAN NOT NULL DEFAULT FALSE" in matches_sql
+
+
 def test_raw_schema_stays_source_tolerant_without_match_foreign_keys() -> None:
     """Raw ingestion should remain looser than staging and avoid child-table FKs."""
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from scripts.data_platform import update_current_season as updater
 from scripts.data_platform.update_current_season import (
     OperationsStepError,
+    _extract_event_type_counts,
     _extract_raw_load_counts,
     _extract_staging_row_counts,
     _failed_run_summary_payload,
@@ -76,6 +77,27 @@ def test_extract_staging_row_counts_reads_build_log() -> None:
     }
 
 
+def test_extract_event_type_counts_reads_staging_verification_log() -> None:
+    """The final summary should expose event-type totals used by the UI."""
+
+    log_path = FakeLogPath(
+        "\n".join(
+            [
+                "Event type counts:",
+                "  2025_26  goal             496",
+                "  2025_26  yellow_card      729",
+                "",
+                "Validation summary for run_id=staging-test:",
+            ]
+        )
+    )
+
+    assert _extract_event_type_counts(log_path) == {
+        "goal": 496,
+        "yellow_card": 729,
+    }
+
+
 def test_staging_verification_status_detects_passing_log() -> None:
     """A known passing staging-verification line should become a clear status."""
 
@@ -110,6 +132,7 @@ def test_run_summary_payload_keeps_operational_decisions_visible() -> None:
     assert payload["staging_verification"] == "skipped"
     assert payload["remaining_failed_matches"] == 2
     assert "staging_rows" in payload
+    assert "staging_event_type_counts" in payload
     assert payload["step_logs"]["scrape_current_season"].endswith("scrape.log")
 
 

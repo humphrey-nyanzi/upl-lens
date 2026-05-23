@@ -98,6 +98,39 @@ def _print_row_counts(cursor, seasons: list[str] | None) -> None:
             print(f"  staging.{table_name:<10} {season}: {row_count}")
 
 
+def _print_event_type_counts(cursor, seasons: list[str] | None) -> None:
+    """Print event counts by event type for sync and dashboard sanity checks."""
+
+    print("\nEvent type counts:")
+    if seasons:
+        cursor.execute(
+            """
+            SELECT season, COALESCE(event_type, 'other') AS event_type, COUNT(*)
+            FROM staging.events
+            WHERE season = ANY(%s)
+            GROUP BY season, COALESCE(event_type, 'other')
+            ORDER BY season, event_type;
+            """,
+            (seasons,),
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT season, COALESCE(event_type, 'other') AS event_type, COUNT(*)
+            FROM staging.events
+            GROUP BY season, COALESCE(event_type, 'other')
+            ORDER BY season, event_type;
+            """
+        )
+
+    rows = cursor.fetchall()
+    if not rows:
+        print("  no staging.events rows")
+        return
+    for season, event_type, row_count in rows:
+        print(f"  {season:<8} {event_type:<16} {row_count}")
+
+
 def _print_validation_summary(cursor, run_id: str | None) -> int:
     """Print validation issue counts and return the number of error issues."""
 
@@ -141,6 +174,7 @@ def main() -> None:
     with get_psycopg_connection() as connection:
         with connection.cursor() as cursor:
             _print_row_counts(cursor, seasons)
+            _print_event_type_counts(cursor, seasons)
             run_id = args.run_id or _resolve_latest_run_id(cursor)
             error_count = _print_validation_summary(cursor, run_id)
 

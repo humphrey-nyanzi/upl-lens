@@ -49,6 +49,9 @@ LOAD_COUNT_PATTERN = re.compile(
 STAGING_COUNT_PATTERN = re.compile(
     r"^\s+staging\.(?P<table>[a-z_]+): (?P<count>\d+) rows\s*$"
 )
+EVENT_TYPE_COUNT_PATTERN = re.compile(
+    r"^\s+(?P<season>\d{4}_\d{2})\s+(?P<event_type>[a-z_]+)\s+(?P<count>\d+)\s*$"
+)
 
 
 @dataclass
@@ -289,6 +292,30 @@ def _extract_staging_row_counts(log_path: Path | None) -> dict[str, int]:
     return counts
 
 
+def _extract_event_type_counts(log_path: Path | None) -> dict[str, int]:
+    """Read event-type totals back from the staging verification step log."""
+
+    if log_path is None or not log_path.exists():
+        return {}
+
+    counts: dict[str, int] = {}
+    in_event_counts = False
+    with log_path.open("r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            if line.startswith("Event type counts:"):
+                in_event_counts = True
+                continue
+            if in_event_counts and not line.strip():
+                in_event_counts = False
+                continue
+            if not in_event_counts:
+                continue
+            match = EVENT_TYPE_COUNT_PATTERN.match(line)
+            if match:
+                counts[match.group("event_type")] = int(match.group("count"))
+    return counts
+
+
 def _print_table_counts(title: str, counts: dict[str, int | None]) -> None:
     """Print a compact table-count block for the final automation summary."""
 
@@ -336,6 +363,9 @@ def _print_final_success_summary(
     staging_row_counts = _extract_staging_row_counts(
         step_logs.get("build_staging_from_raw")
     )
+    event_type_counts = _extract_event_type_counts(
+        step_logs.get("verify_staging_outputs") if staging_verification_ran else None
+    )
     staging_status = _staging_verification_status(
         step_logs.get("verify_staging_outputs") if staging_verification_ran else None
     )
@@ -357,6 +387,8 @@ def _print_final_success_summary(
         _print_table_counts("Raw rows processed by Postgres loader", raw_load_counts)
     if staging_row_counts:
         _print_table_counts("Staging rows written", staging_row_counts)
+    if event_type_counts:
+        _print_table_counts("Staging event type counts", event_type_counts)
 
     print("\nStep logs:")
     for step_name, log_path in step_logs.items():
@@ -381,6 +413,9 @@ def _run_summary_payload(
     staging_row_counts = _extract_staging_row_counts(
         step_logs.get("build_staging_from_raw")
     )
+    event_type_counts = _extract_event_type_counts(
+        step_logs.get("verify_staging_outputs") if staging_verification_ran else None
+    )
     staging_status = _staging_verification_status(
         step_logs.get("verify_staging_outputs") if staging_verification_ran else None
     )
@@ -398,6 +433,7 @@ def _run_summary_payload(
         "raw_csv_rows": raw_counts,
         "raw_loader_rows": raw_load_counts,
         "staging_rows": staging_row_counts,
+        "staging_event_type_counts": event_type_counts,
         "step_logs": {
             step_name: _display_path(log_path)
             for step_name, log_path in step_logs.items()

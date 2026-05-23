@@ -58,6 +58,8 @@ class SeasonOverviewResponse(ApiModel):
     match_count: int
     team_count: int
     goal_count: int
+    timeline_goal_count: int
+    scoreline_goal_count: int
     event_count: int
     yellow_card_count: int
     red_card_count: int
@@ -80,6 +82,7 @@ class MatchSummary(ApiModel):
     total_goals: int | None = None
     result: str | None = None
     winner_team: str | None = None
+    is_forfeit: bool = False
     ground_name: str | None = None
     match_url: str
 

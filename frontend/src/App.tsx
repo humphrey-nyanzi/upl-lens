@@ -53,6 +53,11 @@ function formatResult(result: string | null) {
   return "Result pending";
 }
 
+function matchStatus(match: MatchSummary) {
+  if (match.is_forfeit) return "Forfeit";
+  return formatResult(match.result);
+}
+
 function eventLabel(eventType: string | null) {
   if (!eventType) return "Other events";
   return eventLabels[eventType] ?? eventType.replaceAll("_", " ");
@@ -295,7 +300,7 @@ function App() {
         <section className="metric-grid" aria-label="Selected season summary">
           <MetricCard label="Matches" value={summary.matches} detail="From season availability" />
           <MetricCard label="Teams" value={summary.teams} detail="Distinct clubs in matches" />
-          <MetricCard label="Goals" value={summary.goals} detail="Counted by Postgres from match scores" />
+          <MetricCard label="Goals" value={summary.goals} detail="Actual timeline goals" />
           <MetricCard label="Cards" value={summary.cards} detail="Yellow and red cards counted by Postgres" />
         </section>
 
@@ -503,7 +508,7 @@ function MatchRow({ match }: { match: MatchSummary }) {
         <strong>
           {match.home_score ?? "-"}:{match.away_score ?? "-"}
         </strong>
-        <span>{formatResult(match.result)}</span>
+        <span>{matchStatus(match)}</span>
       </div>
       <div>
         <span>Venue</span>

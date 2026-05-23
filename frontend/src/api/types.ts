@@ -27,6 +27,8 @@ export type SeasonOverviewResponse = {
   match_count: number;
   team_count: number;
   goal_count: number;
+  timeline_goal_count: number;
+  scoreline_goal_count: number;
   event_count: number;
   yellow_card_count: number;
   red_card_count: number;
@@ -65,6 +67,7 @@ export type MatchSummary = {
   total_goals: number | null;
   result: string | null;
   winner_team: string | null;
+  is_forfeit: boolean;
   ground_name: string | null;
   match_url: string;
 };

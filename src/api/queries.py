@@ -149,7 +149,7 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
             SELECT
                 season,
                 COUNT(*) AS match_count,
-                COALESCE(SUM(COALESCE(total_goals, 0)), 0) AS goal_count,
+                COALESCE(SUM(COALESCE(total_goals, 0)), 0) AS scoreline_goal_count,
                 MIN(match_date) AS first_match_date,
                 MAX(match_date) AS latest_match_date
             FROM staging.matches
@@ -175,7 +175,7 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
             match_totals.season,
             match_totals.match_count,
             COALESCE(team_totals.team_count, 0) AS team_count,
-            match_totals.goal_count,
+            match_totals.scoreline_goal_count,
             match_totals.first_match_date,
             match_totals.latest_match_date
         FROM match_totals
@@ -199,7 +199,14 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
         {"season": season},
     )
     counts_by_type = {row["event_type"]: row["count"] for row in event_counts}
+    timeline_goal_count = (
+        counts_by_type.get("goal", 0)
+        + counts_by_type.get("own_goal", 0)
+        + counts_by_type.get("penalty_goal", 0)
+    )
 
+    overview["goal_count"] = timeline_goal_count
+    overview["timeline_goal_count"] = timeline_goal_count
     overview["event_count"] = sum(counts_by_type.values())
     overview["yellow_card_count"] = counts_by_type.get("yellow_card", 0)
     overview["red_card_count"] = counts_by_type.get("red_card", 0)
@@ -327,6 +334,7 @@ def list_matches(
             total_goals,
             result,
             winner_team,
+            is_forfeit,
             ground_name,
             match_url
         FROM staging.matches
@@ -370,6 +378,7 @@ def get_match(match_id: int) -> dict[str, Any] | None:
             goal_difference,
             result,
             winner_team,
+            is_forfeit,
             ground_name,
             ground_address,
             man_of_the_match,
@@ -461,8 +470,6 @@ def list_teams(
                 season,
                 home_team AS team_name,
                 match_id,
-                home_score AS goals_for,
-                away_score AS goals_against,
                 CASE WHEN result = 'home_win' THEN 1 ELSE 0 END AS wins,
                 CASE WHEN result = 'draw' THEN 1 ELSE 0 END AS draws,
                 CASE WHEN result = 'away_win' THEN 1 ELSE 0 END AS losses
@@ -473,24 +480,53 @@ def list_teams(
                 season,
                 away_team AS team_name,
                 match_id,
-                away_score AS goals_for,
-                home_score AS goals_against,
                 CASE WHEN result = 'away_win' THEN 1 ELSE 0 END AS wins,
                 CASE WHEN result = 'draw' THEN 1 ELSE 0 END AS draws,
                 CASE WHEN result = 'home_win' THEN 1 ELSE 0 END AS losses
             FROM staging.matches
             WHERE away_team IS NOT NULL
+        ),
+        actual_goals AS (
+            SELECT
+                season,
+                match_id,
+                team_name,
+                COUNT(*) AS goals_for
+            FROM staging.events
+            WHERE event_type IN ('goal', 'own_goal', 'penalty_goal')
+                AND team_name IS NOT NULL
+            GROUP BY season, match_id, team_name
+        ),
+        team_rows AS (
+            SELECT
+                team_matches.season,
+                team_matches.team_name,
+                team_matches.match_id,
+                team_matches.wins,
+                team_matches.draws,
+                team_matches.losses,
+                COALESCE(for_goals.goals_for, 0) AS goals_for,
+                COALESCE(against_goals.goals_for, 0) AS goals_against
+            FROM team_matches
+            LEFT JOIN actual_goals AS for_goals
+                ON for_goals.season = team_matches.season
+                AND for_goals.match_id = team_matches.match_id
+                AND for_goals.team_name = team_matches.team_name
+            LEFT JOIN actual_goals AS against_goals
+                ON against_goals.season = team_matches.season
+                AND against_goals.match_id = team_matches.match_id
+                AND against_goals.team_name <> team_matches.team_name
         )
         SELECT
             team_name,
             COUNT(DISTINCT season) AS seasons_played,
             COUNT(*) AS matches_played,
-            SUM(COALESCE(goals_for, 0)) AS goals_for,
-            SUM(COALESCE(goals_against, 0)) AS goals_against,
+            SUM(COALESCE(goals_for, 0))::integer AS goals_for,
+            SUM(COALESCE(goals_against, 0))::integer AS goals_against,
             SUM(wins) AS wins,
             SUM(draws) AS draws,
             SUM(losses) AS losses
-        FROM team_matches
+        FROM team_rows
         WHERE (%(season)s::text IS NULL OR season = %(season)s::text)
             AND (%(team_like)s::text IS NULL OR team_name ILIKE %(team_like)s::text)
         GROUP BY team_name
