@@ -125,9 +125,15 @@ def _print_results(
     contaminated_counts: dict[str, dict[str, int]],
     database_counts: dict[str, dict[str, int]],
 ) -> bool:
-    """Print a comparison table and return whether all counts match."""
+    """Print a comparison table and return whether loaded counts match.
+
+    Cross-season spill rows are reported as warnings, not failures. The raw
+    loader intentionally skips those rows, so the unsafe condition is a mismatch
+    between valid in-season CSV rows and rows loaded into Postgres.
+    """
 
     all_match = True
+    found_spill_rows = False
 
     for season in seasons:
         print(f"\nSeason {season}:")
@@ -136,12 +142,20 @@ def _print_results(
             contaminated_count = contaminated_counts[season][table_name]
             db_count = database_counts[season][table_name]
             status = "ok" if csv_count == db_count else "mismatch"
+            if contaminated_count:
+                found_spill_rows = True
             print(
                 f"  {table_name:<14} csv_valid={csv_count:<6} db={db_count:<6} "
                 f"spill={contaminated_count:<4} status={status}"
             )
-            if csv_count != db_count or contaminated_count != 0:
+            if csv_count != db_count:
                 all_match = False
+
+    if found_spill_rows:
+        print(
+            "\n[warning] Some season folders contain cross-season spill rows. "
+            "The raw loader skipped them; review only if the spill pattern looks unexpected."
+        )
 
     return all_match
 
@@ -160,10 +174,10 @@ def main() -> None:
     all_match = _print_results(target_seasons, csv_counts, contaminated_counts, database_counts)
 
     if all_match:
-        print("\n[ok] All CSV counts match the Postgres raw tables.")
+        print("\n[ok] Valid in-season CSV counts match the Postgres raw tables.")
         return
 
-    print("\n[error] One or more season folders contain cross-season rows or count mismatches.")
+    print("\n[error] One or more raw tables have count mismatches.")
     raise SystemExit(1)
 
 

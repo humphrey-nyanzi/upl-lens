@@ -86,6 +86,8 @@ Examples:
 
 - `INFO`: loaded 199 matches for the season.
 - `WARNING`: a few match pages still need retry after a source timeout.
+- `WARNING`: raw season CSVs contain cross-season spill rows that were skipped
+  during loading, while valid in-season CSV counts still match Postgres.
 - `ERROR`: raw CSV counts do not match loaded Postgres row counts.
 - `FATAL`: Postgres cannot be reached, or required credentials are missing.
 
@@ -158,3 +160,8 @@ When a routine update fails, check in this order:
 7. If permissions failed, confirm the job is using the correct routine or admin
    database role for the task.
 
+Cross-season spill rows during raw count verification are warning-level when
+`csv_valid` equals the Postgres count. They mean the source calendar included
+rows outside the requested season folder, and the loader skipped them as
+designed. Escalate only if the valid in-season count disagrees with Postgres or
+the spill pattern looks surprising enough to suggest a scraper/source change.
