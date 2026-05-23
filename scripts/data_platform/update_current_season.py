@@ -23,6 +23,7 @@ import json
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -45,6 +46,21 @@ RAW_SUMMARY_TABLES = (*RAW_TABLE_FILE_PREFIXES.keys(), "failed_matches")
 LOAD_COUNT_PATTERN = re.compile(
     r"^\s+(?P<table>[a-z_]+): (?P<count>\d+) in-season rows processed\s*$"
 )
+
+
+@dataclass
+class OperationsStepError(Exception):
+    """Raised when one operations stage fails after writing its step log."""
+
+    step_name: str
+    log_path: Path
+    exit_code: int
+
+    def __str__(self) -> str:
+        return (
+            f"\n[error] Operations step failed: {self.step_name}. "
+            f"Exit code: {self.exit_code}. Review {self.log_path}."
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -172,9 +188,12 @@ def _run_step(step_name: str, command: list[str], log_dir: Path) -> Path:
             log_file.write(line)
             log_file.flush()
 
-    if process.wait() != 0:
-        raise SystemExit(
-            f"\n[error] Operations step failed: {step_name}. Review {log_path}."
+    exit_code = process.wait()
+    if exit_code != 0:
+        raise OperationsStepError(
+            step_name=step_name,
+            log_path=log_path,
+            exit_code=exit_code,
         )
 
     print(f"[operations] Finished {step_name}", flush=True)
@@ -332,6 +351,7 @@ def _run_summary_payload(
     )
 
     return {
+        "status": "success",
         "season": season,
         "mode": mode,
         "source": "cached HTML/checkpoints allowed" if use_cache else "fresh live-source refresh",
@@ -347,6 +367,184 @@ def _run_summary_payload(
             for step_name, log_path in step_logs.items()
         },
     }
+
+
+def _partial_artifacts_payload(
+    *,
+    season: str,
+    log_dir: Path,
+    step_logs: dict[str, Path],
+    failed_stage_log: Path | None = None,
+) -> dict[str, object]:
+    """Return artifact paths and row counts that may help debug a failed run."""
+
+    raw_dir = raw_season_dir(season)
+    raw_counts = _raw_csv_counts(season)
+    raw_files = {
+        table_name: {
+            "path": _display_path(raw_season_file(season, table_name)),
+            "exists": raw_season_file(season, table_name).exists(),
+            "row_count": raw_counts.get(table_name),
+        }
+        for table_name in RAW_TABLE_FILE_PREFIXES
+    }
+    failed_matches_path = raw_season_failed_matches_file(season)
+    raw_files["failed_matches"] = {
+        "path": _display_path(failed_matches_path),
+        "exists": failed_matches_path.exists(),
+        "row_count": raw_counts.get("failed_matches"),
+    }
+
+    return {
+        "raw_season_dir": _display_path(raw_dir),
+        "raw_season_dir_exists": raw_dir.exists(),
+        "raw_files": raw_files,
+        "automation_log_dir": _display_path(log_dir),
+        "automation_log_dir_exists": log_dir.exists(),
+        "completed_step_logs": {
+            step_name: _display_path(log_path)
+            for step_name, log_path in step_logs.items()
+        },
+        "failed_stage_log": (
+            _display_path(failed_stage_log) if failed_stage_log is not None else None
+        ),
+    }
+
+
+def _failed_run_summary_payload(
+    *,
+    season: str,
+    mode: str,
+    use_cache: bool,
+    skip_migrations: bool,
+    skip_raw_load: bool,
+    skip_raw_verification: bool,
+    skip_staging_verification: bool,
+    step_logs: dict[str, Path],
+    log_dir: Path,
+    failed_stage: str,
+    failed_stage_log: Path | None,
+    exit_code: int | None,
+    failure_reason: str,
+) -> dict[str, object]:
+    """Return the structured summary for an operations run that did not finish."""
+
+    return {
+        "status": "failed",
+        "season": season,
+        "mode": mode,
+        "source": "cached HTML/checkpoints allowed" if use_cache else "fresh live-source refresh",
+        "migrations": "skipped" if skip_migrations else _stage_state(
+            "apply_db_migrations",
+            step_logs,
+            failed_stage,
+        ),
+        "raw_load": "skipped" if skip_raw_load else _stage_state(
+            "load_raw_to_postgres",
+            step_logs,
+            failed_stage,
+        ),
+        "raw_verification": _verification_state(
+            step_name="verify_raw_postgres_counts",
+            skipped=skip_raw_load or skip_raw_verification,
+            step_logs=step_logs,
+            failed_stage=failed_stage,
+        ),
+        "staging_rebuild": _stage_state(
+            "build_staging_from_raw",
+            step_logs,
+            failed_stage,
+        ),
+        "staging_verification": _verification_state(
+            step_name="verify_staging_outputs",
+            skipped=skip_staging_verification,
+            step_logs=step_logs,
+            failed_stage=failed_stage,
+        ),
+        "failed_stage": failed_stage,
+        "failed_stage_log": (
+            _display_path(failed_stage_log) if failed_stage_log is not None else None
+        ),
+        "exit_code": exit_code,
+        "failure_reason": failure_reason,
+        "partial_artifacts": _partial_artifacts_payload(
+            season=season,
+            log_dir=log_dir,
+            step_logs=step_logs,
+            failed_stage_log=failed_stage_log,
+        ),
+    }
+
+
+def _stage_state(
+    step_name: str,
+    step_logs: dict[str, Path],
+    failed_stage: str,
+) -> str:
+    """Return whether a pipeline stage completed, failed, or had not started."""
+
+    if step_name in step_logs:
+        return "completed"
+    if step_name == failed_stage:
+        return "failed"
+    return "not_started"
+
+
+def _verification_state(
+    *,
+    step_name: str,
+    skipped: bool,
+    step_logs: dict[str, Path],
+    failed_stage: str,
+) -> str:
+    """Return a concise status for a verification stage."""
+
+    if skipped and step_name not in step_logs and step_name != failed_stage:
+        return "skipped"
+    return _stage_state(step_name, step_logs, failed_stage)
+
+
+def _write_failed_run_summary_json(
+    *,
+    season: str,
+    mode: str,
+    use_cache: bool,
+    skip_migrations: bool,
+    skip_raw_load: bool,
+    skip_raw_verification: bool,
+    skip_staging_verification: bool,
+    step_logs: dict[str, Path],
+    log_dir: Path,
+    failed_stage: str,
+    failed_stage_log: Path | None,
+    exit_code: int | None,
+    failure_reason: str,
+) -> Path:
+    """Write a machine-readable run summary before a failed operation exits."""
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+    summary_path = log_dir / f"{_timestamp_slug()}_run_summary_failed.json"
+    payload = _failed_run_summary_payload(
+        season=season,
+        mode=mode,
+        use_cache=use_cache,
+        skip_migrations=skip_migrations,
+        skip_raw_load=skip_raw_load,
+        skip_raw_verification=skip_raw_verification,
+        skip_staging_verification=skip_staging_verification,
+        step_logs=step_logs,
+        log_dir=log_dir,
+        failed_stage=failed_stage,
+        failed_stage_log=failed_stage_log,
+        exit_code=exit_code,
+        failure_reason=failure_reason,
+    )
+    summary_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    print(f"\n[operations] Failed run summary artifact: {_display_path(summary_path)}")
+    return summary_path
 
 
 def _write_run_summary_json(
@@ -417,19 +615,24 @@ def _enforce_failed_match_policy(failed_count: int, *, fail_on_remaining: bool) 
         )
 
 
-def main() -> None:
-    """Run the selected current-season update pipeline."""
+def _coerce_exit_code(exit_code: object) -> int | None:
+    """Return an integer process exit code when SystemExit provides one."""
 
-    args = parse_args()
-    season = args.season
-    normalized_season = season_key(season)
-    log_dir = args.log_dir / normalized_season
+    if exit_code is None:
+        return 1
+    if isinstance(exit_code, int):
+        return exit_code
+    return None
 
-    print("UPL Match Intelligence - Current Season Operations Update")
-    print(f"Season: {season}")
-    print(f"Mode: {args.mode}")
-    print(f"Raw season folder: {raw_season_dir(season).relative_to(PROJECT_ROOT)}")
-    step_logs: dict[str, Path] = {}
+
+def _run_update_pipeline(
+    *,
+    args: argparse.Namespace,
+    season: str,
+    log_dir: Path,
+    step_logs: dict[str, Path],
+) -> None:
+    """Run the selected operations pipeline after argument parsing."""
 
     if not args.skip_scrape:
         scrape_command = _python_command("scrape_upl_matches.py", "--season", season)
@@ -536,6 +739,64 @@ def main() -> None:
 
     print("\n[ok] Full current-season update finished.")
     print("[ok] The scraper, raw Postgres load, staging rebuild, and checks completed.")
+
+
+def main() -> None:
+    """Run the selected current-season update pipeline."""
+
+    args = parse_args()
+    season = args.season
+    normalized_season = season_key(season)
+    log_dir = args.log_dir / normalized_season
+
+    print("UPL Match Intelligence - Current Season Operations Update")
+    print(f"Season: {season}")
+    print(f"Mode: {args.mode}")
+    print(f"Raw season folder: {raw_season_dir(season).relative_to(PROJECT_ROOT)}")
+    step_logs: dict[str, Path] = {}
+
+    try:
+        _run_update_pipeline(
+            args=args,
+            season=season,
+            log_dir=log_dir,
+            step_logs=step_logs,
+        )
+    except OperationsStepError as error:
+        _write_failed_run_summary_json(
+            season=season,
+            mode=args.mode,
+            use_cache=args.use_cache,
+            skip_migrations=args.skip_migrations,
+            skip_raw_load=args.skip_raw_load,
+            skip_raw_verification=args.skip_raw_verification,
+            skip_staging_verification=args.skip_staging_verification,
+            step_logs=step_logs,
+            log_dir=log_dir,
+            failed_stage=error.step_name,
+            failed_stage_log=error.log_path,
+            exit_code=error.exit_code,
+            failure_reason=str(error),
+        )
+        raise SystemExit(error.exit_code) from error
+    except SystemExit as error:
+        exit_code = _coerce_exit_code(error.code)
+        _write_failed_run_summary_json(
+            season=season,
+            mode=args.mode,
+            use_cache=args.use_cache,
+            skip_migrations=args.skip_migrations,
+            skip_raw_load=args.skip_raw_load,
+            skip_raw_verification=args.skip_raw_verification,
+            skip_staging_verification=args.skip_staging_verification,
+            step_logs=step_logs,
+            log_dir=log_dir,
+            failed_stage="operations_policy",
+            failed_stage_log=None,
+            exit_code=exit_code,
+            failure_reason=str(error),
+        )
+        raise
 
 
 if __name__ == "__main__":
