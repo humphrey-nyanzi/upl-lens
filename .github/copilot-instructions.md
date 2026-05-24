@@ -15,8 +15,8 @@ Notebooks remain the research lab. They are where analysis ideas are explored
 and validated before becoming SQL views, API endpoints, or React dashboard
 features.
 
-Read `AGENTS.md`, `docs/START_HERE.md`, and `docs/PROJECT_ROADMAP.md` before
-making large changes.
+Read `AGENTS.md`, `docs/START_HERE.md`, `docs/PRODUCT_STRATEGY.md`, and
+`docs/PROJECT_ROADMAP.md` before making large changes.
 
 ## Current Project State
 
@@ -49,6 +49,12 @@ site is the source/archive. This project should add an intelligence layer:
 - Officials summaries.
 - Match timeline exploration.
 - Season-over-season league changes.
+
+The durable product identity is documented in
+`docs/PRODUCT_STRATEGY.md`. The app should feel like an independent UPL football
+intelligence platform: curated statistical insight first, dashboard-style
+drilldowns second, and the technical portfolio story quietly available through
+docs and methodology rather than driving the main UI.
 
 Prefer features that answer questions a user cannot easily answer from
 individual match pages.

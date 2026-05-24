@@ -17,6 +17,11 @@ Official UPL website
 The goal is not to mirror the official UPL website. The official site is the
 source archive; this project is the analysis layer on top of it.
 
+The product identity is documented in
+[docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md): UPL Match Intelligence is
+an independent football intelligence platform, not a fixtures clone or a
+developer-portfolio landing page.
+
 ## Live Demo
 
 - Frontend: [UPL Match Intelligence](https://upl-match-intelligence.pages.dev/)
@@ -148,6 +153,7 @@ Use these docs instead of trying to learn the whole repository from the README:
 | Need | Start here |
 |------|------------|
 | First orientation | [docs/START_HERE.md](docs/START_HERE.md) |
+| Product identity and strategy | [docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md) |
 | Local setup and common commands | [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) |
 | Visual codebase overview | [docs/diagram_collection.md](docs/diagram_collection.md) |
 | Which doc to open | [docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md) |

@@ -10,6 +10,11 @@ been approved or already implemented.
 
 The frontend should feel like a practical football intelligence workspace.
 
+For the broader product identity, audience, positioning, and "what this app is
+and is not" rules, use [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md). This UI
+guide records approved interface decisions; the product strategy explains the
+kind of public product those decisions should serve.
+
 It should help users:
 
 - scan a league season quickly
@@ -75,6 +80,8 @@ brand system. Future approved changes should be recorded in the sections below.
 
 Approved principles:
 
+- Design product-facing screens mobile first, then enhance for tablet and
+  desktop.
 - Use dense but readable layouts.
 - Prioritize scanning, comparison, and repeated use.
 - Keep controls close to the data they affect.
@@ -98,6 +105,7 @@ Approved principles:
 Approved principles:
 
 - Use readable football labels instead of raw database column names.
+- Map visible frontend data needs before adding new API endpoints.
 - Show season context clearly.
 - Show loading, empty, and error states.
 - Do not hide source-data limitations.
@@ -205,9 +213,27 @@ Approved principles:
 Approved principles:
 
 - Mobile layouts should preserve the core workflow.
+- The phone viewport is the starting point for new product-facing frontend
+  slices.
+- The product header, season controls, status messages, summary cards, charts,
+  and caveats should stack cleanly before desktop layout enhancements are added.
 - Tables may scroll horizontally if the data is genuinely tabular.
 - Critical controls should remain reachable without excessive scrolling.
 - Text should wrap cleanly and not overlap controls or chart labels.
+
+## League Intelligence Overview
+
+Approved decisions:
+
+- The first screen should present UPL Match Intelligence as a football data
+  observatory, not as a generic dashboard or fixtures site.
+- The overview should lead with product positioning, season/data status,
+  analytical summary cards, and the current featured insight.
+- Goal Timing is the current flagship insight preview on the overview.
+- Explore The Numbers previews may show planned product areas, but should not
+  imply unfinished tools are already complete.
+- Trust, source, freshness, and caveat information should be visible on the
+  overview instead of hidden in developer-only notes.
 
 ## How To Update This File
 
@@ -219,4 +245,3 @@ Only add a guideline here when one of these is true:
 - an existing implemented behavior is accepted as the durable standard
 
 When updating this file, keep it factual. Do not add brainstorm notes here.
-

@@ -18,13 +18,15 @@ flowchart TD
     A --> E["Improve the dashboard"]
     A --> F["Understand the codebase visually"]
     A --> G["Find the right documentation"]
+    A --> H["Understand product identity"]
 
     B --> B1["START_HERE.md and LOCAL_DEVELOPMENT.md"]
     C --> C1["OPERATIONS.md"]
     D --> D1["RESEARCH_IDEAS.md and FEATURE_PROMOTION_WORKFLOW.md"]
-    E --> E1["FRONTEND_UX_REQUESTS.md and UI_UX_GUIDELINES.md"]
+    E --> E1["PRODUCT_STRATEGY.md, FRONTEND_UX_REQUESTS.md, and UI_UX_GUIDELINES.md"]
     F --> F1["diagram_collection.md"]
     G --> G1["DOCUMENTATION_MAP.md"]
+    H --> H1["PRODUCT_STRATEGY.md"]
 ```
 
 For most work:
@@ -43,6 +45,7 @@ These docs describe how the project should be understood now.
 | Doc | Status | Open it when |
 |-----|--------|--------------|
 | [START_HERE.md](START_HERE.md) | Primary entrypoint | You are new, choosing a work area, or checking the four-area model. |
+| [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) | Product identity and positioning source of truth | You need to understand what the public app is, what it is not, who it serves, and how product strategy should guide technical work. |
 | [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Local developer guide | You need setup steps, common commands, verification checks, or local troubleshooting. |
 | [diagram_collection.md](diagram_collection.md) | Visual system overview | You need a high-level diagram of the codebase, data pipeline, database shape, API flow, or scraper lifecycle. |
 | [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Current planning map plus launch history | You need priorities, architecture direction, or historical milestone context. |
@@ -79,6 +82,7 @@ These docs support FastAPI and React product work.
 
 | Doc | Status | Open it when |
 |-----|--------|--------------|
+| [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) | Product identity and positioning source of truth | You are planning product-facing API, frontend, research-promotion, or UX work. |
 | [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) | Editable UI/UX request source of truth | You are planning or implementing frontend improvements. |
 | [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md) | Approved UI/UX decisions | You need durable design/product rules that are already approved or implemented. |
 | [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) | Shared with Research & Football Intelligence | A product feature must stay traceable to notebook research and a product plan. |
@@ -136,6 +140,8 @@ Use these rules:
 - Update [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) for proposed UI/UX
   changes and [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md) for approved durable
   UI/UX decisions.
+- Update [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) only when the app's product
+  identity, audience, positioning, or decision rules change.
 - Update [START_HERE.md](START_HERE.md) only when orientation or work-area
   ownership changes.
 - Update this map when a docs file is added, renamed, split, or changes purpose.

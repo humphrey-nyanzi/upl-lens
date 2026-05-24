@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from functools import lru_cache
 from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
@@ -63,6 +64,7 @@ class DatabaseSettings:
         )
 
 
+@lru_cache(maxsize=1)
 def get_database_settings() -> DatabaseSettings:
     """Load database settings from `.env` and process environment variables.
 
@@ -108,3 +110,9 @@ def get_database_settings() -> DatabaseSettings:
         password=str(values["password"]),
         sslmode=str(values["sslmode"]),
     )
+
+
+def clear_database_settings_cache() -> None:
+    """Clear cached settings after tests or tools modify database environment."""
+
+    get_database_settings.cache_clear()

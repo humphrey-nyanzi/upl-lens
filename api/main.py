@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import os
 
 from dotenv import load_dotenv
@@ -9,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers import events, health, insights, matches, officials, seasons, teams
+from src.db.connection import close_api_connection_pool
 
 
 load_dotenv()
@@ -40,6 +42,14 @@ def get_allowed_origins() -> list[str]:
     return origins or list(DEFAULT_ALLOWED_ORIGINS)
 
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Clean up the API database pool when the web process shuts down."""
+
+    yield
+    close_api_connection_pool()
+
+
 app = FastAPI(
     title="UPL Match Intelligence API",
     description=(
@@ -47,6 +57,7 @@ app = FastAPI(
         "Premier League match intelligence."
     ),
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # The React pilot runs on Vite's local dev server, which is a different origin

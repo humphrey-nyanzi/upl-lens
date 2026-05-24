@@ -10,10 +10,11 @@ clean and model it for analysis, expose it through a FastAPI backend, and presen
 the best insights in a React web app. Notebooks remain the research lab where new
 questions are explored before they become dashboard features.
 
-Use [docs/START_HERE.md](docs/START_HERE.md) as the first orientation document
-and [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) as the main planning
-reference. The old launch phases are historical context; new work should be
-planned through the four continuous development areas.
+Use [docs/START_HERE.md](docs/START_HERE.md) as the first orientation document,
+[docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md) as the product identity
+and positioning reference, and [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md)
+as the main planning reference. The old launch phases are historical context;
+new work should be planned through the four continuous development areas.
 
 ## Current State
 
@@ -212,6 +213,12 @@ Do not make React read CSV files, notebooks, or exported notebook images.
 This project should not merely recreate the official UPL website. The official
 site is the source/archive. This project should be the intelligence layer.
 
+The durable product definition lives in
+[docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md). Treat the app as an
+independent UPL football intelligence platform: curated insight first, deeper
+analytical exploration second, and technical portfolio value quietly supporting
+the product rather than leading the user experience.
+
 Prioritize questions like:
 
 - Which teams concede most after halftime?
@@ -328,8 +335,9 @@ GitHub Actions is the preferred automation path for portfolio visibility.
 ## AI Agent Rules
 
 - Before coding, check [docs/START_HERE.md](docs/START_HERE.md),
-  [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md), any relevant developer or
-  feature guide, and the current files related to the task.
+  [docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md),
+  [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md), any relevant developer
+  or feature guide, and the current files related to the task.
 - Explain work systematically and beginner-consciously. For each implementation
   step, briefly state what is being changed, why it matters, and how to run or
   verify it.

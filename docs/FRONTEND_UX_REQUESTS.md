@@ -100,6 +100,107 @@ When a request affects a specific feature insight, also check that feature's
 `product_plan.md`. Feature-specific product changes should stay traceable to
 the feature package, while app-wide UX and design rules belong here.
 
+For app-wide product identity, audience, content priority, and the difference
+between official-site duplication and football intelligence, use
+[PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) before approving major redesign
+requests.
+
+### Request: Adopt Mobile-First Redesign Mentality
+
+Status: implemented
+
+Area: product direction, mobile UX
+
+Current behavior:
+
+```text
+The current app has responsive CSS, but the mobile experience is still poor
+enough that users on phones may struggle to understand or use the product.
+Desktop layout appears to be the stronger mental model.
+```
+
+Desired behavior:
+
+```text
+Future frontend redesign work should start from the phone viewport first, then
+enhance for tablet and desktop. The app should be designed with the assumption
+that many first-time UPL users will open it on a mobile device.
+
+For each product-facing screen, the implementation agent should decide:
+
+- what the core mobile task is
+- what content must appear first
+- what can collapse, stack, or move lower on the page
+- which controls must remain reachable without excessive scrolling
+- whether wide tables should become stacked cards, reduced-column tables, or
+  horizontally scrollable tables
+```
+
+Reason:
+
+```text
+The primary audience is a stats-interested UPL fan, and many users will browse
+on phones. If the mobile experience fails, the product fails its public-facing
+purpose even if the desktop dashboard looks good.
+```
+
+Data/API needs:
+
+```text
+No new API data is required for this rule. It is a design and implementation
+constraint that applies to all frontend slices.
+```
+
+Visual/UX notes:
+
+```text
+Mobile should not feel like a squeezed desktop dashboard. Prioritize readable
+football insight, clear hierarchy, simple controls, and charts/tables that fit
+the phone workflow.
+```
+
+Mobile behavior:
+
+```text
+Design mobile first. Verify at mobile width before considering the slice done.
+Important text, controls, charts, cards, and status/caveat messages must not
+overlap, truncate awkwardly, or require desktop-sized assumptions.
+```
+
+Accessibility notes:
+
+```text
+Keep tap targets large enough, labels visible, contrast readable, and controls
+keyboard/screen-reader friendly where practical.
+```
+
+Out of scope:
+
+```text
+Do not build a separate mobile app.
+Do not hide important caveats or data-quality status just to make mobile shorter.
+Do not solve every future page in this request; apply the rule to the approved
+slice being implemented.
+```
+
+Approval notes:
+
+```text
+Approved by the user on 2026-05-25 before the first redesign slice. The user
+explicitly called out that mobile responsiveness is currently terrible and that
+future work needs a mobile-first-before-computer mentality.
+```
+
+Implementation notes:
+
+```text
+Implemented in the League Intelligence Overview v1 redesign. The frontend CSS
+now starts from a single-column phone layout and enhances to tablet/desktop
+breakpoints. The overview header, season control, summary cards, featured
+insight, exploratory previews, evidence panels, and methodology panel are all
+designed to stack cleanly before widening.
+```
+
 ### Request: Make The App Feel Like A Football Intelligence Workspace
 
 Status: draft
@@ -300,7 +401,7 @@ Recommended first approval order:
 
 ### Request: Map Frontend Data Needs Before Adding Endpoints
 
-Status: needs_review
+Status: implemented
 
 Area: product direction
 
@@ -366,17 +467,24 @@ Do not move stable metric logic into React just because it is faster.
 Approval notes:
 
 ```text
-Audit recommendation: approve this before any major frontend/API work. The
-current API already exposes useful filters, so the next agent should map and use
-existing endpoint capabilities before adding new backend routes.
+Approved on 2026-05-25 as a guardrail for the first redesign slice. The current
+API already exposes useful data, so the next agent should map and use existing
+endpoint capabilities before adding new backend routes.
 ```
 
 Implementation notes:
 
 ```text
-Audit note: current `frontend/src/api/client.ts` exposes season and limit for
-matches/teams/events, but not all useful filters already supported by the API.
-Extending the client may be enough for the first Match Explorer slice.
+Implemented for the League Intelligence Overview v1 slice. Data mapping result:
+
+- Product header and data status use existing `/health` and `/seasons`.
+- Summary cards use existing `/seasons/{season}/overview`.
+- Featured Goal Timing preview uses existing `/insights/goal-timing`.
+- Team signal preview uses existing `/teams`.
+- Recent match evidence uses existing `/matches`.
+- Event coverage preview uses the existing overview event breakdown.
+
+No new FastAPI endpoints or response-shape changes were needed for this slice.
 ```
 
 ## Navigation And Information Architecture
@@ -473,6 +581,156 @@ a clearer navigation pattern.
 
 Use this section for the home/overview screen, summary cards, season selector,
 league totals, recent matches, and event breakdowns.
+
+### Request: Redesign League Intelligence Overview V1
+
+Status: implemented
+
+Area: league overview
+
+Current behavior:
+
+```text
+The current League Overview proves the API-to-React path, but it still feels
+like a pilot dashboard. It does not yet introduce the product clearly enough as
+an independent UPL football intelligence platform, and its mobile experience is
+not strong enough for the likely audience.
+```
+
+Desired behavior:
+
+```text
+Redesign the first screen into a polished, mobile-first League Intelligence
+Overview that immediately communicates:
+
+"This product helps users understand the Uganda Premier League through
+statistical insight beyond ordinary fixtures, results, and tables."
+
+The overview should lead with curated analytical value, then offer clear paths
+to deeper exploration.
+
+It should include:
+
+1. A clear product header
+   - Product name: UPL Match Intelligence.
+   - Short positioning line focused on statistical insight from UPL match data.
+   - Season selector and data freshness/status close to the header.
+
+2. Analytical summary cards
+   - Use meaningful football signals, not generic decorative stats.
+   - Good candidates include matches covered, goals recorded, teams tracked,
+     goal timing signal, event coverage, and data-quality status.
+
+3. Featured Insight preview
+   - Treat Goal Timing as the current flagship insight.
+   - Show the core question, a compact chart or summary, and a clear "dig
+     deeper" action.
+   - Keep caveats near the insight when added-time exclusions, missing events,
+     or other limitations affect interpretation.
+
+4. Explore The Numbers preview
+   - Show the next major product areas without pretending unfinished sections
+     are complete.
+   - Good preview areas include Team Analytical Summaries, Match/Event Explorer,
+     and Discipline Dashboard.
+
+5. Trust and methodology strip
+   - Show last updated or data freshness information when available.
+   - Show data source, API/database health, caveat/methodology link, and a clear
+     route to contact/about information when available.
+```
+
+Reason:
+
+```text
+The first redesign slice should establish the product identity before adding
+new deep features. Users should understand within a few seconds that this is a
+UPL analytics/intelligence product, not a fixtures site, generic standings page,
+or developer portfolio landing page.
+```
+
+Data/API needs:
+
+```text
+Use existing endpoints first, especially the current season overview, goal
+timing insight, health/status, recent matches, teams, and events data already
+available to the frontend.
+
+Before adding any endpoint, follow the approved "Map Frontend Data Needs Before
+Adding Endpoints" request. Add backend work only if the visible UI cannot be
+served cleanly from existing API data.
+```
+
+Visual/UX notes:
+
+```text
+The design should feel modern, global-sports-analytics, clean, and credible.
+It should not look like a marketing landing page, generic admin template, or
+copy of the official UPL site.
+
+Use the product model from PRODUCT_STRATEGY.md:
+
+- curated insight first
+- dashboard-style drilldowns second
+- technical portfolio value quiet and secondary
+
+Keep labels football-readable. Avoid raw database language in visible UI.
+```
+
+Mobile behavior:
+
+```text
+Design this screen mobile first.
+
+At phone width:
+
+- The product header, season selector, and data status should remain readable.
+- Summary cards should stack cleanly.
+- The featured insight should be understandable without horizontal squeezing.
+- Charts should keep labels and values legible.
+- Wide tables should be avoided above the fold; use compact cards, reduced
+  columns, or horizontal scrolling only where genuinely tabular.
+- Caveats and data freshness should not disappear.
+```
+
+Accessibility notes:
+
+```text
+Use semantic headings and labelled controls. Do not rely on color alone for
+health, caveat, success, warning, or card/status meanings. Keep contrast and
+tap targets suitable for mobile.
+```
+
+Out of scope:
+
+```text
+Do not build a full Match Explorer in this slice.
+Do not build a full Discipline Dashboard in this slice.
+Do not build player profile pages.
+Do not add monetization, account/login flows, or social sharing tools.
+Do not duplicate official-site fixtures/results as the main feature.
+Do not redesign every future page at once.
+```
+
+Approval notes:
+
+```text
+Approved by the user on 2026-05-25 as the first redesign slice after the
+product strategy discussion. The goal is to make the first screen communicate
+the app's football intelligence identity and work properly on mobile.
+```
+
+Implementation notes:
+
+```text
+Implemented as a mobile-first overview redesign using existing API data only.
+The first screen now leads with the UPL Match Intelligence product identity,
+season/data controls, analytical summary cards, Goal Timing as the featured
+insight, Explore The Numbers previews, team/event evidence panels, recent match
+context, and a Trust and Methodology panel. Full Match Explorer, Discipline
+Dashboard, Team Profile, React Router, and new backend endpoints remain out of
+scope.
+```
 
 ### Request: League Overview Placeholder
 
@@ -930,7 +1188,7 @@ Move approved requests here when they are ready for the next implementation
 pass.
 
 ```text
-1. none yet
+1. none currently. The 2026-05-25 overview redesign requests were implemented.
 ```
 
 ## Implementation History
@@ -948,6 +1206,22 @@ After an approved request is implemented, add a short entry here.
   `frontend/src/api/types.ts`.
 - Guideline updates: None yet. No durable UI/UX decisions were approved.
 - Verification: Documentation-only change; checked with `git diff --check`.
+
+### 2026-05-25
+
+- Request: Adopt Mobile-First Redesign Mentality
+- Request: Map Frontend Data Needs Before Adding Endpoints
+- Request: Redesign League Intelligence Overview V1
+- What changed: Reworked the first screen into a mobile-first League
+  Intelligence Overview focused on product identity, curated Goal Timing
+  insight, exploratory previews, supporting evidence, and trust/methodology.
+- Backend/API: No backend changes. The slice used existing health, seasons,
+  overview, goal timing, matches, and teams data.
+- Frontend: Replaced the pilot dashboard layout in `frontend/src/App.tsx` and
+  rewrote `frontend/src/styles.css` with mobile-first layout rules.
+- Guideline updates: Added durable mobile-first and League Intelligence Overview
+  v1 decisions to `UI_UX_GUIDELINES.md`.
+- Verification: Ran `npm run build` and rendered desktop/mobile browser checks.
 
 ### YYYY-MM-DD
 

@@ -14,6 +14,11 @@ The goal is not to copy the official UPL website. The official site provides
 match pages and source data. This project should turn that data into searchable,
 modeled, and meaningful football intelligence.
 
+The product identity and positioning rules live in
+[PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md). Use that document when deciding
+what the public app should feel like, what it should not become, which audience
+comes first, and how product strategy should guide technical work.
+
 The final shape should demonstrate:
 
 - Web scraping and incremental data collection.
@@ -29,6 +34,11 @@ The final shape should demonstrate:
 Build an open-source UPL data observatory where users can explore matches,
 teams, players, discipline, goal timing, lineups, officials, and match trends
 across seasons.
+
+Product framing: UPL Match Intelligence is an independent statistical
+observatory for people who want to understand the league beyond fixtures,
+results, and tables. It should lead with curated insight, then offer deeper
+analytical drilldowns.
 
 The project should support two audiences:
 

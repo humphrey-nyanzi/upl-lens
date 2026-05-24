@@ -15,6 +15,11 @@ four continuous development areas instead of old launch phases.
 UPL Match Intelligence turns official Uganda Premier League match pages into a
 small data platform and public football analysis product.
 
+For product identity and positioning, read
+[PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md). In short, this app is an
+independent UPL football intelligence platform: it should explain what the
+numbers reveal beyond ordinary fixtures, results, and tables.
+
 The production path is:
 
 ```text
@@ -141,6 +146,7 @@ Owns:
 Read first:
 
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 - `api/main.py`
 - `src/api/queries.py`
 - `src/api/schemas.py`
@@ -186,6 +192,7 @@ Read first:
 
 - [README.md](../README.md)
 - [START_HERE.md](START_HERE.md)
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 - [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 - [../AGENTS.md](../AGENTS.md)
