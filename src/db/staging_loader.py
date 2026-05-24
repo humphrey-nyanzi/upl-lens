@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from json import dumps
 from typing import Any, Callable
 
@@ -223,6 +223,46 @@ def _is_forfeit_text(value: Any) -> bool:
     )
 
 
+def _season_date_window(season: Any) -> tuple[date, date] | None:
+    """Return a broad plausible match-date window for a UPL season key.
+
+    UPL seasons normally start around August/September and end by June. The
+    window stays intentionally generous through late August of the second season
+    year so legitimate delayed fixtures do not become hard failures.
+    """
+
+    season_text = _clean_text(season)
+    if season_text is None:
+        return None
+    match = re.fullmatch(r"(?P<start>\d{4})[_/-](?P<end>\d{2})", season_text)
+    if match is None:
+        return None
+
+    start_year = int(match.group("start"))
+    end_year = int(f"{str(start_year)[:2]}{match.group('end')}")
+    if end_year < start_year:
+        end_year += 100
+    return date(start_year, 8, 1), date(end_year, 8, 31)
+
+
+def _season_date_anomaly_reason(season: Any, match_date: Any) -> str | None:
+    """Return an anomaly reason when a match date falls outside its season."""
+
+    if pd.isna(match_date):
+        return None
+    window = _season_date_window(season)
+    if window is None:
+        return None
+    start_date, end_date = window
+    if match_date < start_date or match_date > end_date:
+        return (
+            "match_date_outside_season_window:"
+            f" expected {start_date.isoformat()}..{end_date.isoformat()},"
+            f" got {match_date.isoformat()}"
+        )
+    return None
+
+
 def _minute_period(minute_total: int | None) -> str | None:
     """Bucket a match minute into a simple analysis interval."""
 
@@ -401,6 +441,11 @@ def _clean_match_rows(raw_matches: pd.DataFrame) -> pd.DataFrame:
 
     raw_man_of_the_match = df["man_of_the_match"].copy()
     df["is_forfeit"] = raw_man_of_the_match.map(_is_forfeit_text)
+    df["source_anomaly_reason"] = [
+        _season_date_anomaly_reason(season, match_date)
+        for season, match_date in zip(df["season"], df["match_date"], strict=False)
+    ]
+    df["is_source_anomaly"] = df["source_anomaly_reason"].notna()
     motm_values = df.apply(_extract_man_of_match, axis=1)
     df["man_of_the_match"] = [name for name, _ in motm_values]
     df["man_of_the_match_team"] = [team for _, team in motm_values]
@@ -542,6 +587,8 @@ STAGING_COLUMNS: dict[str, tuple[str, ...]] = {
         "result",
         "winner_team",
         "is_forfeit",
+        "is_source_anomaly",
+        "source_anomaly_reason",
         "home_first_half_goals",
         "away_first_half_goals",
         "home_second_half_goals",
@@ -841,6 +888,22 @@ def _validate_key_fields(staging_tables: dict[str, pd.DataFrame], run_id: str) -
                     match_id=row.get("match_id"),
                     column_name="match_date",
                     issue_value=row.get("match_date"),
+                )
+            )
+        anomalous_dates = matches.loc[matches["is_source_anomaly"]]
+        for _, row in anomalous_dates.head(200).iterrows():
+            issues.append(
+                _issue(
+                    run_id,
+                    "warning",
+                    "source_match_anomaly",
+                    "staging",
+                    "matches",
+                    "Match date falls outside the plausible window for its source season.",
+                    season=row.get("season"),
+                    match_id=row.get("match_id"),
+                    column_name="match_date",
+                    issue_value=row.get("source_anomaly_reason"),
                 )
             )
 

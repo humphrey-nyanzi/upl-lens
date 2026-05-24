@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS staging.matches (
     result TEXT,
     winner_team TEXT,
     is_forfeit BOOLEAN NOT NULL DEFAULT FALSE,
+    is_source_anomaly BOOLEAN NOT NULL DEFAULT FALSE,
+    source_anomaly_reason TEXT,
     home_first_half_goals INTEGER,
     away_first_half_goals INTEGER,
     home_second_half_goals INTEGER,

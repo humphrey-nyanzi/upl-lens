@@ -259,6 +259,17 @@ validation run, skips staging table writes, and exits with an error. This keeps
 unsafe child rows from crashing into foreign key constraints before the useful
 diagnostic evidence is saved.
 
+## Source Anomalies
+
+Keep source anomalies in `raw.*` so the original scrape remains auditable. In
+`staging.matches`, rows with clearly impossible season dates are marked with
+`is_source_anomaly = true` and a `source_anomaly_reason` instead of being
+deleted. Public API aggregates should use app-safe rows only, so a stale source
+fixture does not distort season date ranges, match counts, or dashboard totals.
+
+Example: a `2019_20` source row dated in May 2021 is preserved for investigation
+but excluded from the league overview.
+
 For public metrics, **actual goals** means timeline goal events from
 `staging.events`, not scoreline totals from `staging.matches`. Scoreline goals
 remain available internally as a separate comparison signal because

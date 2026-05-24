@@ -83,6 +83,8 @@ class MatchSummary(ApiModel):
     result: str | None = None
     winner_team: str | None = None
     is_forfeit: bool = False
+    is_source_anomaly: bool = False
+    source_anomaly_reason: str | None = None
     ground_name: str | None = None
     match_url: str
 

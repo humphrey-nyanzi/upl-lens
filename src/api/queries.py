@@ -81,22 +81,27 @@ def list_seasons() -> list[dict[str, Any]]:
 
     return _fetch_all(
         """
-        WITH match_counts AS (
+        WITH app_safe_matches AS (
+            SELECT *
+            FROM staging.matches
+            WHERE is_source_anomaly IS NOT TRUE
+        ),
+        match_counts AS (
             SELECT
                 season,
                 COUNT(*) AS match_count,
                 MIN(match_date) AS first_match_date,
                 MAX(match_date) AS last_match_date
-            FROM staging.matches
+            FROM app_safe_matches
             GROUP BY season
         ),
         team_rows AS (
             SELECT season, home_team AS team_name
-            FROM staging.matches
+            FROM app_safe_matches
             WHERE home_team IS NOT NULL
             UNION
             SELECT season, away_team AS team_name
-            FROM staging.matches
+            FROM app_safe_matches
             WHERE away_team IS NOT NULL
         ),
         team_counts AS (
@@ -145,27 +150,30 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
 
     overview = _fetch_one(
         """
-        WITH match_totals AS (
+        WITH app_safe_matches AS (
+            SELECT *
+            FROM staging.matches
+            WHERE season = %(season)s::text
+                AND is_source_anomaly IS NOT TRUE
+        ),
+        match_totals AS (
             SELECT
                 season,
                 COUNT(*) AS match_count,
                 COALESCE(SUM(COALESCE(total_goals, 0)), 0) AS scoreline_goal_count,
                 MIN(match_date) AS first_match_date,
                 MAX(match_date) AS latest_match_date
-            FROM staging.matches
-            WHERE season = %(season)s::text
+            FROM app_safe_matches
             GROUP BY season
         ),
         team_rows AS (
             SELECT home_team AS team_name
-            FROM staging.matches
-            WHERE season = %(season)s::text
-                AND home_team IS NOT NULL
+            FROM app_safe_matches
+            WHERE home_team IS NOT NULL
             UNION
             SELECT away_team AS team_name
-            FROM staging.matches
-            WHERE season = %(season)s::text
-                AND away_team IS NOT NULL
+            FROM app_safe_matches
+            WHERE away_team IS NOT NULL
         ),
         team_totals AS (
             SELECT COUNT(DISTINCT team_name) AS team_count
@@ -191,8 +199,11 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
         SELECT
             COALESCE(event_type, 'other') AS event_type,
             COUNT(*) AS count
-        FROM staging.events
-        WHERE season = %(season)s::text
+        FROM staging.events AS events
+        INNER JOIN staging.matches AS matches
+            ON matches.match_id = events.match_id
+        WHERE events.season = %(season)s::text
+            AND matches.is_source_anomaly IS NOT TRUE
         GROUP BY COALESCE(event_type, 'other')
         ORDER BY count DESC, event_type;
         """,
@@ -335,10 +346,13 @@ def list_matches(
             result,
             winner_team,
             is_forfeit,
+            is_source_anomaly,
+            source_anomaly_reason,
             ground_name,
             match_url
         FROM staging.matches
         WHERE (%(season)s::text IS NULL OR season = %(season)s::text)
+            AND is_source_anomaly IS NOT TRUE
             AND (
                 %(team_like)s::text IS NULL
                 OR home_team ILIKE %(team_like)s::text
@@ -379,6 +393,8 @@ def get_match(match_id: int) -> dict[str, Any] | None:
             result,
             winner_team,
             is_forfeit,
+            is_source_anomaly,
+            source_anomaly_reason,
             ground_name,
             ground_address,
             man_of_the_match,
@@ -475,6 +491,7 @@ def list_teams(
                 CASE WHEN result = 'away_win' THEN 1 ELSE 0 END AS losses
             FROM staging.matches
             WHERE home_team IS NOT NULL
+                AND is_source_anomaly IS NOT TRUE
             UNION ALL
             SELECT
                 season,
@@ -485,17 +502,21 @@ def list_teams(
                 CASE WHEN result = 'home_win' THEN 1 ELSE 0 END AS losses
             FROM staging.matches
             WHERE away_team IS NOT NULL
+                AND is_source_anomaly IS NOT TRUE
         ),
         actual_goals AS (
             SELECT
-                season,
-                match_id,
-                team_name,
+                events.season,
+                events.match_id,
+                events.team_name,
                 COUNT(*) AS goals_for
-            FROM staging.events
-            WHERE event_type IN ('goal', 'own_goal', 'penalty_goal')
-                AND team_name IS NOT NULL
-            GROUP BY season, match_id, team_name
+            FROM staging.events AS events
+            INNER JOIN staging.matches AS matches
+                ON matches.match_id = events.match_id
+            WHERE events.event_type IN ('goal', 'own_goal', 'penalty_goal')
+                AND events.team_name IS NOT NULL
+                AND matches.is_source_anomaly IS NOT TRUE
+            GROUP BY events.season, events.match_id, events.team_name
         ),
         team_rows AS (
             SELECT
@@ -556,27 +577,30 @@ def list_events(
     return _fetch_all(
         """
         SELECT
-            event_row_key,
-            match_id,
-            season,
-            match_day,
-            event_index,
-            event_type,
-            event_minute_text,
-            minute_total,
-            minute_period,
-            team_side,
-            team_name,
-            player_name,
-            goal_type,
-            sub_out_player_name,
-            sub_in_player_name
-        FROM staging.events
-        WHERE (%(season)s::text IS NULL OR season = %(season)s::text)
-            AND (%(team_like)s::text IS NULL OR team_name ILIKE %(team_like)s::text)
-            AND (%(match_day)s::integer IS NULL OR match_day = %(match_day)s::integer)
-            AND (%(event_type)s::text IS NULL OR event_type = %(event_type)s::text)
-        ORDER BY season, match_day NULLS LAST, match_id, event_index NULLS LAST
+            events.event_row_key,
+            events.match_id,
+            events.season,
+            events.match_day,
+            events.event_index,
+            events.event_type,
+            events.event_minute_text,
+            events.minute_total,
+            events.minute_period,
+            events.team_side,
+            events.team_name,
+            events.player_name,
+            events.goal_type,
+            events.sub_out_player_name,
+            events.sub_in_player_name
+        FROM staging.events AS events
+        INNER JOIN staging.matches AS matches
+            ON matches.match_id = events.match_id
+        WHERE (%(season)s::text IS NULL OR events.season = %(season)s::text)
+            AND matches.is_source_anomaly IS NOT TRUE
+            AND (%(team_like)s::text IS NULL OR events.team_name ILIKE %(team_like)s::text)
+            AND (%(match_day)s::integer IS NULL OR events.match_day = %(match_day)s::integer)
+            AND (%(event_type)s::text IS NULL OR events.event_type = %(event_type)s::text)
+        ORDER BY events.season, events.match_day NULLS LAST, events.match_id, events.event_index NULLS LAST
         LIMIT %(limit)s OFFSET %(offset)s;
         """,
         {

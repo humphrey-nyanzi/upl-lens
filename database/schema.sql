@@ -9,3 +9,4 @@
 \i migrations/002_create_staging_foundation.sql
 \i migrations/003_create_staging_validation_runs.sql
 \i migrations/004_add_staging_match_flags.sql
+\i migrations/005_add_staging_source_anomaly_flags.sql

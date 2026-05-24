@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pandas as pd
 
 from src import config
@@ -11,6 +13,7 @@ from src.db.staging_loader import (
     _normalize_goal_type,
     _normalize_team,
     _parse_minute,
+    _season_date_anomaly_reason,
     _validate_scoreline_timeline_goal_consistency,
     _standardize_label,
 )
@@ -134,3 +137,13 @@ def test_forfeit_text_detection_uses_source_notice_language() -> None:
     assert _is_forfeit_text("The club failed to turn up for the match.") is True
     assert _is_forfeit_text("Failure to honour Match pending FUFA Disciplinary Panel Verdict.") is True
     assert _is_forfeit_text("Pilsner Man of the Match: Jane Doe") is False
+
+
+def test_season_date_anomaly_flags_cross_season_source_rows() -> None:
+    """A match dated long after its source season should be marked unsafe."""
+
+    reason = _season_date_anomaly_reason("2019_20", date(2021, 5, 18))
+
+    assert reason is not None
+    assert reason.startswith("match_date_outside_season_window")
+    assert _season_date_anomaly_reason("2020_21", date(2021, 5, 18)) is None

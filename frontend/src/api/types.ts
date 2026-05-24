@@ -68,6 +68,8 @@ export type MatchSummary = {
   result: string | null;
   winner_team: string | null;
   is_forfeit: boolean;
+  is_source_anomaly: boolean;
+  source_anomaly_reason: string | null;
   ground_name: string | null;
   match_url: string;
 };
