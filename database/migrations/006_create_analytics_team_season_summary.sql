@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS analytics.team_season_summary (
     PRIMARY KEY (season, team_name)
 );
 
+ALTER TABLE analytics.team_season_summary DISABLE ROW LEVEL SECURITY;
+
 CREATE INDEX IF NOT EXISTS idx_team_season_summary_team_name
 ON analytics.team_season_summary (team_name);
 

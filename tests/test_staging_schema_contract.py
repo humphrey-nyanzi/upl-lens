@@ -73,6 +73,7 @@ def test_team_season_summary_is_stored_in_analytics_schema() -> None:
 
     assert "CREATE TABLE IF NOT EXISTS analytics.team_season_summary" in sql
     assert "PRIMARY KEY (season, team_name)" in sql
+    assert "ALTER TABLE analytics.team_season_summary DISABLE ROW LEVEL SECURITY" in sql
     assert "INSERT INTO analytics.team_season_summary" in sql
 
 
@@ -93,6 +94,7 @@ def test_actions_loader_can_refresh_analytics_tables() -> None:
 
     assert "GRANT USAGE ON SCHEMA analytics TO upl_actions_loader" in permissions_sql
     assert "ON ALL TABLES IN SCHEMA analytics" in permissions_sql
+    assert "ALTER TABLE IF EXISTS analytics.team_season_summary DISABLE ROW LEVEL SECURITY" in permissions_sql
 
 
 def test_team_endpoint_reads_stored_analytics_summary() -> None:
