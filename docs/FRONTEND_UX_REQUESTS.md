@@ -492,6 +492,259 @@ No new FastAPI endpoints or response-shape changes were needed for this slice.
 Use this section for sidebar, tabs, page structure, routes, and how users move
 around the app.
 
+### Request: Fix Sticky Anchor Offset On Mobile
+
+Status: implemented
+
+Area: navigation, mobile UX
+
+Current behavior:
+
+```text
+On mobile, tapping the Goal timing navigation item jumps to the featured insight
+section, but the sticky header covers part of the section start. The user lands
+mid-section instead of seeing a clean section heading.
+```
+
+Desired behavior:
+
+```text
+Same-page anchor links should land cleanly below the sticky header on mobile and
+desktop. If anchors remain temporarily before page-based routing is introduced,
+the target section should be fully readable after navigation.
+```
+
+Reason:
+
+```text
+This is a small acceptance issue from the League Intelligence Overview v1 QA
+pass. It should be fixed before deeper product slices so mobile navigation feels
+deliberate rather than cramped or broken.
+```
+
+Data/API needs:
+
+```text
+No data or API changes.
+```
+
+Visual/UX notes:
+
+```text
+Likely fix: add or adjust `scroll-margin-top` for anchor target sections, or
+otherwise account for sticky navigation height.
+```
+
+Mobile behavior:
+
+```text
+Verify on a phone-sized viewport. Tapping Goal timing, Explore, and Methodology
+should not hide the section heading or first meaningful content under the sticky
+header.
+```
+
+Accessibility notes:
+
+```text
+Anchor navigation should preserve logical focus/reading order where practical.
+```
+
+Out of scope:
+
+```text
+Do not build full page routing as part of this urgent bug fix.
+Do not redesign the whole mobile nav in this request.
+```
+
+Approval notes:
+
+```text
+Approved after the 2026-05-25 acceptance review. This is the urgent polish item
+before the app moves into larger navigation and page-structure work.
+```
+
+Implementation notes:
+
+```text
+Implemented by replacing same-page anchor navigation with page-like views, so
+mobile users no longer jump into sections hidden under the sticky header.
+Anchor target sections also have scroll-margin coverage in CSS for safe fallback
+behavior.
+```
+
+### Request: Introduce Page-Based Navigation Structure
+
+Status: implemented
+
+Area: navigation, information architecture
+
+Current behavior:
+
+```text
+The app is still effectively one long page. Navigation items jump within the
+same page, even though the labels now imply larger product areas such as Goal
+Timing, Explore, and Methodology.
+```
+
+Desired behavior:
+
+```text
+Move the app toward real page-level navigation before adding detailed page
+content. The overview should remain focused on the league intelligence summary,
+while deeper areas live on their own pages or route-like views.
+
+Initial page structure should be planned around:
+
+- League Intelligence Overview
+- Goal Timing
+- Match/Event Explorer
+- Team Insights or Team Summaries
+- Methodology / Data Notes / Contact
+
+The first implementation does not need to fully build every page. It should
+create the structure and safe placeholder states so future slices have a clear
+home.
+```
+
+Reason:
+
+```text
+The product has outgrown same-page anchors. Separate pages will make the app
+easier to grow, keep the overview from carrying every section, and make each
+navigation item feel like a real fan-facing destination.
+```
+
+Data/API needs:
+
+```text
+No new API data is required to introduce page structure. Future pages should map
+data needs before adding endpoints.
+```
+
+Visual/UX notes:
+
+```text
+Use fan-facing page labels. Avoid internal labels such as "product slice",
+"endpoint", "evidence panel", or "where the product goes next".
+```
+
+Mobile behavior:
+
+```text
+Mobile users should be able to move between pages without horizontal nav
+scrolling. Coordinate this request with the mobile sandwich menu request.
+```
+
+Accessibility notes:
+
+```text
+Navigation should expose the current page clearly and keep links keyboard
+accessible.
+```
+
+Out of scope:
+
+```text
+Do not fully implement Match Explorer, Team Insights, Discipline, or advanced
+Goal Timing detail in this request.
+Do not add login, accounts, or monetization.
+```
+
+Approval notes:
+
+```text
+Approved by the user on 2026-05-25. This should happen before detailed
+page-specific product work so each future slice has a proper destination.
+```
+
+Implementation notes:
+
+```text
+Implemented with lightweight hash-based page views instead of adding a routing
+dependency. The visible app now has separate destinations for League Overview,
+Goal Timing, Match Explorer, Team Insights, and Data Notes. Match Explorer and
+Team Insights are safe early page shells using existing data only.
+```
+
+### Request: Use Mobile Sandwich Menu For Primary Navigation
+
+Status: implemented
+
+Area: navigation, mobile UX
+
+Current behavior:
+
+```text
+Mobile navigation currently appears as horizontally scrollable links. It works
+technically, but feels cramped and partially hidden as more product areas are
+added.
+```
+
+Desired behavior:
+
+```text
+Use a sandwich/menu button for mobile navigation. Desktop can keep visible
+navigation, but phone layouts should show a compact header with a menu control
+that opens the available pages.
+```
+
+Reason:
+
+```text
+The app is becoming a multi-page product. A sandwich menu will scale better on
+phones, keep the header cleaner, and avoid forcing users to scroll sideways
+through navigation links.
+```
+
+Data/API needs:
+
+```text
+No data or API changes.
+```
+
+Visual/UX notes:
+
+```text
+The menu should feel like part of a modern sports analytics product, not a
+generic browser default. Use clear fan-facing labels and show which page is
+current.
+```
+
+Mobile behavior:
+
+```text
+The menu button should be easy to tap. The open menu should not trap users,
+cover content without a clear close action, or make page switching confusing.
+```
+
+Accessibility notes:
+
+```text
+Use an accessible button label, clear expanded/collapsed state where practical,
+keyboard-operable menu behavior, and focus handling that does not strand users.
+```
+
+Out of scope:
+
+```text
+Do not design every future page in this request.
+Do not hide important status or page identity information behind the menu.
+```
+
+Approval notes:
+
+```text
+Approved by the user on 2026-05-25 after noting that mobile responsiveness and
+horizontal navigation still need a phone-first approach.
+```
+
+Implementation notes:
+
+```text
+Implemented. Phone layouts now show a compact menu button with accessible
+expanded/collapsed state. Desktop keeps visible page navigation.
+```
+
 ### Request: Improve Navigation And Product Structure
 
 Status: draft
@@ -761,6 +1014,99 @@ Implementation notes:
 ## Goal Timing Explorer
 
 Use this section for Feature 1 goal timing UI changes.
+
+### Request: Prepare Goal Timing As Next Dedicated Product Slice
+
+Status: implemented
+
+Area: goal timing
+
+Current behavior:
+
+```text
+Goal Timing is currently presented as a featured preview on the League
+Intelligence Overview. It is the strongest validated analysis so far, but it is
+not yet a dedicated page or full fan-facing insight experience.
+```
+
+Desired behavior:
+
+```text
+After the urgent and moderate navigation/fan-facing foundation requests are
+complete, build Goal Timing as the next dedicated product slice.
+
+The page should turn Feature 1 into a proper fan-facing insight experience:
+
+- what question the analysis answers
+- what the main finding is
+- why it matters in plain football/statistical language
+- how goal timing changes by season
+- a clear way to inspect the underlying periods or team-level implications when
+  the data supports it
+- reader-friendly data notes where limitations affect interpretation
+```
+
+Reason:
+
+```text
+Goal Timing is already validated and promoted, so it is the best first deep page
+once the app has proper navigation. It proves the product model: curated insight
+first, then deeper analytical exploration.
+```
+
+Data/API needs:
+
+```text
+Start from existing `/insights/goal-timing` data. Map any additional data needs
+before adding endpoints or analytics views.
+```
+
+Visual/UX notes:
+
+```text
+Write for fans and analysts, not developers. Avoid internal language such as
+"endpoint", "product slice", "preview data live", or "supporting evidence".
+Use wording such as "What this shows", "How to read this", "Worth noting", and
+"Explore the timing".
+```
+
+Mobile behavior:
+
+```text
+Design the page mobile first. Charts should remain readable on phone screens,
+and the main finding should appear before long explanation.
+```
+
+Accessibility notes:
+
+```text
+Charts should be supported by readable text values or summaries. Do not rely on
+color alone to identify the peak scoring window.
+```
+
+Out of scope:
+
+```text
+Do not build Discipline Dashboard or Team Profile as part of this slice.
+Do not add speculative metrics that are not validated in Feature 1 docs or API
+data.
+```
+
+Approval notes:
+
+```text
+Approved as the next product slice, but only after the urgent and moderate
+foundation requests in the Approved Implementation Queue are handled.
+```
+
+Implementation notes:
+
+```text
+Implemented as a dedicated Goal Timing page using the existing
+`/insights/goal-timing` response. The page now includes the football question,
+main finding, peak scoring window, second-half share, full 15-minute period
+chart, how-to-read copy, and a clear data note about added-time exclusions.
+```
 
 ### Request: Goal Timing Placeholder
 
@@ -1068,6 +1414,94 @@ Implementation notes:
 Use this section for loading states, empty states, API offline states, validation
 warnings, free-tier cold starts, and blocked browser-extension cases.
 
+### Request: Use Skeleton Loading Before Error States
+
+Status: implemented
+
+Area: UX states, loading
+
+Current behavior:
+
+```text
+When the API or database is slow, the app can quickly show a visible failure or
+red/offline-style state. This can make the product feel broken even when the
+hosted service is only waking up.
+```
+
+Desired behavior:
+
+```text
+Use skeleton loading states for the first meaningful wait. Show a calm outline
+of the page or section that is loading, so users can see what is coming.
+
+Separate these states:
+
+- initial loading or hosted service wake-up
+- slow but still retrying
+- confirmed API failure
+- selected season has no data
+- one section failed while the rest of the page is usable
+```
+
+Reason:
+
+```text
+The public app may run on free-tier services with cold starts. A skeleton state
+feels more professional and fan-friendly than immediately showing a red failure
+state.
+```
+
+Data/API needs:
+
+```text
+Use existing health and data requests. Do not add an endpoint unless a clear
+state cannot be explained with current API responses.
+```
+
+Visual/UX notes:
+
+```text
+Skeletons should match the shape of the incoming content: header, metric cards,
+featured insight, charts, or list rows. Copy should be calm and human, such as
+"Loading the latest league data..." or "The data service is waking up."
+```
+
+Mobile behavior:
+
+```text
+Skeletons should stack cleanly and should not cause layout jumps when data
+loads.
+```
+
+Accessibility notes:
+
+```text
+Use appropriate loading semantics where practical. Do not animate in a way that
+hurts readability or accessibility.
+```
+
+Out of scope:
+
+```text
+Do not hide real API failures forever.
+Do not replace data-quality warnings with skeletons.
+```
+
+Approval notes:
+
+```text
+Approved by the user on 2026-05-25. This should be handled before or alongside
+the next deep product page so cold-start behavior feels polished.
+```
+
+Implementation notes:
+
+```text
+Implemented. The overview now shows skeleton-shaped loading panels for the
+first meaningful wait before showing confirmed error states. Goal Timing also
+has a section-shaped skeleton while its insight data is loading.
+```
+
 ### Request: Improve Loading Empty Error And Cold-Start States
 
 Status: draft
@@ -1156,6 +1590,190 @@ and user-triggered refresh failures.
 Use this section for wording, football language, metric explanations, caveats,
 and labels shown in the app.
 
+### Request: Make Overview Copy Fan-Facing And Remove Internal Product Language
+
+Status: implemented
+
+Area: copy and caveats, league overview
+
+Current behavior:
+
+```text
+Some overview wording still sounds like it is written for developers or project
+maintainers. Examples include phrases such as "where the product goes next",
+"next product slice", "supporting context, not the main product promise",
+"endpoint", and overly technical trust/status wording.
+```
+
+Desired behavior:
+
+```text
+Rewrite overview-facing copy so it sounds like a real football intelligence
+platform for fans and analysts.
+
+Use fan-facing alternatives such as:
+
+- "Explore more"
+- "Coming soon"
+- "What this shows"
+- "Worth noting"
+- "Data note"
+- "How to read this"
+- "Recent matches"
+- "Team trends"
+- "Goal timing"
+
+Avoid exposing implementation language unless the user is on the Methodology or
+Data Notes page.
+```
+
+Reason:
+
+```text
+The primary user is a stats-interested football fan. The main app experience
+should not sound like a roadmap, developer note, or internal implementation
+plan.
+```
+
+Data/API needs:
+
+```text
+No data or API changes.
+```
+
+Visual/UX notes:
+
+```text
+Keep copy concise. Use neutral statistical and sports-science language, but make
+it understandable to a local fan.
+```
+
+Mobile behavior:
+
+```text
+Shorter fan-facing copy is especially important on mobile. Avoid long internal
+explanations above key content.
+```
+
+Accessibility notes:
+
+```text
+Plain language improves accessibility. Status and data notes should be readable
+without relying on visual styling alone.
+```
+
+Out of scope:
+
+```text
+Do not rewrite detailed methodology content in this request.
+Do not hide important data limitations; reword them clearly instead.
+```
+
+Approval notes:
+
+```text
+Approved by the user on 2026-05-25. This should happen before detailed
+page-specific product work.
+```
+
+Implementation notes:
+
+```text
+Implemented. Overview copy now uses fan-facing labels such as "Explore more",
+"Recent matches", "Team trends", "Goal Timing", "Data note", and "How this data
+is collected". Internal language about product slices, endpoints, and
+supporting evidence was removed from the main overview.
+```
+
+### Request: Move Technical Trust Details To Methodology Data Notes Page
+
+Status: implemented
+
+Area: copy and caveats, methodology, information architecture
+
+Current behavior:
+
+```text
+Technical trust details such as API/database status, staging-style language,
+methodology, and data pipeline context can appear on the main overview. This
+adds credibility, but it also makes the overview feel less fan-facing.
+```
+
+Desired behavior:
+
+```text
+Keep the overview focused on football intelligence. Move detailed methodology,
+data source, data freshness, update process, known limitations, and technical
+trust details to a dedicated Methodology / Data Notes / Contact page.
+
+The overview may keep a small fan-facing status link, such as:
+
+- "Data updated recently"
+- "Data notes"
+- "How this data is collected"
+
+Clicking that link should take users to the dedicated page for the deeper
+details.
+```
+
+Reason:
+
+```text
+Fans should first see useful football insight, not staging/run terminology.
+Analysts, recruiters, and curious users should still be able to inspect the
+methodology when they want proof and context.
+```
+
+Data/API needs:
+
+```text
+Use existing health, season, overview, and metadata where available. Do not add
+new data plumbing unless the dedicated page needs information that the current
+API cannot expose.
+```
+
+Visual/UX notes:
+
+```text
+Avoid words like "staging run" on the main overview. On the Methodology/Data
+Notes page, technical terms can appear if they are explained in plain language.
+```
+
+Mobile behavior:
+
+```text
+The overview status link should be small and clear. The dedicated methodology
+page should remain readable on mobile, with sections stacked cleanly.
+```
+
+Accessibility notes:
+
+```text
+Links to methodology/data notes should have descriptive labels.
+```
+
+Out of scope:
+
+```text
+Do not remove data trust or source transparency from the product.
+Do not make the methodology page a developer portfolio landing page.
+```
+
+Approval notes:
+
+```text
+Approved by the user on 2026-05-25. This pairs with page-based navigation and
+fan-facing overview copy.
+```
+
+Implementation notes:
+
+```text
+Implemented. The overview keeps a small fan-facing data note and link, while
+the dedicated Data Notes page now carries source, freshness, data path, status,
+scoreline-goal context, and known limitations.
+```
+
 ### Request: Copy Placeholder
 
 Status: idea
@@ -1188,7 +1806,8 @@ Move approved requests here when they are ready for the next implementation
 pass.
 
 ```text
-1. none currently. The 2026-05-25 overview redesign requests were implemented.
+1. none currently. The 2026-05-25 navigation, loading, copy, data-notes, and
+   Goal Timing requests were implemented.
 ```
 
 ## Implementation History
@@ -1222,6 +1841,28 @@ After an approved request is implemented, add a short entry here.
 - Guideline updates: Added durable mobile-first and League Intelligence Overview
   v1 decisions to `UI_UX_GUIDELINES.md`.
 - Verification: Ran `npm run build` and rendered desktop/mobile browser checks.
+
+### 2026-05-25
+
+- Request: Fix Sticky Anchor Offset On Mobile
+- Request: Introduce Page-Based Navigation Structure
+- Request: Use Mobile Sandwich Menu For Primary Navigation
+- Request: Make Overview Copy Fan-Facing And Remove Internal Product Language
+- Request: Move Technical Trust Details To Methodology Data Notes Page
+- Request: Use Skeleton Loading Before Error States
+- Request: Prepare Goal Timing As Next Dedicated Product Slice
+- What changed: Reworked the frontend into page-like views with mobile menu
+  navigation, fan-facing overview copy, skeleton loading, a dedicated Data Notes
+  page, safe Match Explorer and Team Insights shells, and a dedicated Goal
+  Timing page.
+- Backend/API: No backend changes. The implementation used existing health,
+  seasons, overview, goal timing, matches, and teams data.
+- Frontend: Updated `frontend/src/App.tsx` and `frontend/src/styles.css`.
+- Guideline updates: Added durable navigation, mobile menu, loading, copy,
+  methodology/data-notes, and Goal Timing page decisions to
+  `UI_UX_GUIDELINES.md`.
+- Verification: Ran `npm run build` and rendered desktop/mobile browser checks
+  across the new page views and mobile menu.
 
 ### YYYY-MM-DD
 

@@ -95,10 +95,15 @@ Approved principles:
 Approved principles:
 
 - The app should have clear sections for major workflows.
+- Primary navigation should behave like page navigation, not like cramped
+  same-page anchor jumping, once a section represents a real product area.
 - Navigation labels should use product language, not database language.
 - Disabled or future sections should not look like finished features.
 - Users should be able to move from league summary to more detailed match or
   team views as the app matures.
+- Phone layouts should use a compact menu button for primary navigation instead
+  of horizontally scrolling navigation links.
+- Navigation must expose the current page clearly.
 
 ## Data Display Principles
 
@@ -117,6 +122,10 @@ Approved principles:
 
 Approved principles:
 
+- Use skeleton loading states during the first meaningful wait before showing
+  confirmed error states.
+- Skeletons should match the shape of the incoming content and avoid layout
+  jumps on mobile.
 - Loading states should make free-tier backend cold starts understandable.
 - API offline states should identify the API host when useful.
 - Browser-extension blocking should be mentioned only when relevant to the
@@ -220,6 +229,8 @@ Approved principles:
 - Tables may scroll horizontally if the data is genuinely tabular.
 - Critical controls should remain reachable without excessive scrolling.
 - Text should wrap cleanly and not overlap controls or chart labels.
+- Same-page anchors, where they still exist, should account for sticky header
+  height with scroll-margin or equivalent behavior.
 
 ## League Intelligence Overview
 
@@ -234,6 +245,34 @@ Approved decisions:
   imply unfinished tools are already complete.
 - Trust, source, freshness, and caveat information should be visible on the
   overview instead of hidden in developer-only notes.
+- Overview copy should be fan-facing and avoid internal implementation language
+  such as "endpoint", "product slice", and "supporting evidence".
+- The overview may keep a small data-note link, but detailed source, freshness,
+  update, and technical trust context belongs on the Data Notes page.
+
+## Goal Timing
+
+Approved decisions:
+
+- Goal Timing is the first dedicated deep insight page.
+- The page should lead with the football question and main finding before long
+  explanation.
+- The 15-minute period chart should be backed by readable text values.
+- The peak scoring window should be labelled in text, not communicated through
+  color alone.
+- Added-time exclusions and event-timeline caveats should stay close to the
+  chart.
+
+## Methodology And Data Notes
+
+Approved decisions:
+
+- Technical trust details belong on a dedicated Data Notes page rather than
+  crowding the main overview.
+- Data Notes should explain source, data path, freshness, known limitations,
+  and caveats in plain language.
+- The Data Notes page should support credibility without becoming a developer
+  portfolio landing page.
 
 ## How To Update This File
 

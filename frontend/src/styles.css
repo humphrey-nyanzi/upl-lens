@@ -39,10 +39,6 @@ select:disabled {
   opacity: 0.65;
 }
 
-a {
-  color: inherit;
-}
-
 .app-shell {
   min-height: 100vh;
 }
@@ -52,19 +48,24 @@ a {
   z-index: 10;
   top: 0;
   display: grid;
-  gap: 14px;
+  grid-template-columns: 1fr max-content;
+  gap: 12px;
   border-bottom: 1px solid #d9dfd2;
-  background: rgba(245, 247, 241, 0.96);
+  background: rgba(245, 247, 241, 0.97);
   padding: 14px 16px;
   backdrop-filter: blur(16px);
 }
 
 .brand-lockup {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 12px;
+  border: 0;
+  background: transparent;
   color: #17211b;
-  text-decoration: none;
+  padding: 0;
+  text-align: left;
 }
 
 .brand-mark {
@@ -94,21 +95,70 @@ a {
   font-size: 13px;
 }
 
-.nav-list {
-  display: grid;
-  grid-template-columns: repeat(4, max-content);
+.menu-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-  overflow-x: auto;
+  border: 1px solid #17211b;
+  background: #17211b;
+  color: #ffffff;
+  padding: 0 12px;
+  font-weight: 850;
 }
 
-.nav-item {
-  min-height: 38px;
+.menu-icon,
+.menu-icon::before,
+.menu-icon::after {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: currentColor;
+  content: "";
+}
+
+.menu-icon {
+  position: relative;
+}
+
+.menu-icon::before,
+.menu-icon::after {
+  position: absolute;
+  left: 0;
+}
+
+.menu-icon::before {
+  top: -5px;
+}
+
+.menu-icon::after {
+  top: 5px;
+}
+
+.nav-list {
+  display: none;
+  grid-column: 1 / -1;
+  gap: 8px;
+}
+
+.nav-list.open {
+  display: grid;
+}
+
+.nav-item,
+.text-button,
+.section-heading button,
+.explore-card {
   border: 1px solid #d9dfd2;
   background: #ffffff;
   color: #354238;
-  padding: 9px 12px;
-  text-decoration: none;
-  white-space: nowrap;
+}
+
+.nav-item {
+  min-height: 44px;
+  padding: 10px 12px;
+  text-align: left;
 }
 
 .nav-item.active {
@@ -158,9 +208,11 @@ a {
 .featured-insight,
 .explore-panel,
 .panel,
-.trust-panel,
 .metric-card,
-.error-panel {
+.error-panel,
+.page-intro,
+.feature-story {
+  scroll-margin-top: 112px;
   border: 1px solid #d9dfd2;
   background: #ffffff;
 }
@@ -176,9 +228,11 @@ a {
   padding: 24px 18px;
 }
 
-.hero-copy {
+.hero-copy,
+.page-intro > div,
+.section-heading > div {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .eyebrow,
@@ -211,7 +265,7 @@ p {
 }
 
 h1 {
-  max-width: 760px;
+  max-width: 780px;
   font-size: 38px;
   line-height: 1.02;
 }
@@ -221,6 +275,21 @@ h2 {
   line-height: 1.15;
 }
 
+.hero-text,
+.page-intro p,
+.metric-card p,
+.section-heading p,
+.team-card p,
+.explore-card p,
+.insight-stat p,
+.caveat,
+.empty-state,
+.feature-story p {
+  color: #59665b;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .hero-text {
   max-width: 720px;
   color: #dfe8dc;
@@ -228,38 +297,52 @@ h2 {
   line-height: 1.55;
 }
 
-.hero-controls {
+.season-controls {
   display: grid;
   gap: 10px;
 }
 
-.hero-controls label {
+.season-controls label {
   display: grid;
   gap: 6px;
-  color: #dfe8dc;
+  color: #566156;
   font-size: 12px;
   font-weight: 850;
   text-transform: uppercase;
 }
 
-.hero-controls select,
-.hero-controls button {
+.hero-controls label {
+  color: #dfe8dc;
+}
+
+.season-controls select,
+.season-controls button,
+.text-button {
   min-height: 44px;
 }
 
-.hero-controls select {
+.season-controls select {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid #cdd6c6;
   background: #ffffff;
   color: #17211b;
   padding: 0 12px;
 }
 
+.season-controls button {
+  background: #17211b;
+  color: #ffffff;
+  font-weight: 850;
+  padding: 0 16px;
+}
+
+.hero-controls select {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
 .hero-controls button {
   background: #d7e85a;
   color: #17211b;
-  font-weight: 850;
-  padding: 0 16px;
 }
 
 .status-strip {
@@ -286,6 +369,21 @@ h2 {
   font-size: 14px;
 }
 
+.text-link,
+.text-link.inverse {
+  width: max-content;
+  border: 0;
+  background: transparent;
+  color: #17211b;
+  padding: 0;
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.text-link.inverse {
+  color: #ffffff;
+}
+
 .error-panel {
   border-color: #d9a8a2;
   background: #fff8f6;
@@ -296,22 +394,28 @@ h2 {
 .error-panel p {
   margin-top: 8px;
   color: #745047;
-  line-height: 1.45;
 }
 
-.metric-grid,
-.overview-grid,
-.explore-grid {
-  display: grid;
-  gap: 12px;
-}
-
+.page-intro,
 .metric-card,
 .panel,
 .featured-insight,
 .explore-panel,
-.trust-panel {
+.feature-story {
   padding: 16px;
+}
+
+.page-intro {
+  display: grid;
+  gap: 16px;
+}
+
+.metric-grid,
+.overview-grid,
+.explore-grid,
+.team-grid {
+  display: grid;
+  gap: 12px;
 }
 
 .metric-card {
@@ -326,49 +430,51 @@ h2 {
   line-height: 1;
 }
 
-.metric-card p,
-.section-heading p,
-.team-card p,
-.explore-card p,
-.insight-stat p,
-.caveat,
-.empty-state {
-  color: #59665b;
-  font-size: 14px;
-  line-height: 1.45;
-}
-
 .section-heading {
   display: grid;
   gap: 12px;
   margin-bottom: 16px;
 }
 
-.section-heading > div {
-  display: grid;
-  gap: 7px;
-}
-
 .section-heading.compact {
   margin-bottom: 12px;
 }
 
-.section-heading a {
+.text-button {
   width: max-content;
-  min-height: 40px;
   align-content: center;
-  border: 1px solid #17211b;
-  background: #17211b;
-  color: #ffffff;
   padding: 9px 12px;
   font-size: 14px;
-  font-weight: 800;
-  text-decoration: none;
+  font-weight: 850;
 }
 
-.featured-insight {
+.text-button.dark {
+  border-color: #17211b;
+  background: #17211b;
+  color: #ffffff;
+}
+
+.featured-insight,
+.feature-story {
   display: grid;
-  gap: 4px;
+  gap: 14px;
+}
+
+.feature-story {
+  background: #17211b;
+  color: #ffffff;
+}
+
+.feature-story h2 {
+  color: #ffffff;
+}
+
+.feature-story p {
+  color: #dfe8dc;
+}
+
+.feature-story .eyebrow {
+  color: #d7e85a;
 }
 
 .insight-layout {
@@ -487,13 +593,18 @@ h2 {
 .explore-card {
   display: grid;
   gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
   padding: 14px;
+  text-align: left;
+}
+
+.explore-panel .explore-card {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .explore-card strong {
-  color: #ffffff;
+  color: inherit;
+  font-size: 16px;
 }
 
 .score-block {
@@ -513,14 +624,81 @@ h2 {
   padding: 16px;
 }
 
+.skeleton-panel,
+.skeleton-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.skeleton-line {
+  height: 14px;
+  width: 100%;
+  background: linear-gradient(90deg, #e4eadf, #f8faf4, #e4eadf);
+  background-size: 180% 100%;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+.skeleton-line.short {
+  width: 34%;
+}
+
+.skeleton-line.medium {
+  width: 64%;
+}
+
+.skeleton-line.title {
+  height: 38px;
+  width: 78%;
+}
+
+.skeleton-line.number {
+  height: 34px;
+  width: 44%;
+}
+
+.hero-panel .skeleton-line {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.16));
+  background-size: 180% 100%;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -80% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .skeleton-line {
+    animation: none;
+  }
+}
+
 @media (min-width: 680px) {
   .top-nav {
-    grid-template-columns: minmax(220px, 1fr) auto;
+    grid-template-columns: minmax(220px, 1fr) auto max-content;
     align-items: center;
   }
 
-  .nav-list {
-    grid-column: 1 / -1;
+  .menu-button {
+    display: none;
+  }
+
+  .nav-list,
+  .nav-list.open {
+    display: grid;
+    grid-column: auto;
+    grid-template-columns: repeat(5, max-content);
+  }
+
+  .nav-item {
+    text-align: center;
   }
 
   .api-pill {
@@ -543,8 +721,15 @@ h2 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .page-intro,
+  .feature-story {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+    align-items: start;
+  }
+
   .metric-grid,
-  .explore-grid {
+  .explore-grid,
+  .team-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -585,12 +770,7 @@ h2 {
 
 @media (min-width: 980px) {
   .top-nav {
-    grid-template-columns: minmax(240px, 1fr) auto max-content;
     padding: 16px 24px;
-  }
-
-  .nav-list {
-    grid-column: auto;
   }
 
   .workspace {
@@ -609,15 +789,12 @@ h2 {
     font-size: 18px;
   }
 
-  .metric-grid {
+  .metric-grid,
+  .explore-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .overview-grid {
     grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
-  }
-
-  .explore-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
