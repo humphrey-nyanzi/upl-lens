@@ -143,8 +143,13 @@ Current strengths:
 
 - structured scraper outputs exist for matches, events, lineups, staff,
   officials, stats, and failed matches
+- the scraper command remains stable while implementation modules live under
+  `src/scraping/upl/`
 - raw CSVs can load into Postgres idempotently
-- staging tables rebuild from Postgres `raw.*`
+- staging tables rebuild from Postgres `raw.*` through the modular
+  `src/db/staging/` package
+- `analytics.team_season_summary` stores reusable team-season summaries after
+  staging rebuilds
 - validation runs and validation issues are stored in staging
 - current-season automation exists locally and in GitHub Actions
 - deployment uses hosted React, FastAPI, and Postgres services
@@ -598,7 +603,8 @@ Current foundation:
 - `api/main.py` creates the FastAPI app and registers route modules.
 - `api/routers/` contains thin endpoint modules for health, seasons, matches,
   teams, events, officials, and insights.
-- `src/api/queries.py` contains the Postgres SQL query layer.
+- `src/api/query_services/` contains the domain-split Postgres query layer.
+- `src/api/queries.py` remains as a compatibility facade for existing imports.
 - `src/api/schemas.py` contains the initial Pydantic response models.
 - The API reads from Postgres `staging.*` tables, not raw CSV files.
 

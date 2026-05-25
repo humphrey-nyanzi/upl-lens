@@ -52,6 +52,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 ON ALL TABLES IN SCHEMA analytics
 TO upl_actions_loader;
 
+GRANT EXECUTE
+ON FUNCTION analytics.refresh_team_season_summary(TEXT[])
+TO upl_actions_loader;
+
 -- Analytics tables are maintained by backend jobs, not browser-facing clients.
 -- Supabase may enable RLS on new tables; disable it here so SQL grants control
 -- this internal summary table consistently.

@@ -32,7 +32,7 @@ flowchart TD
     GA["⚙️ GitHub Actions\nweekly trigger\n--season 2025-26"]
     GA -->|"runs"| ORCH
 
-    ORCH["🎛️ update_current_season.py\norchestrator script\nscrape · migrate/load · verify · staging"]
+    ORCH["🎛️ update_hosted_data.py\noperator wrapper\n→ update_current_season.py\nscrape · migrate/load · verify · staging"]
 
     %% ═══════════════════════════════
     %% STEP 1: SCRAPING
@@ -41,7 +41,7 @@ flowchart TD
 
     subgraph SCRAPING["PRIMARY ① — Scraping"]
         direction TB
-        SCRAPER["⚙️ scrape_upl_matches.py\nScraperClient · RateLimiter\nThreadPoolExecutor x4"]
+        SCRAPER["⚙️ scrape_upl_matches.py\ncommand wrapper\n→ src/scraping/upl/*\nclient · parsing · pipeline\npostgres state · dataframes"]
 
         CACHE[("📦 data/cache/\nHTML per URL\nMD5-keyed files\nPrevents re-download")]
 
@@ -57,8 +57,8 @@ flowchart TD
 
     WEB -->|"GET /event/<id>/\nGET /calendar/"| SCRAPER
 
-    NOTE1["⚠️ GAP: Scraper has no\nchange-detection yet.\nRe-scrapes all known URLs\nevery run unless cached.\nFuture: compare match_id\nagainst Postgres first."]
-    SCRAPING -.->|"known gap"| NOTE1
+    NOTE1["ℹ️ Current behavior:\nPostgres change detection is\nactive by default for full\ncurrent-season refreshes.\nUse force-full-scrape only\nfor investigation or rebuilds."]
+    SCRAPING -.->|"operator note"| NOTE1
 
     %% ═══════════════════════════════
     %% STEP 2: RAW LOAD
@@ -97,7 +97,7 @@ flowchart TD
 
     subgraph STAGING_BUILD["PRIMARY ③ — Staging Build"]
         direction TB
-        STAGLOAD["🧹 build_staging_from_raw.py\n→ src/db/staging_loader.py\nReads raw.* via SQLAlchemy\nApplies transformations:\n  • normalize_team_name()\n  • _parse_minute() → 8 cols\n  • _extract_man_of_match()\n  • result / winner_team\n  • total_goals · goal_difference\n  • is_goal · is_yellow_card etc\nLogs issues to validation_runs"]
+        STAGLOAD["🧹 build_staging_from_raw.py\n→ src/db/staging/* package\nstaging_loader.py facade\nReads raw.* via SQLAlchemy\nSplits models · IO · transforms\nvalidation · writers · analytics\nLogs issues to validation_runs"]
 
         STAGVERIFY["✅ verify_staging_outputs.py\nspot-checks staging tables:\n  • row counts\n  • null rates on key columns\n  • season coverage"]
 
@@ -152,7 +152,7 @@ flowchart TD
     %% ═══════════════════════════════
     subgraph API["⚡ FastAPI — api/"]
         direction LR
-        DIRECT["Read queries\nGET /seasons\nGET /matches\nGET /teams (analytics)\nGET /events\nGET /officials"]
+        DIRECT["Read queries\nsrc/api/query_services/*\nqueries.py facade\nGET /seasons\nGET /matches\nGET /teams (analytics)\nGET /events\nGET /officials"]
         INS_EP["Insight endpoints\nGET /insights/goal-timing"]
         HEALTH["GET /health\ndb ping\nlatest_staging_completed_at"]
     end
@@ -171,20 +171,20 @@ flowchart TD
     subgraph FRONTEND["⚛️ React — frontend/src/"]
         direction TB
         CLIENT["api/client.ts\napiClient fetch() wrappers\nAPI_BASE_URL from .env"]
-        APPSTATE["App.tsx state\nuseEffect #1 → health + seasons\nuseEffect #2 → overview +\n  goalTiming + matches + teams\nloadState: idle/loading/success/error"]
-        PANELS["Rendered panels\nLeague Overview\nGoal Timing bar chart\nRecent Matches list\nTeam standings table\nEvent breakdown"]
-        FUTURE["🔲 Future pages (disabled)\nMatch Explorer\nDiscipline Dashboard\nTeam Profile"]
+        HOOKS["hooks/\nuseDashboardData\nuseHashNavigation\nloadState: idle/loading/success/error"]
+        SHELL["App.tsx shell\nTopNavigation\nhash-based page switch"]
+        PAGES["pages/\nOverview\nGoal Timing\nMatch Explorer\nTeam Insights\nMethodology"]
+        COMPONENTS["components/\ncharts · common · matches\nnavigation · overview\nseason · teams"]
 
-        CLIENT --> APPSTATE --> PANELS
-        PANELS -.->|"planned"| FUTURE
+        CLIENT --> HOOKS --> SHELL --> PAGES --> COMPONENTS
     end
 
     DIRECT -->|"JSON :8000"| CLIENT
     INS_EP -->|"JSON :8000"| CLIENT
     HEALTH -->|"JSON :8000"| CLIENT
 
-    NOTE6["⚠️ GAP: All data loaded\nin one App.tsx file.\nNo React Router yet.\nFuture pages need routing\nand code splitting."]
-    FRONTEND -.->|"known gap"| NOTE6
+    NOTE6["ℹ️ Current behavior:\nHash navigation keeps the\nfrontend lightweight.\nA fuller router may be useful\nonce deep links and mature\ndetail pages grow."]
+    FRONTEND -.->|"operator note"| NOTE6
 
     %% ═══════════════════════════════
     %% DEPLOY
@@ -216,7 +216,7 @@ flowchart TD
     class S1,S2,S3,S4 stagedb
     class NB,RB,PP,REG,INSIGHTS research
     class DIRECT,INS_EP,HEALTH,API api
-    class CLIENT,APPSTATE,PANELS,FUTURE frontend
+    class CLIENT,HOOKS,SHELL,PAGES,COMPONENTS frontend
     class NOTE1,NOTE2,NOTE3,NOTE4,NOTE5,NOTE6 warning
     class GA,RENDER,SUPABASE infra
 ```
@@ -332,11 +332,12 @@ erDiagram
 ```mermaid
 sequenceDiagram
     actor User
-    participant React as React App<br/>(browser)
+    participant React as React App shell<br/>useDashboardData
     participant Client as api/client.ts<br/>fetch()
     participant FastAPI as FastAPI<br/>api/main.py
     participant Router as Router<br/>e.g. seasons.py
-    participant PG as Postgres<br/>staging schema
+    participant Query as Query service<br/>src/api/query_services/*
+    participant PG as Postgres<br/>staging + analytics
 
     User->>React: Opens dashboard in browser
 
@@ -344,22 +345,25 @@ sequenceDiagram
     React->>Client: loadInitialData()
     Client->>FastAPI: GET /health
     Client->>FastAPI: GET /seasons
-    FastAPI->>PG: SELECT version(), current_database()
-    FastAPI->>PG: SELECT latest staging run FROM validation_runs
-    PG-->>FastAPI: db name + version + timestamp
+    FastAPI->>Router: health + seasons routers
+    Router->>Query: get_health_status() + list_seasons()
+    Query->>PG: SELECT version(), current_database()
+    Query->>PG: SELECT latest staging run FROM validation_runs
+    PG-->>Query: db name + version + timestamp
+    Query-->>Router: health row
     FastAPI-->>Client: HealthResponse JSON
-    FastAPI->>Router: seasons router
-    Router->>PG: SELECT season, COUNT(match_id),<br/>COUNT(DISTINCT team), SUM(total_goals)<br/>FROM staging.matches GROUP BY season
-    PG-->>Router: season rows
+    Query->>PG: SELECT season, COUNT(match_id),<br/>COUNT(DISTINCT team), SUM(total_goals)<br/>FROM staging.matches GROUP BY season
+    PG-->>Query: season rows
+    Query-->>Router: typed rows
     Router-->>Client: SeasonResponse[] JSON
     Client-->>React: setData({ health, seasons })
     React->>User: shows season dropdown
 
-    Note over React,PG: Phase 2 — Season selected (5 parallel calls)
+    Note over React,PG: Phase 2 — Season selected (4 parallel calls)
     User->>React: selects season "2025_26"
     React->>Client: loadSeasonData("2025_26")
 
-    par all 5 fetch in parallel
+    par all 4 fetch in parallel
         Client->>FastAPI: GET /seasons/2025_26/overview
         and
         Client->>FastAPI: GET /insights/goal-timing?season=2025_26
@@ -367,21 +371,22 @@ sequenceDiagram
         Client->>FastAPI: GET /matches?season=2025_26&limit=200
         and
         Client->>FastAPI: GET /teams?season=2025_26
-        and
-        Client->>FastAPI: GET /events?season=2025_26&limit=200
     end
 
-    FastAPI->>PG: 5 separate SQL queries\nagainst staging.matches,\nstaging.events, staging.lineups
-    PG-->>FastAPI: result sets
-    FastAPI-->>Client: 5 JSON responses
+    FastAPI->>Router: route handlers validate request
+    Router->>Query: overview, insight, match, and team query functions
+    Query->>PG: SQL against staging.matches,\nstaging.events, staging.lineups,\nand analytics.team_season_summary
+    PG-->>Query: result sets
+    Query-->>Router: typed rows
+    FastAPI-->>Client: 4 JSON responses
 
-    Client-->>React: setData({ overview, goalTiming,\nmatches, teams, events })
-    React->>User: renders full dashboard
+    Client-->>React: setData({ overview, goalTiming,\nmatches, teams })
+    React->>User: renders selected page
 ```
 
 ---
 
-## Diagram 4 — Scraper Class & State
+## Diagram 4 — Scraper Package & State
 > The internal structure of the scraper and what can happen to each match URL.
 
 ```mermaid

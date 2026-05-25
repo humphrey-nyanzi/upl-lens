@@ -15,9 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import CURRENT_SEASON, season_key
+from src.operations.command_runner import display_path, run_logged_step, timestamp_slug
 
 
 SCRIPT_DIR = PROJECT_ROOT / "scripts" / "data_platform"
@@ -111,16 +110,13 @@ def parse_args() -> argparse.Namespace:
 def _timestamp_slug() -> str:
     """Return a compact UTC timestamp for log filenames."""
 
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return timestamp_slug()
 
 
 def _display_path(path: Path) -> str:
     """Return a readable path, preferring repo-relative paths."""
 
-    try:
-        return str(path.relative_to(PROJECT_ROOT))
-    except ValueError:
-        return str(path)
+    return display_path(path, PROJECT_ROOT)
 
 
 def _python_command(script_name: str, *extra_args: str) -> list[str]:
@@ -132,38 +128,14 @@ def _python_command(script_name: str, *extra_args: str) -> list[str]:
 def _run_step(step_name: str, command: list[str], log_dir: Path) -> Path:
     """Run one subprocess, stream output, and save a per-step log."""
 
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_dir / f"{_timestamp_slug()}_{step_name}.log"
-
-    print(f"\n[hosted-update] Starting {step_name}", flush=True)
-    print(f"[hosted-update] Command: {' '.join(command)}", flush=True)
-    print(f"[hosted-update] Log: {_display_path(log_path)}", flush=True)
-
-    with log_path.open("w", encoding="utf-8") as log_file:
-        log_file.write(f"Step: {step_name}\n")
-        log_file.write(f"Command: {' '.join(command)}\n\n")
-        process = subprocess.Popen(
-            command,
-            cwd=PROJECT_ROOT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-
-        assert process.stdout is not None
-        for line in process.stdout:
-            print(line, end="", flush=True)
-            log_file.write(line)
-            log_file.flush()
-
-    exit_code = process.wait()
-    if exit_code != 0:
-        raise HostedUpdateStepError(step_name, log_path, exit_code)
-
-    print(f"[hosted-update] Finished {step_name}", flush=True)
-    return log_path
+    return run_logged_step(
+        step_name=step_name,
+        command=command,
+        log_dir=log_dir,
+        project_root=PROJECT_ROOT,
+        log_prefix="[hosted-update]",
+        error_type=HostedUpdateStepError,
+    )
 
 
 def _parse_custom_seasons(value: str) -> list[str]:

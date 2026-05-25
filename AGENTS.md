@@ -18,10 +18,14 @@ new work should be planned through the four continuous development areas.
 
 ## Current State
 
-- `scripts/data_platform/scrape_upl_matches.py` scrapes structured match data
-  from the official UPL website.
+- `scripts/data_platform/scrape_upl_matches.py` is the scraper command
+  entrypoint; the implementation lives under `src/scraping/upl/`.
 - Current raw tables include `matches`, `events`, `lineups`, `staff`,
   `officials`, `stats`, and `failed_matches`.
+- Staging rebuild code lives under `src/db/staging/`, with
+  `src/db/staging_loader.py` kept as a compatibility facade.
+- API query logic lives under `src/api/query_services/`, with
+  `src/api/queries.py` kept as a compatibility facade.
 - Raw per-season CSV outputs live under `data/raw/<season>/`.
 - Older processed goal-only datasets still live under `data/processed/`.
 - `notebooks/features/feature_01_goal_timing/` contains the original goal

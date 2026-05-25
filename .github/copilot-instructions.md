@@ -20,8 +20,8 @@ Read `AGENTS.md`, `docs/START_HERE.md`, `docs/PRODUCT_STRATEGY.md`, and
 
 ## Current Project State
 
-- `scripts/data_platform/scrape_upl_matches.py` scrapes official UPL match
-  pages.
+- `scripts/data_platform/scrape_upl_matches.py` is the scraper command
+  entrypoint; the implementation lives under `src/scraping/upl/`.
 - Current raw tables include:
   - `matches`
   - `events`
@@ -31,6 +31,10 @@ Read `AGENTS.md`, `docs/START_HERE.md`, `docs/PRODUCT_STRATEGY.md`, and
   - `stats`
   - `failed_matches`
 - Raw per-season CSVs are written under `data/raw/<season>/`.
+- Staging rebuild code lives under `src/db/staging/`, with
+  `src/db/staging_loader.py` kept as a compatibility facade.
+- API query logic lives under `src/api/query_services/`, with
+  `src/api/queries.py` kept as a compatibility facade.
 - Older processed goal-only outputs remain under `data/processed/`.
 - Notebook analysis remains useful, especially Feature 1: the original goal
   timing pilot under `notebooks/features/feature_01_goal_timing/`.

@@ -111,3 +111,7 @@ target/
 /outputs/automation/
 /outputs/sync/
 /outputs/test_artifacts/
+
+
+#codex
+.codex

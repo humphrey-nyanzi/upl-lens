@@ -36,8 +36,10 @@ The project currently has four deployable or operational parts.
 | Postgres database | `raw.*`, `staging.*`, and `analytics.*` schemas through migrations | Hosted Postgres with enough storage, SSL, and external access for API plus automation |
 | Current-season automation | `.github/workflows/current-season-update.yml` | Keep GitHub Actions, connect it to hosted Postgres through secrets |
 
-The backend reads from cleaned Postgres tables through `src/api/queries.py`.
-Route handlers are intentionally thin. Database settings are loaded from:
+The backend reads from cleaned Postgres tables through domain query modules under
+`src/api/query_services/`, with `src/api/queries.py` kept as a compatibility
+facade for older imports. Route handlers are intentionally thin. Database
+settings are loaded from:
 
 ```text
 POSTGRES_HOST

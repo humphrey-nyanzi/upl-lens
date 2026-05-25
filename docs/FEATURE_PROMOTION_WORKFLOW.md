@@ -149,8 +149,9 @@ Use research_brief.md and product_plan.md as the source of truth.
 Keep the frontend API-only.
 Use Postgres/FastAPI/React.
 Do not make React read CSV files or notebook outputs.
-Keep route handlers thin and put query logic in src/api/queries.py or an
-appropriate query/service module.
+Keep route handlers thin and put query logic in src/api/query_services/ or an
+appropriate query/service module. Keep src/api/queries.py as a compatibility
+facade if existing imports depend on it.
 Document how to run and verify the feature end to end.
 After implementation, update product_plan.md implementation history and
 docs/FEATURE_REGISTRY.md.

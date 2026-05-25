@@ -3,7 +3,7 @@
 -- This SQL query aggregates various football event statistics by season from the 'staging.events' table. It calculates the total number of assists, goals, yellow cards, red cards, and substitutions for each season.
 
 SELECT 
-    season,
+    season AS staging_season,
     SUM(CASE WHEN event_type = 'assist' THEN 1 ELSE 0 END) AS total_assists,
     SUM(CASE WHEN event_type = 'goal' THEN 1 ELSE 0 END) AS total_goals,
     SUM(CASE WHEN event_type = 'yellow_card' THEN 1 ELSE 0 END) AS total_yellow_cards,
@@ -17,7 +17,7 @@ ORDER BY season ASC;
 -- This SQL query aggregates various football event statistics by season from the 'raw.events' table. It calculates the total number of assists, goals, yellow cards, red cards, and substitutions for each season.
 
 SELECT 
-    season,
+    season AS raw_season,
     SUM(CASE WHEN event_type = 'assist' THEN 1 ELSE 0 END) AS total_assists,
     SUM(CASE WHEN event_type = 'goal' THEN 1 ELSE 0 END) AS total_goals,
     SUM(CASE WHEN event_type = 'yellow_card' THEN 1 ELSE 0 END) AS total_yellow_cards,

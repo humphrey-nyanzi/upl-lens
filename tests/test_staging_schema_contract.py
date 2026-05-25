@@ -74,6 +74,7 @@ def test_team_season_summary_is_stored_in_analytics_schema() -> None:
     assert "CREATE TABLE IF NOT EXISTS analytics.team_season_summary" in sql
     assert "PRIMARY KEY (season, team_name)" in sql
     assert "ALTER TABLE analytics.team_season_summary DISABLE ROW LEVEL SECURITY" in sql
+    assert "CREATE OR REPLACE FUNCTION analytics.refresh_team_season_summary" in sql
     assert "INSERT INTO analytics.team_season_summary" in sql
 
 
@@ -94,13 +95,14 @@ def test_actions_loader_can_refresh_analytics_tables() -> None:
 
     assert "GRANT USAGE ON SCHEMA analytics TO upl_actions_loader" in permissions_sql
     assert "ON ALL TABLES IN SCHEMA analytics" in permissions_sql
+    assert "ON FUNCTION analytics.refresh_team_season_summary(TEXT[])" in permissions_sql
     assert "ALTER TABLE IF EXISTS analytics.team_season_summary DISABLE ROW LEVEL SECURITY" in permissions_sql
 
 
 def test_team_endpoint_reads_stored_analytics_summary() -> None:
     """Team API queries should not rebuild standings from staging on every request."""
 
-    queries_py = (PROJECT_ROOT / "src" / "api" / "queries.py").read_text(encoding="utf-8")
+    queries_py = (PROJECT_ROOT / "src" / "api" / "query_services" / "teams.py").read_text(encoding="utf-8")
 
     assert "FROM analytics.team_season_summary" in queries_py
 
@@ -108,9 +110,8 @@ def test_team_endpoint_reads_stored_analytics_summary() -> None:
 def test_staging_rebuild_refreshes_team_analytics_summary() -> None:
     """The stored team summary must be refreshed when staging data is rebuilt."""
 
-    staging_loader_py = (PROJECT_ROOT / "src" / "db" / "staging_loader.py").read_text(
+    analytics_py = (PROJECT_ROOT / "src" / "db" / "staging" / "analytics.py").read_text(
         encoding="utf-8"
     )
 
-    assert "DELETE FROM analytics.team_season_summary" in staging_loader_py
-    assert "INSERT INTO analytics.team_season_summary" in staging_loader_py
+    assert "SELECT analytics.refresh_team_season_summary(:seasons)" in analytics_py

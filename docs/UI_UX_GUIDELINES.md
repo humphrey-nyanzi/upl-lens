@@ -55,8 +55,9 @@ These surfaces are currently approved as part of the public product direction:
 - League Overview
 - Goal Timing Explorer
 - Match Explorer
-- Team Profile
+- Team Insights / Team Profile
 - Discipline Dashboard
+- Methodology / Data Notes
 
 The current deployed app is still a pilot. It proves the architecture, but the
 approved long-term direction is a richer analytical product with multiple
@@ -66,7 +67,8 @@ usable sections.
 
 The current frontend uses:
 
-- a dark left sidebar
+- a sticky top navigation bar
+- compact mobile menu behavior for primary navigation
 - a light analytical workspace
 - compact cards and panels
 - tables for team and match summaries
@@ -97,6 +99,8 @@ Approved principles:
 - The app should have clear sections for major workflows.
 - Primary navigation should behave like page navigation, not like cramped
   same-page anchor jumping, once a section represents a real product area.
+- Lightweight hash-based navigation is acceptable while the product has only a
+  few top-level pages.
 - Navigation labels should use product language, not database language.
 - Disabled or future sections should not look like finished features.
 - Users should be able to move from league summary to more detailed match or
@@ -194,19 +198,18 @@ Future decisions should specify:
 
 Approved reusable component directions:
 
-```text
-none yet
-```
-
-Future decisions should specify reusable patterns for:
-
-- metric cards
-- filters
-- status banners
-- tables
-- match rows
-- chart panels
-- empty states
+- Cards, panels, chart containers, metric blocks, buttons, filter controls, and
+  empty states should use a small radius, currently 5-6px, to feel modern
+  without becoming playful.
+- Metric cards should combine a clear label, strong numeric value, and one
+  short football-readable explanation.
+- Filter groups should be moderate and page-specific; do not expose every
+  possible database filter by default.
+- Match rows should remain compact cards that surface date, teams, score, and
+  result state before deeper detail.
+- Team summary cards should show analytical signals such as win rate, ranking,
+  record, goal difference, and goals for/against where available.
+- Empty states should explain what is missing calmly and briefly.
 
 ## Chart And Table Guidelines
 
@@ -216,6 +219,10 @@ Approved principles:
 - Tables should support comparison and scanning.
 - Chart labels should be understandable without reading code.
 - Caveats should be near the chart/table they affect.
+- Explorer pages should favor filters, compact cards, summaries, and drilldown
+  paths over raw database-style tables.
+- Top-level pages should use visual summaries before full tables when the data
+  can still be understood clearly.
 
 ## Mobile Guidelines
 
@@ -238,6 +245,8 @@ Approved decisions:
 
 - The first screen should present UPL Match Intelligence as a football data
   observatory, not as a generic dashboard or fixtures site.
+- The front page should sit between dashboard summary, sports analytics control
+  room, and league report card.
 - The overview should lead with product positioning, season/data status,
   analytical summary cards, and the current featured insight.
 - Goal Timing is the current flagship insight preview on the overview.
@@ -255,6 +264,9 @@ Approved decisions:
 Approved decisions:
 
 - Goal Timing is the first dedicated deep insight page.
+- Featured insight pages should use a reusable structure: question, headline
+  finding, useful chart, short explanation, data note, and drilldown where the
+  data supports it.
 - The page should lead with the football question and main finding before long
   explanation.
 - The 15-minute period chart should be backed by readable text values.
@@ -273,6 +285,35 @@ Approved decisions:
   and caveats in plain language.
 - The Data Notes page should support credibility without becoming a developer
   portfolio landing page.
+
+## Page Templates
+
+Approved decisions:
+
+- League overview pages should entice users into deeper product areas without
+  becoming one long page.
+- Featured insight pages should explain researched features without becoming
+  long article pages inside React.
+- Explorer pages should use moderate filters, result summaries, compact cards,
+  and drilldown paths.
+- Team pages should be analytical summaries, not basic profiles.
+- Methodology/Data Notes pages should collect source, freshness, limitations,
+  update context, and contact/about context in plain language.
+
+## Anti-Patterns
+
+Avoid these directions in this order:
+
+- too much like Tableau or Power BI
+- too much like a betting site
+- too much like a generic template dashboard
+- too developer-ish
+- too crowded
+- too empty
+- too playful
+- too corporate
+
+These are guardrails, not a ban on visual experimentation.
 
 ## How To Update This File
 

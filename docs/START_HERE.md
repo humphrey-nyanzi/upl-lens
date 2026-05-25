@@ -149,9 +149,15 @@ Read first:
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 - `api/main.py`
-- `src/api/queries.py`
+- `api/routers/`
+- `src/api/query_services/`
+- `src/api/queries.py` compatibility facade
 - `src/api/schemas.py`
 - `frontend/src/App.tsx`
+- `frontend/src/app/`
+- `frontend/src/pages/`
+- `frontend/src/components/`
+- `frontend/src/hooks/`
 - `frontend/src/api/client.ts`
 - `frontend/src/api/types.ts`
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
