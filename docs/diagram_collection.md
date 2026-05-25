@@ -116,8 +116,15 @@ flowchart TD
 
     STAGLOAD -->|"writes cleaned rows"| PGSTAGE
 
-    NOTE3["⚠️ GAP: No analytics.*\nschema yet. Complex reusable\nmetrics (e.g. discipline_summary,\nteam_match_summary) are\nre-computed in every API query\ninstead of living as SQL views."]
-    PGSTAGE -.->|"missing layer"| NOTE3
+    subgraph PGANALYTICS["🐘 Postgres — analytics schema"]
+        direction LR
+        A1["analytics.team_season_summary\nstored team-season rows\nmatches · goals · wins/draws/losses\nrefreshed after staging rebuild"]
+    end
+
+    STAGLOAD -->|"refreshes summaries"| PGANALYTICS
+
+    NOTE3["⚠️ GAP: Most reusable metrics\nstill need analytics objects.\nDiscipline, official, home/away,\nand match-drama summaries are\nnot promoted yet."]
+    PGANALYTICS -.->|"remaining analytics backlog"| NOTE3
 
     %% ═══════════════════════════════
     %% SECONDARY: RESEARCH FLOW
@@ -145,12 +152,13 @@ flowchart TD
     %% ═══════════════════════════════
     subgraph API["⚡ FastAPI — api/"]
         direction LR
-        DIRECT["Direct staging queries\nGET /seasons\nGET /matches\nGET /teams\nGET /events\nGET /officials"]
+        DIRECT["Read queries\nGET /seasons\nGET /matches\nGET /teams (analytics)\nGET /events\nGET /officials"]
         INS_EP["Insight endpoints\nGET /insights/goal-timing"]
         HEALTH["GET /health\ndb ping\nlatest_staging_completed_at"]
     end
 
     PGSTAGE -->|"SQL queries\nvia SQLAlchemy"| DIRECT
+    PGANALYTICS -->|"precomputed team summaries"| DIRECT
     INSIGHTS -->|"SQL query"| INS_EP
     PGSTAGE -->|"latest run check"| HEALTH
 
@@ -163,7 +171,7 @@ flowchart TD
     subgraph FRONTEND["⚛️ React — frontend/src/"]
         direction TB
         CLIENT["api/client.ts\napiClient fetch() wrappers\nAPI_BASE_URL from .env"]
-        APPSTATE["App.tsx state\nuseEffect #1 → health + seasons\nuseEffect #2 → overview +\n  goalTiming + matches +\n  teams + events\nloadState: idle/loading/success/error"]
+        APPSTATE["App.tsx state\nuseEffect #1 → health + seasons\nuseEffect #2 → overview +\n  goalTiming + matches + teams\nloadState: idle/loading/success/error"]
         PANELS["Rendered panels\nLeague Overview\nGoal Timing bar chart\nRecent Matches list\nTeam standings table\nEvent breakdown"]
         FUTURE["🔲 Future pages (disabled)\nMatch Explorer\nDiscipline Dashboard\nTeam Profile"]
 
@@ -187,6 +195,7 @@ flowchart TD
     RENDER -.->|"reads from"| SUPABASE
     PGRAW -.->|"hosted on"| SUPABASE
     PGSTAGE -.->|"hosted on"| SUPABASE
+    PGANALYTICS -.->|"hosted on"| SUPABASE
 
     %% ═══════════════════════════════
     %% STYLES

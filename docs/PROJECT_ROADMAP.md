@@ -756,11 +756,11 @@ Current foundation:
 - The script prints a data-completeness summary from the season failed-match
   manifest, with optional strict failure via
   `--fail-on-remaining-failed-matches`.
-- `.github/workflows/current-season-update.yml` can be triggered manually and
-  is also scheduled weekly.
-- The workflow now defaults to `full` mode for both manual and scheduled runs.
-  Routine runs skip migrations by default so they can use the least-privilege
-  loader role.
+- `.github/workflows/current-season-update.yml` runs the `Hosted data update`
+  workflow and can be triggered manually or by the weekly schedule.
+- The workflow uses operator-level inputs such as `season_scope`, `run_type`,
+  `apply_migrations`, `use_cache`, and `force_full_scrape`. Routine runs skip
+  migrations by default so they can use the least-privilege loader role.
 - `docs/PHASE5_AUTOMATION.md` documents the working GitHub secrets, Supabase
   pooler username pattern, artifact behavior, and common connection errors.
 - The workflow installs `requirements-automation.txt` with pip caching instead
@@ -804,7 +804,7 @@ Command pattern:
 - Reuse existing raw files and only refresh Postgres/staging:
   `python scripts/data_platform/update_current_season.py --season 2025-26 --skip-scrape`
 - Run the routine least-privilege refresh without migrations:
-  `python scripts/data_platform/update_current_season.py --season 2025-26 --skip-migrations`
+  `python scripts/data_platform/update_hosted_data.py --season-scope current --run-type routine-refresh`
 - Run scraper-only artifact mode for CI or source-data snapshots:
   `python scripts/data_platform/update_current_season.py --season 2025-26 --mode artifact-only`
 - Fail strict automation when any match still needs a retry:

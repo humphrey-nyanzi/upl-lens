@@ -64,7 +64,7 @@ Use `.venv\Scripts\python.exe` when the local virtual environment exists.
 | Verify raw Postgres counts | `.venv\Scripts\python.exe scripts\data_platform\verify_raw_postgres_counts.py` |
 | Build staging tables | `.venv\Scripts\python.exe scripts\data_platform\build_staging_from_raw.py` |
 | Verify staging outputs | `.venv\Scripts\python.exe scripts\data_platform\verify_staging_outputs.py` |
-| Refresh current season safely | `.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-migrations` |
+| Refresh current season safely | `.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh` |
 | Run Python tests | `.venv\Scripts\python.exe -m pytest` |
 | Run FastAPI locally | `.venv\Scripts\python.exe -m uvicorn api.main:app --reload` |
 | Install frontend dependencies | `cd frontend` then `npm install` |
@@ -137,7 +137,7 @@ Use this table to avoid guessing.
 | Python parsing or helper logic | `.venv\Scripts\python.exe -m pytest` |
 | Scraper or raw-loading behavior | Relevant pytest tests, then `verify_raw_postgres_counts.py` if data changed. |
 | Staging or validation logic | Relevant pytest tests, then `build_staging_from_raw.py` and `verify_staging_outputs.py`. |
-| Current-season automation | Relevant pytest tests, then `update_current_season.py --season 2025-26 --skip-migrations` for routine mode. |
+| Current-season automation | Relevant pytest tests, then `update_hosted_data.py --season-scope current --run-type routine-refresh` for routine mode. |
 | FastAPI route or schema | `.venv\Scripts\python.exe -m pytest`, run `uvicorn`, then check `/docs` and the affected endpoint. |
 | React frontend | `cd frontend`, then `npm run build`; run the dev server for visual checks. |
 | API response shape used by React | Verify the endpoint and run `npm run build`. |
@@ -224,7 +224,7 @@ failures are caused by changed response types, missing fields, or import paths.
 Routine refreshes should not need admin migration privileges. Use:
 
 ```powershell
-.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-migrations
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
 ```
 
 Schema changes belong to an admin/migration path. See

@@ -322,9 +322,11 @@ GitHub Actions
 For routine scheduled runs:
 
 ```text
-mode=full
+season_scope=current
+run_type=routine-refresh
 apply_migrations=false
 use_cache=false
+force_full_scrape=false
 ```
 
 That means the weekly job updates data rows but does not change schema.

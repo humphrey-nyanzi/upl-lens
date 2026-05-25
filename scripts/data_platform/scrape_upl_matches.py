@@ -988,7 +988,7 @@ def _save_failed_matches_manifest(season: str, failed_urls: dict[str, dict[str, 
     save_dataframe(failed_df, manifest_path)
 
 
-def _query_raw_table_rows(table_name: str, season: str) -> list[dict[str, Any]]:
+def _query_raw_table_rows(connection, table_name: str, season: str) -> list[dict[str, Any]]:
     """Read existing raw rows for one season from Postgres.
 
     The scraper CSVs do not include loader-only columns such as `source_file`
@@ -1005,17 +1005,16 @@ def _query_raw_table_rows(table_name: str, season: str) -> list[dict[str, Any]]:
         ORDER BY match_id;
     """
 
-    with get_psycopg_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(query, (season_key(season),))
-            column_names = [column.name for column in cursor.description]
-            return [
-                dict(zip(column_names, row, strict=True))
-                for row in cursor.fetchall()
-            ]
+    with connection.cursor() as cursor:
+        cursor.execute(query, (season_key(season),))
+        column_names = [column.name for column in cursor.description]
+        return [
+            dict(zip(column_names, row, strict=True))
+            for row in cursor.fetchall()
+        ]
 
 
-def _query_raw_match_refresh_state(season: str) -> list[dict[str, Any]]:
+def _query_raw_match_refresh_state(connection, season: str) -> list[dict[str, Any]]:
     """Return match-level state used to choose what should be re-scraped."""
 
     query = """
@@ -1032,17 +1031,16 @@ def _query_raw_match_refresh_state(season: str) -> list[dict[str, Any]]:
         ORDER BY match_day NULLS LAST, date NULLS LAST, match_id;
     """
 
-    with get_psycopg_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(query, (season_key(season),))
-            column_names = [column.name for column in cursor.description]
-            return [
-                dict(zip(column_names, row, strict=True))
-                for row in cursor.fetchall()
-            ]
+    with connection.cursor() as cursor:
+        cursor.execute(query, (season_key(season),))
+        column_names = [column.name for column in cursor.description]
+        return [
+            dict(zip(column_names, row, strict=True))
+            for row in cursor.fetchall()
+        ]
 
 
-def _query_failed_match_urls(season: str) -> set[str]:
+def _query_failed_match_urls(connection, season: str) -> set[str]:
     """Return match URLs that failed in the previous raw Postgres state."""
 
     query = """
@@ -1051,17 +1049,16 @@ def _query_failed_match_urls(season: str) -> set[str]:
         WHERE REPLACE(REPLACE(season, '-', '_'), '/', '_') = %s;
     """
 
-    with get_psycopg_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(query, (season_key(season),))
-            return {str(row[0]) for row in cursor.fetchall() if row[0]}
+    with connection.cursor() as cursor:
+        cursor.execute(query, (season_key(season),))
+        return {str(row[0]) for row in cursor.fetchall() if row[0]}
 
 
-def _load_existing_raw_tables_from_postgres(season: str) -> dict[str, list[dict[str, Any]]]:
+def _load_existing_raw_tables_from_postgres(connection, season: str) -> dict[str, list[dict[str, Any]]]:
     """Export existing raw season rows so skipped matches remain in CSV output."""
 
     return {
-        table_name: _query_raw_table_rows(table_name, season)
+        table_name: _query_raw_table_rows(connection, table_name, season)
         for table_name in TABLE_NAMES
     }
 
@@ -1124,12 +1121,13 @@ def _build_postgres_scrape_plan(
 ) -> PostgresScrapePlan:
     """Build a Postgres-backed plan for incremental scraping."""
 
-    existing_tables = _filter_existing_tables_to_calendar(
-        _load_existing_raw_tables_from_postgres(season),
-        match_urls,
-    )
-    match_rows = _query_raw_match_refresh_state(season)
-    failed_match_urls = _query_failed_match_urls(season)
+    with get_psycopg_connection() as connection:
+        existing_tables = _filter_existing_tables_to_calendar(
+            _load_existing_raw_tables_from_postgres(connection, season),
+            match_urls,
+        )
+        match_rows = _query_raw_match_refresh_state(connection, season)
+        failed_match_urls = _query_failed_match_urls(connection, season)
     complete_urls = {
         str(row["match_url"])
         for row in match_rows

@@ -1,20 +1,30 @@
-name: Current season update
+name: Hosted data update
 
 on:
   workflow_dispatch:
     inputs:
       season:
-        description: "UPL season to update, for example 2025-26"
-        required: true
+        description: "Used when season_scope=custom. Comma-separated, e.g. 2024-25,2025-26"
+        required: false
         default: "2025-26"
-      mode:
-        description: "artifact-only uploads refreshed raw files; full also refreshes Postgres/staging"
+      season_scope:
+        description: "Which seasons should this run target?"
         required: true
-        default: "full"
+        default: "current"
         type: choice
         options:
+          - current
+          - all
+          - custom
+      run_type:
+        description: "What kind of update should run?"
+        required: true
+        default: "routine-refresh"
+        type: choice
+        options:
+          - routine-refresh
+          - rebuild-from-existing-raw
           - artifact-only
-          - full
       apply_migrations:
         description: "Admin setup only: apply database migrations before loading data"
         required: true
@@ -25,17 +35,7 @@ on:
         required: true
         default: false
         type: boolean
-      skip_scrape:
-        description: "Reuse existing raw files and start at database/staging steps"
-        required: true
-        default: false
-        type: boolean
-      skip_raw_load:
-        description: "Reuse existing raw database rows and start at staging steps"
-        required: true
-        default: false
-        type: boolean
-      disable_postgres_change_detection:
+      force_full_scrape:
         description: "Scrape every calendar match instead of using raw Postgres change detection"
         required: true
         default: false
@@ -51,13 +51,12 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PYTHONUNBUFFERED: "1"
-      UPDATE_SEASON: ${{ github.event.inputs.season || '2025-26' }}
-      UPDATE_MODE: ${{ github.event.inputs.mode || 'full' }}
+      SEASON_SCOPE: ${{ github.event.inputs.season_scope || 'current' }}
+      CUSTOM_SEASONS: ${{ github.event.inputs.season || '2025-26' }}
+      RUN_TYPE: ${{ github.event.inputs.run_type || 'routine-refresh' }}
       APPLY_MIGRATIONS: ${{ github.event.inputs.apply_migrations || 'false' }}
       USE_CACHE: ${{ github.event.inputs.use_cache || 'false' }}
-      SKIP_SCRAPE: ${{ github.event.inputs.skip_scrape || 'false' }}
-      SKIP_RAW_LOAD: ${{ github.event.inputs.skip_raw_load || 'false' }}
-      DISABLE_POSTGRES_CHANGE_DETECTION: ${{ github.event.inputs.disable_postgres_change_detection || 'false' }}
+      FORCE_FULL_SCRAPE: ${{ github.event.inputs.force_full_scrape || 'false' }}
       POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
       POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
@@ -79,34 +78,33 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements-automation.txt
 
-      - name: Check database secrets for full mode
-        if: env.UPDATE_MODE == 'full'
+      - name: Check database secrets for database update modes
+        if: env.RUN_TYPE != 'artifact-only'
         run: |
           missing=0
           for name in POSTGRES_HOST POSTGRES_PORT POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD; do
             if [ -z "${!name}" ]; then
-              echo "::error::$name is required when mode=full"
+              echo "::error::$name is required when run_type updates the hosted database"
               missing=1
             fi
           done
           exit "$missing"
 
-      - name: Run current-season update
+      - name: Run hosted data update
         run: >
-          python scripts/data_platform/update_current_season.py
-          --season "$UPDATE_SEASON"
-          --mode "$UPDATE_MODE"
-          ${{ env.SKIP_SCRAPE == 'true' && '--skip-scrape' || '' }}
-          ${{ env.SKIP_RAW_LOAD == 'true' && '--skip-raw-load' || '' }}
-          ${{ env.APPLY_MIGRATIONS != 'true' && '--skip-migrations' || '' }}
+          python scripts/data_platform/update_hosted_data.py
+          --season-scope "$SEASON_SCOPE"
+          --custom-seasons "$CUSTOM_SEASONS"
+          --run-type "$RUN_TYPE"
+          ${{ env.APPLY_MIGRATIONS == 'true' && '--apply-migrations' || '' }}
           ${{ env.USE_CACHE == 'true' && '--use-cache' || '' }}
-          ${{ env.DISABLE_POSTGRES_CHANGE_DETECTION == 'true' && '--disable-postgres-change-detection' || '' }}
+          ${{ env.FORCE_FULL_SCRAPE == 'true' && '--force-full-scrape' || '' }}
 
       - name: Upload raw season files
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: raw-season-${{ env.UPDATE_SEASON }}
+          name: raw-data-${{ env.SEASON_SCOPE }}-${{ env.RUN_TYPE }}
           path: data/raw/
           if-no-files-found: warn
 
@@ -114,6 +112,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: automation-logs-${{ env.UPDATE_SEASON }}
+          name: automation-logs-${{ env.SEASON_SCOPE }}-${{ env.RUN_TYPE }}
           path: outputs/automation/
           if-no-files-found: warn

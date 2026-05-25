@@ -1367,6 +1367,116 @@ def _write_validation_run(
         progress("Recorded staging.validation_runs row")
 
 
+def _refresh_team_season_summary(
+    connection,
+    seasons: list[str],
+    progress: ProgressCallback | None = None,
+) -> None:
+    """Refresh stored team summaries for the rebuilt staging seasons."""
+
+    if progress:
+        progress("Deleting old analytics.team_season_summary rows")
+    connection.execute(
+        text("DELETE FROM analytics.team_season_summary WHERE season = ANY(:seasons)"),
+        {"seasons": seasons},
+    )
+
+    if progress:
+        progress("Refreshing analytics.team_season_summary")
+    connection.execute(
+        text(
+            """
+            INSERT INTO analytics.team_season_summary (
+                season,
+                team_name,
+                matches_played,
+                goals_for,
+                goals_against,
+                wins,
+                draws,
+                losses,
+                refreshed_at
+            )
+            WITH team_matches AS (
+                SELECT
+                    season,
+                    home_team AS team_name,
+                    match_id,
+                    CASE WHEN result = 'home_win' THEN 1 ELSE 0 END AS wins,
+                    CASE WHEN result = 'draw' THEN 1 ELSE 0 END AS draws,
+                    CASE WHEN result = 'away_win' THEN 1 ELSE 0 END AS losses
+                FROM staging.matches
+                WHERE home_team IS NOT NULL
+                    AND is_source_anomaly IS NOT TRUE
+                    AND season = ANY(:seasons)
+                UNION ALL
+                SELECT
+                    season,
+                    away_team AS team_name,
+                    match_id,
+                    CASE WHEN result = 'away_win' THEN 1 ELSE 0 END AS wins,
+                    CASE WHEN result = 'draw' THEN 1 ELSE 0 END AS draws,
+                    CASE WHEN result = 'home_win' THEN 1 ELSE 0 END AS losses
+                FROM staging.matches
+                WHERE away_team IS NOT NULL
+                    AND is_source_anomaly IS NOT TRUE
+                    AND season = ANY(:seasons)
+            ),
+            actual_goals AS (
+                SELECT
+                    events.season,
+                    events.match_id,
+                    events.team_name,
+                    COUNT(*) AS goals_for
+                FROM staging.events AS events
+                INNER JOIN staging.matches AS matches
+                    ON matches.match_id = events.match_id
+                WHERE events.event_type IN ('goal', 'own_goal', 'penalty_goal')
+                    AND events.team_name IS NOT NULL
+                    AND matches.is_source_anomaly IS NOT TRUE
+                    AND events.season = ANY(:seasons)
+                GROUP BY events.season, events.match_id, events.team_name
+            ),
+            team_rows AS (
+                SELECT
+                    team_matches.season,
+                    team_matches.team_name,
+                    team_matches.match_id,
+                    team_matches.wins,
+                    team_matches.draws,
+                    team_matches.losses,
+                    COALESCE(for_goals.goals_for, 0) AS goals_for,
+                    COALESCE(against_goals.goals_for, 0) AS goals_against
+                FROM team_matches
+                LEFT JOIN actual_goals AS for_goals
+                    ON for_goals.season = team_matches.season
+                    AND for_goals.match_id = team_matches.match_id
+                    AND for_goals.team_name = team_matches.team_name
+                LEFT JOIN actual_goals AS against_goals
+                    ON against_goals.season = team_matches.season
+                    AND against_goals.match_id = team_matches.match_id
+                    AND against_goals.team_name <> team_matches.team_name
+            )
+            SELECT
+                season,
+                team_name,
+                COUNT(*)::integer AS matches_played,
+                SUM(COALESCE(goals_for, 0))::integer AS goals_for,
+                SUM(COALESCE(goals_against, 0))::integer AS goals_against,
+                SUM(wins)::integer AS wins,
+                SUM(draws)::integer AS draws,
+                SUM(losses)::integer AS losses,
+                NOW() AS refreshed_at
+            FROM team_rows
+            GROUP BY season, team_name;
+            """
+        ),
+        {"seasons": seasons},
+    )
+    if progress:
+        progress("Refreshed analytics.team_season_summary")
+
+
 def _has_error_level_issues(issues_df: pd.DataFrame) -> bool:
     """Return whether validation found issues that should block staging writes."""
 
@@ -1455,6 +1565,7 @@ def build_staging_from_raw(
         else:
             _delete_staging_season_rows(connection, season_names, progress)
             row_counts = _write_staging_tables(connection, staging_tables, progress)
+            _refresh_team_season_summary(connection, season_names, progress)
             issue_counts = _write_validation_issues(connection, validation_issues, progress)
             _write_validation_run(connection, run_id, season_names, row_counts, issue_counts, progress)
 

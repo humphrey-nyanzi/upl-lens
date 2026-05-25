@@ -36,9 +36,11 @@ GitHub Actions
 The scheduled workflow uses:
 
 ```text
-mode=full
+season_scope=current
+run_type=routine-refresh
 apply_migrations=false
 use_cache=false
+force_full_scrape=false
 ```
 
 The workflow installs `requirements-automation.txt`, not the full
@@ -49,8 +51,8 @@ refresh. `actions/setup-python` also caches pip downloads using
 
 In plain English:
 
-- `mode=full` means the workflow updates Postgres and staging, not just
-  artifacts.
+- `run_type=routine-refresh` means the workflow updates Postgres, staging, and
+  analytics, not just artifacts.
 - `apply_migrations=false` means schema changes are skipped.
 - `use_cache=false` means the scraper refreshes from the live UPL website rather
   than trusting old cached HTML or checkpoint state.
@@ -58,7 +60,7 @@ In plain English:
 The equivalent local command is:
 
 ```powershell
-.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-migrations
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
 ```
 
 ## GitHub Repository Secrets
@@ -104,19 +106,49 @@ passwords.
 From GitHub:
 
 1. Open the repository's Actions tab.
-2. Choose `Current season update`.
+2. Choose `Hosted data update`.
 3. Click `Run workflow`.
-4. Use:
+4. For a normal current-season refresh, use:
 
 ```text
-season=2025-26
-mode=full
+season_scope=current
+run_type=routine-refresh
 apply_migrations=false
 use_cache=false
+force_full_scrape=false
 ```
 
 That is the normal safe rerun after a source-site refresh or a temporary failed
 scrape.
+
+The workflow intentionally exposes operator-level choices instead of the lower
+level script flags:
+
+| Input | Normal value | Meaning |
+| --- | --- | --- |
+| `season_scope` | `current` | Use `current`, `all`, or `custom`. |
+| `season` | `2025-26` | Only used when `season_scope=custom`; pass comma-separated seasons. |
+| `run_type` | `routine-refresh` | Use `routine-refresh`, `rebuild-from-existing-raw`, or `artifact-only`. |
+| `apply_migrations` | `false` | Run schema migrations before data work. |
+| `use_cache` | `false` | Allow cached scraper HTML/checkpoints. |
+| `force_full_scrape` | `false` | Scrape every calendar match instead of using Postgres change detection. |
+
+### Rebuild All Seasons After Admin SQL
+
+When a schema or permission change has already been handled in the Supabase SQL
+editor, the safest hosted catch-up run is:
+
+```text
+season_scope=all
+run_type=rebuild-from-existing-raw
+apply_migrations=false
+use_cache=false
+force_full_scrape=false
+```
+
+This does not scrape the UPL website and does not reload raw rows. It rebuilds
+`staging.*` and refreshed `analytics.*` summaries from the existing hosted
+`raw.*` tables for every raw season in one workflow run.
 
 ## Admin Migration Run
 
@@ -126,9 +158,11 @@ migrations need to run.
 For a migration-capable manual run:
 
 ```text
-mode=full
+season_scope=current
+run_type=routine-refresh
 apply_migrations=true
 use_cache=false
+force_full_scrape=false
 ```
 
 After the migration setup is complete, switch the GitHub secrets back to the

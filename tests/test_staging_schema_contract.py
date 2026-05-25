@@ -8,6 +8,9 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 STAGING_MIGRATION = PROJECT_ROOT / "database" / "migrations" / "002_create_staging_foundation.sql"
+ANALYTICS_TEAM_MIGRATION = (
+    PROJECT_ROOT / "database" / "migrations" / "006_create_analytics_team_season_summary.sql"
+)
 
 
 def _table_block(sql: str, table_name: str) -> str:
@@ -61,3 +64,51 @@ def test_raw_schema_stays_source_tolerant_without_match_foreign_keys() -> None:
 
     assert "REFERENCES staging.matches" not in raw_sql
     assert "REFERENCES raw.matches" not in raw_sql
+
+
+def test_team_season_summary_is_stored_in_analytics_schema() -> None:
+    """Reusable team summaries should be precomputed outside request-time SQL."""
+
+    sql = ANALYTICS_TEAM_MIGRATION.read_text(encoding="utf-8")
+
+    assert "CREATE TABLE IF NOT EXISTS analytics.team_season_summary" in sql
+    assert "PRIMARY KEY (season, team_name)" in sql
+    assert "INSERT INTO analytics.team_season_summary" in sql
+
+
+def test_schema_sql_includes_team_season_summary_migration() -> None:
+    """The readable schema bundle should stay aligned with migration files."""
+
+    schema_sql = (PROJECT_ROOT / "database" / "schema.sql").read_text(encoding="utf-8")
+
+    assert r"\i migrations/006_create_analytics_team_season_summary.sql" in schema_sql
+
+
+def test_actions_loader_can_refresh_analytics_tables() -> None:
+    """Routine automation needs write access to refreshed analytics summaries."""
+
+    permissions_sql = (
+        PROJECT_ROOT / "database" / "permissions" / "001_create_upl_actions_loader.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "GRANT USAGE ON SCHEMA analytics TO upl_actions_loader" in permissions_sql
+    assert "ON ALL TABLES IN SCHEMA analytics" in permissions_sql
+
+
+def test_team_endpoint_reads_stored_analytics_summary() -> None:
+    """Team API queries should not rebuild standings from staging on every request."""
+
+    queries_py = (PROJECT_ROOT / "src" / "api" / "queries.py").read_text(encoding="utf-8")
+
+    assert "FROM analytics.team_season_summary" in queries_py
+
+
+def test_staging_rebuild_refreshes_team_analytics_summary() -> None:
+    """The stored team summary must be refreshed when staging data is rebuilt."""
+
+    staging_loader_py = (PROJECT_ROOT / "src" / "db" / "staging_loader.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "DELETE FROM analytics.team_season_summary" in staging_loader_py
+    assert "INSERT INTO analytics.team_season_summary" in staging_loader_py

@@ -81,7 +81,8 @@ Read first:
 Useful commands:
 
 ```powershell
-.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-migrations
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope all --run-type rebuild-from-existing-raw
 .venv\Scripts\python.exe scripts\data_platform\verify_raw_postgres_counts.py
 .venv\Scripts\python.exe scripts\data_platform\verify_staging_outputs.py
 ```

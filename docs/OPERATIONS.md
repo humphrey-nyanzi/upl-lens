@@ -33,12 +33,12 @@ scrape current season
 The normal orchestration command is:
 
 ```powershell
-.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-migrations
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
 ```
 
-Use `--skip-migrations` for routine refreshes because scheduled operations
-should use a least-privilege loader role. Schema changes belong to a separate
-admin/migration path.
+The wrapper skips migrations by default for routine refreshes because scheduled
+operations should use a least-privilege loader role. Schema changes belong to a
+separate admin/migration path.
 
 Full-mode current-season updates use Postgres change detection by default. The
 scraper reads existing `raw.*` rows first, keeps completed matches in the output
@@ -53,7 +53,7 @@ CSV without re-fetching their pages, and scrapes only:
 Use this only when you intentionally need a whole-season scrape:
 
 ```powershell
-.venv\Scripts\python.exe scripts\data_platform\update_current_season.py --season 2025-26 --skip-migrations --disable-postgres-change-detection
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh --force-full-scrape
 ```
 
 Artifact-only runs do not use Postgres change detection because they may run
@@ -297,8 +297,10 @@ temporarily leaks match URLs from another season. Older raw folders may still
 contain historical spill rows until they are refreshed; the raw loader and raw
 verifier remain defensive so those old artifacts do not contaminate Postgres.
 
-When a scrape and raw load already succeeded, rerun the workflow with
-`skip_scrape=true` and `skip_raw_load=true` to debug staging against the existing
-raw database rows without fetching all match pages again. Do not run multiple
-full refresh workflows for the same season at the same time because concurrent
-staging rebuilds can create avoidable lock contention.
+When a scrape and raw load already succeeded, rerun the GitHub workflow with
+`run_type=rebuild-from-existing-raw` to debug staging and analytics against the
+existing raw database rows without fetching match pages again. Use
+`season_scope=all` after hosted admin SQL changes when every season needs the
+same staging/analytics rebuild. Do not run multiple full refresh workflows for
+the same season at the same time because concurrent staging rebuilds can create
+avoidable lock contention.
