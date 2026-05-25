@@ -23,7 +23,7 @@ flowchart TD
     B --> B1["START_HERE.md and LOCAL_DEVELOPMENT.md"]
     C --> C1["OPERATIONS.md"]
     D --> D1["RESEARCH_IDEAS.md and FEATURE_PROMOTION_WORKFLOW.md"]
-    E --> E1["PRODUCT_STRATEGY.md, FRONTEND_UX_REQUESTS.md, and UI_UX_GUIDELINES.md"]
+    E --> E1["PRODUCT_STRATEGY.md, FRONTEND_UX_REQUESTS.md, FRONTEND_DESIGN_SYSTEM.md, and UI_UX_GUIDELINES.md"]
     F --> F1["diagram_collection.md"]
     G --> G1["DOCUMENTATION_MAP.md"]
     H --> H1["PRODUCT_STRATEGY.md"]
@@ -84,6 +84,7 @@ These docs support FastAPI and React product work.
 |-----|--------|--------------|
 | [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) | Product identity and positioning source of truth | You are planning product-facing API, frontend, research-promotion, or UX work. |
 | [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) | Editable UI/UX request source of truth | You are planning or implementing frontend improvements. |
+| [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) | Mockup-derived frontend design system | You need the approved visual direction, tokens, component hierarchy, chart rules, mobile rules, or redesign rollout checklist. |
 | [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md) | Approved UI/UX decisions | You need durable design/product rules that are already approved or implemented. |
 | [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) | Shared with Research & Football Intelligence | A product feature must stay traceable to notebook research and a product plan. |
 
@@ -138,8 +139,9 @@ Use these rules:
   [FEATURE_REGISTRY.md](FEATURE_REGISTRY.md) when research promotion behavior
   changes.
 - Update [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) for proposed UI/UX
-  changes and [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md) for approved durable
-  UI/UX decisions.
+  changes, [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for approved
+  visual-system guidance, and [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md) for
+  approved durable UI/UX decisions.
 - Update [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) only when the app's product
   identity, audience, positioning, or decision rules change.
 - Update [START_HERE.md](START_HERE.md) only when orientation or work-area

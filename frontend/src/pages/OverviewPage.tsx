@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import type { PageProps } from "../app/types";
 import { ErrorPanel } from "../components/common/ErrorPanel";
-import { MetricCard } from "../components/common/MetricCard";
+import { KpiCard } from "../components/common/KpiCard";
 import { OverviewSkeleton } from "../components/common/Skeletons";
 import { FeaturedInsight } from "../components/overview/FeaturedInsight";
 import { HeroSection } from "../components/overview/HeroSection";
@@ -21,8 +21,6 @@ export function OverviewPage({
   goalTiming,
   loadState,
   onPageChange,
-  onRefresh,
-  onSeasonChange,
   overview,
   selectedSeason,
   selectedSeasonInfo,
@@ -86,21 +84,18 @@ export function OverviewPage({
     <>
       <HeroSection
         apiOnline={apiOnline}
-        seasons={data.seasons}
         selectedSeason={selectedSeason}
         selectedSeasonInfo={selectedSeasonInfo}
         overview={overview}
         loadState={loadState}
-        onSeasonChange={onSeasonChange}
-        onRefresh={onRefresh}
         onPageChange={onPageChange}
       />
 
       {loadState === "error" ? <ErrorPanel errorMessage={errorMessage} /> : null}
 
       <section className="metric-grid" aria-label="Selected season intelligence summary">
-        {summaryCards.map((card) => (
-          <MetricCard key={card.label} {...card} />
+        {summaryCards.map((card, index) => (
+          <KpiCard key={card.label} {...card} accent={index === 1 ? "gold" : index === 2 ? "green" : "neutral"} />
         ))}
       </section>
 

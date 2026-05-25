@@ -1,5 +1,5 @@
 import type { PageProps } from "./app/types";
-import { TopNavigation } from "./components/navigation/TopNavigation";
+import { AppShell } from "./components/navigation/AppShell";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { useHashNavigation } from "./hooks/useHashNavigation";
 import { GoalTimingPage } from "./pages/GoalTimingPage";
@@ -38,16 +38,22 @@ function App() {
   };
 
   return (
-    <main className="app-shell">
-      <TopNavigation apiOnline={apiOnline} currentPage={currentPage} onPageChange={setPage} />
-      <section className="workspace" aria-live={loadState === "loading" ? "polite" : "off"}>
-        {currentPage === "overview" ? <OverviewPage {...pageProps} /> : null}
-        {currentPage === "goal-timing" ? <GoalTimingPage {...pageProps} /> : null}
-        {currentPage === "matches" ? <MatchExplorerPage {...pageProps} /> : null}
-        {currentPage === "teams" ? <TeamInsightsPage {...pageProps} /> : null}
-        {currentPage === "methodology" ? <MethodologyPage {...pageProps} /> : null}
-      </section>
-    </main>
+    <AppShell
+      apiOnline={apiOnline}
+      currentPage={currentPage}
+      loadState={loadState}
+      onPageChange={setPage}
+      onRefresh={refreshSeason}
+      onSeasonChange={setSelectedSeason}
+      seasons={data.seasons}
+      selectedSeason={selectedSeason}
+    >
+      {currentPage === "overview" ? <OverviewPage {...pageProps} /> : null}
+      {currentPage === "goal-timing" ? <GoalTimingPage {...pageProps} /> : null}
+      {currentPage === "matches" ? <MatchExplorerPage {...pageProps} /> : null}
+      {currentPage === "teams" ? <TeamInsightsPage {...pageProps} /> : null}
+      {currentPage === "methodology" ? <MethodologyPage {...pageProps} /> : null}
+    </AppShell>
   );
 }
 

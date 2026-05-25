@@ -2,6 +2,7 @@ import type { GoalTimingInsightResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
 import { GoalTimingChart } from "../charts/GoalTimingChart";
 import { EmptyState } from "../common/EmptyState";
+import { KpiCard } from "../common/KpiCard";
 
 type FeaturedInsightProps = {
   goalTiming: GoalTimingInsightResponse | null;
@@ -28,11 +29,12 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
 
       {goalTiming ? (
         <div className="insight-layout">
-          <div className="insight-stat">
-            <span>Peak scoring window</span>
-            <strong>{goalTiming.peak_interval ?? "Unavailable"}</strong>
-            <p>{goalTiming.total_regular_time_goals.toLocaleString()} regular-time goals counted.</p>
-          </div>
+          <KpiCard
+            accent="gold"
+            label="Peak scoring window"
+            value={goalTiming.peak_interval ?? "Unavailable"}
+            detail={`${goalTiming.total_regular_time_goals.toLocaleString()} regular-time goals counted.`}
+          />
           <GoalTimingChart goalTiming={goalTiming} />
           <p className="caveat">Data note: added-time goals are excluded from this period comparison.</p>
         </div>

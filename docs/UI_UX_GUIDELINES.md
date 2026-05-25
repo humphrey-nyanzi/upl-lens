@@ -6,6 +6,10 @@ Use [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) for proposed changes,
 drafts, and implementation requests. Use this file only for decisions that have
 been approved or already implemented.
 
+Use [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for the approved
+mockup-derived visual system, component hierarchy, color tokens, chart
+treatment, and rollout checklist.
+
 ## Purpose
 
 The frontend should feel like a practical football intelligence workspace.
@@ -67,16 +71,19 @@ usable sections.
 
 The current frontend uses:
 
-- a sticky top navigation bar
-- compact mobile menu behavior for primary navigation
-- a light analytical workspace
+- a dark-first sports intelligence shell
+- a desktop left sidebar for primary navigation
+- a compact top control bar for season, search affordance, and report export
+- mobile bottom navigation for primary product areas
 - compact cards and panels
-- tables for team and match summaries
-- horizontal bars for goal timing
+- KPI, ranking, match, team, chart, caveat, loading, empty, and error surfaces
+- a heatmap-style Goal Timing treatment
 - green/yellow accents
 
-These choices are acceptable as a starting baseline, but they are not a final
-brand system. Future approved changes should be recorded in the sections below.
+These choices are the current baseline for the mockup-aligned frontend. The
+current visual direction is formalized in
+[FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) before page-level
+redesign work begins.
 
 ## Layout Principles
 
@@ -166,33 +173,22 @@ Future decisions should specify:
 
 Approved decisions:
 
-```text
-none beyond current baseline
-```
-
-Future decisions should specify:
-
-- primary background colors
-- sidebar/navigation colors
-- accent colors
-- success/warning/error colors
-- chart palette rules
-- accessibility/contrast notes
+- The product is now dark-first, with deep navy/near-black backgrounds and
+  charcoal analytical surfaces.
+- Football green is the main action and selected-state accent.
+- Lime is used for active data highlights.
+- Warm gold is used for peak insight moments such as Goal Timing highlights.
+- Red remains reserved for errors, risk, discipline, or negative states.
+- Purple and cyan gradients should not become a dominant brand treatment.
 
 ## Typography
 
 Approved decisions:
 
-```text
-none beyond current baseline
-```
-
-Future decisions should specify:
-
-- font family
-- heading scale
-- table and compact-panel text sizing
-- numeric/stat display rules
+- Headline numbers should be visually dominant inside compact cards.
+- Short uppercase labels are acceptable for dashboard metadata.
+- Every major number should carry a context line, rank, trend, or caveat.
+- Use football-facing labels instead of database field names.
 
 ## Components
 

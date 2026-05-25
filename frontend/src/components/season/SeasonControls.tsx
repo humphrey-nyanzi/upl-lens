@@ -8,7 +8,7 @@ type SeasonControlsProps = {
   loadState: LoadState;
   onRefresh: () => void;
   onSeasonChange: (season: string) => void;
-  variant?: "default" | "hero";
+  variant?: "default" | "hero" | "shell";
 };
 
 export function SeasonControls({
@@ -20,7 +20,10 @@ export function SeasonControls({
   variant = "default",
 }: SeasonControlsProps) {
   return (
-    <div className={variant === "hero" ? "season-controls hero-controls" : "season-controls"} aria-label="Season controls">
+    <div
+      className={variant === "hero" ? "season-controls hero-controls" : variant === "shell" ? "season-controls shell-controls" : "season-controls"}
+      aria-label="Season controls"
+    >
       <label>
         Season
         <select value={selectedSeason} onChange={(event) => onSeasonChange(event.target.value)} disabled={seasons.length === 0}>

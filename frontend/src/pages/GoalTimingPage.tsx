@@ -1,17 +1,13 @@
 import type { PageProps } from "../app/types";
 import { GoalTimingChart } from "../components/charts/GoalTimingChart";
+import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
 import { GoalTimingSkeleton } from "../components/common/Skeletons";
-import { SeasonControls } from "../components/season/SeasonControls";
 import { formatPercent } from "../utils/format";
 
 export function GoalTimingPage({
-  data,
   goalTiming,
   loadState,
-  onRefresh,
-  onSeasonChange,
-  selectedSeason,
 }: PageProps) {
   const peakInterval = goalTiming?.intervals.find((interval) => interval.rank === 1);
   const secondHalfGoals =
@@ -25,44 +21,37 @@ export function GoalTimingPage({
       <PageIntro
         eyebrow="Featured insight"
         title="Goal Timing"
-        text="A fan-facing look at when UPL goals arrive, built from the first validated notebook insight promoted into the app."
-      >
-        <SeasonControls
-          seasons={data.seasons}
-          selectedSeason={selectedSeason}
-          loadState={loadState}
-          onRefresh={onRefresh}
-          onSeasonChange={onSeasonChange}
-        />
-      </PageIntro>
+        text="The flagship insight: when regular-time UPL goals arrive, where the scoring pressure rises, and what to read with caution."
+      />
 
       {loadState === "loading" && !goalTiming ? <GoalTimingSkeleton /> : null}
 
       {goalTiming ? (
         <>
-          <section className="feature-story">
+          <section className="feature-story insight-hero">
             <div>
               <p className="eyebrow">Main finding</p>
               <h2>Goals cluster most in the {goalTiming.peak_interval ?? "available"} window.</h2>
               <p>
-                The available regular-time event data shows {goalTiming.total_regular_time_goals.toLocaleString()} goals for
-                this season. The strongest period accounts for{" "}
+                The available regular-time event data shows {goalTiming.total_regular_time_goals.toLocaleString()} goals for this season.
+                The strongest period accounts for{" "}
                 {peakInterval ? `${peakInterval.goals.toLocaleString()} goals (${formatPercent(peakInterval.share)})` : "the clearest share"}.
               </p>
             </div>
-            <div className="insight-stat">
-              <span>Second-half share</span>
-              <strong>{formatPercent(secondHalfShare)}</strong>
-              <p>{secondHalfGoals.toLocaleString()} regular-time goals came after halftime.</p>
-            </div>
+            <KpiCard
+              accent="gold"
+              label="Second-half share"
+              value={formatPercent(secondHalfShare)}
+              detail={`${secondHalfGoals.toLocaleString()} regular-time goals came after halftime.`}
+            />
           </section>
 
-          <section className="featured-insight">
+          <section className="featured-insight chart-panel">
             <div className="section-heading">
               <div>
                 <p className="eyebrow">Explore the timing</p>
-                <h2>Regular-time goals by 15-minute period</h2>
-                <p>Each bar shows a readable period comparison. The peak period is highlighted and also labelled in text.</p>
+                <h2>Goal timing heatmap</h2>
+                <p>Each tile shows a 15-minute scoring window. The peak period is highlighted and also labelled in text.</p>
               </div>
             </div>
             <GoalTimingChart goalTiming={goalTiming} />

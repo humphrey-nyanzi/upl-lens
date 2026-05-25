@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import type { GoalTimingInsightResponse } from "../../api/types";
 import { formatPercent } from "../../utils/format";
 
@@ -5,22 +7,33 @@ export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightR
   const maxGoals = Math.max(...goalTiming.intervals.map((interval) => interval.goals), 1);
 
   return (
-    <div className="goal-timing-chart" aria-label="Regular-time goals by 15-minute interval">
-      {goalTiming.intervals.map((interval) => {
-        const width = `${Math.max((interval.goals / maxGoals) * 100, interval.goals > 0 ? 8 : 0)}%`;
+    <div className="goal-heatmap" aria-label="Regular-time goals by 15-minute interval">
+      <div className="heatmap-grid" role="list" aria-label="Goal timing heatmap values">
+        {goalTiming.intervals.map((interval) => {
+          const intensity = interval.goals / maxGoals;
+          const cellStyle = {
+            "--heat-intensity": intensity.toFixed(2),
+          } as CSSProperties;
 
-        return (
-          <div className="goal-timing-row" key={interval.interval}>
-            <span>{interval.interval}</span>
-            <div className="goal-timing-bar-track">
-              <div className={interval.rank === 1 ? "goal-timing-bar peak" : "goal-timing-bar"} style={{ width }} />
+          return (
+            <div className={interval.rank === 1 ? "heatmap-cell peak" : "heatmap-cell"} key={interval.interval} role="listitem" style={cellStyle}>
+              <span>{interval.interval}</span>
+              <strong>{interval.goals.toLocaleString()}</strong>
+              <small>{formatPercent(interval.share)}</small>
             </div>
-            <strong>
-              {interval.goals.toLocaleString()} ({formatPercent(interval.share)})
-            </strong>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      <div className="heatmap-legend" aria-hidden="true">
+        <span>Low</span>
+        <div>
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+        <span>High</span>
+      </div>
     </div>
   );
 }

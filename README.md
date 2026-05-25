@@ -161,7 +161,7 @@ Use these docs instead of trying to learn the whole repository from the README:
 | Operations, logs, tests, validation, escalation | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 | Notebook-to-product feature workflow | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
 | Research ideas and feature status | [docs/RESEARCH_IDEAS.md](docs/RESEARCH_IDEAS.md), [docs/FEATURE_REGISTRY.md](docs/FEATURE_REGISTRY.md) |
-| Frontend UX requests and approved UI rules | [docs/FRONTEND_UX_REQUESTS.md](docs/FRONTEND_UX_REQUESTS.md), [docs/UI_UX_GUIDELINES.md](docs/UI_UX_GUIDELINES.md) |
+| Frontend UX requests, visual system, and approved UI rules | [docs/FRONTEND_UX_REQUESTS.md](docs/FRONTEND_UX_REQUESTS.md), [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md), [docs/UI_UX_GUIDELINES.md](docs/UI_UX_GUIDELINES.md) |
 | Deployment notes | [docs/PHASE7_DEPLOYMENT_RUNBOOK.md](docs/PHASE7_DEPLOYMENT_RUNBOOK.md) |
 
 ## Data Note
