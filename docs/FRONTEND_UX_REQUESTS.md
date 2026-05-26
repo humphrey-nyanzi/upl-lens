@@ -150,7 +150,7 @@ contracts or redesigning other pages.
 
 ### Request: Convert Overview Header Into Compact Dashboard Header
 
-Status: needs_review
+Status: implemented
 
 Area: League Overview, header, page composition
 
@@ -203,7 +203,7 @@ Needs review. This is a prerequisite for the Overview density target.
 
 ### Request: Rebuild KPI Row As Compact Football Scoreboard Cards
 
-Status: needs_review
+Status: implemented
 
 Area: League Overview, KPI cards, metric hierarchy
 
@@ -264,7 +264,7 @@ matches the mockup rhythm.
 
 ### Request: Create Compact Overview Goal Timing Heatmap Preview
 
-Status: needs_review
+Status: implemented
 
 Area: League Overview, Goal Timing preview, chart design
 
@@ -321,11 +321,15 @@ Do not redesign the full Goal Timing Explorer page in this request.
 
 Approval notes:
 
-Needs review. This is the highest-impact visual alignment item for the mockup.
+Implemented after approval. The Overview now uses a dedicated compact
+GoalTiming heatmap preview instead of embedding the larger explorer-style
+heatmap. The preview keeps the peak window, compact legend, and added-time
+caveat visible while preserving the full detailed chart treatment for the Goal
+Timing page.
 
 ### Request: Make Overview Main Grid A Balanced Dashboard Band
 
-Status: needs_review
+Status: implemented
 
 Area: League Overview, grid composition
 
@@ -379,7 +383,7 @@ Needs review. Implement after the compact Goal Timing preview is available.
 
 ### Request: Turn Top 5 Teams Into A Sports-Native Ranking Module
 
-Status: needs_review
+Status: implemented
 
 Area: League Overview, rankings, football identity
 
@@ -428,11 +432,14 @@ Do not build full standings, player rankings, or a team comparison feature.
 
 Approval notes:
 
-Needs review. This should be implemented before final Overview polish.
+Implemented after approval. The Top 5 Teams panel now uses compact ranking
+rows with rank, stable initials marker, team name, secondary record/win-rate
+context, right-aligned points, subtle leader emphasis, and a direct action into
+team insights without adding data or backend work.
 
 ### Request: Convert Recent Matches Into Compact Result Rows
 
-Status: needs_review
+Status: implemented
 
 Area: League Overview, recent results, match previews
 
@@ -481,11 +488,14 @@ Do not build match detail pages or timelines.
 
 Approval notes:
 
-Needs review. This should be paired with the main grid refinement.
+Implemented after approval. The Overview now uses compact result rows for
+Recent Matches with a small date/matchday label, tight team line, right-aligned
+scoreline, compact result state, and a direct action into Match Explorer while
+leaving the larger Match Explorer match-row treatment intact.
 
 ### Request: Compress Insight Strip Into A True Dashboard Footer
 
-Status: needs_review
+Status: implemented
 
 Area: League Overview, insight strip, navigation
 
@@ -531,7 +541,11 @@ Do not create new insight pages or unsupported features.
 
 Approval notes:
 
-Needs review. Implement after the main grid is balanced.
+Implemented after approval. The Overview insight strip now behaves like a
+compact dashboard footer with three short action cards, small football-native
+markers, reduced vertical padding, shorter copy, and an aligned `View all
+insights` action. It uses existing supported routes only and does not introduce
+new API/backend work.
 
 ### Request: Add Football-Native Visual Markers Without Fake Data
 
@@ -590,7 +604,7 @@ work.
 
 ### Request: Separate Overview Preview Detail From Explorer Detail
 
-Status: needs_review
+Status: implemented
 
 Area: information architecture, Overview, Goal Timing, Match Explorer
 
@@ -638,79 +652,73 @@ Do not remove caveats from the product. Reposition or shorten them.
 
 Approval notes:
 
-Needs review. This is a coordination request that should guide the Goal Timing,
-Recent Matches, and insight-strip refinements.
+Implemented after approval. The Overview Goal Timing card now treats the
+heatmap as a compact preview: it keeps the peak window and immediate caveat
+visible, removes full interval values from the Overview, and leaves detailed
+values, method context, and interpretation on the dedicated Goal Timing page.
 
-### Request: Define Overview Mockup Acceptance Checklist
 
-Status: needs_review
+### Request: Refine Goal Timing Distribution Chart
 
-Area: QA, visual acceptance, implementation governance
+Status: approved
+
+Area: charts, Goal Timing, League Overview
 
 Request:
 
-Add a specific visual acceptance checklist for the League Overview mockup
-alignment so future implementation passes can be judged against the target
-instead of subjective "looks better" feedback.
+Refine the existing Goal Timing distribution visualization into a premium football-intelligence chart rather than replacing it with a fake heatmap.
 
 Why it matters:
 
-The project now has a clear mockup target. Implementation needs an explicit
-definition of done so agents do not overbuild individual components while
-missing the overall composition.
+The current chart structure is analytically correct, but the visual treatment still feels too generic. The chart should become a refined branded distribution chart that communicates timing patterns clearly while matching the approved visual direction.
 
 Implementation requirements:
 
-- Add an Overview-specific checklist to the relevant docs after approval.
-- Require desktop screenshot review against the mockup.
-- Require mobile screenshot review at a common narrow width.
-- Check that first viewport contains header, KPIs, and start of main grid.
-- Check that Goal Timing preview is compact and visual.
-- Check that Top 5 and Recent Matches are visible beside Goal Timing on desktop.
-- Check that insight strip is compact.
-- Check that no panel uses fake unsupported data.
-- Check that React still reads FastAPI JSON only.
-
-Acceptance criteria:
-
-- A future agent can implement and verify Overview work without guessing what
-  "closer to the mockup" means.
-- The checklist focuses on composition, density, hierarchy, and product feel.
+- Keep a bar-chart/distribution-chart structure.
+- Use Recharts.
+- Use six timing intervals:
+  - 0–15
+  - 16–30
+  - 31–45
+  - 46–60
+  - 61–75
+  - 76–90
+- Use subdued green bars for regular intervals.
+- Highlight the peak interval using gold/amber.
+- Add subtle rounded bars.
+- Use subdued gridlines.
+- Keep chart height compact.
+- Add a small annotation or label for the peak interval.
+- Keep tooltip styling aligned with the design system.
+- Keep legend and caveat close to the chart.
+- Avoid excessive chart decoration.
+- Avoid fake heatmap/grid systems.
+- Avoid default Recharts styling.
+- Ensure the chart remains highly readable on mobile.
 
 Data/API needs:
 
-None.
+Use existing Goal Timing API data.
 
 Mobile/accessibility notes:
 
-Checklist must include mobile layout and overflow review.
+Labels and values must remain readable on smaller screens. Avoid overcrowded axes or tiny text.
 
 Out of scope:
 
-Do not require pixel-perfect copying of the mockup.
+Do not redesign the full Goal Timing page in this request.
 
 Approval notes:
 
-Needs review. This should be approved before the next major Overview
-implementation pass.
+Approved after identifying that the previous heatmap direction duplicated the timing dimension and weakened analytical clarity.
 
 ## Recommended Implementation Order
 
 Use this order once requests are approved:
 
 ```text
-1. Define Overview Mockup Acceptance Checklist
-2. Establish Overview First-Viewport Contract
-3. Convert Overview Header Into Compact Dashboard Header
-4. Rebuild KPI Row As Compact Football Scoreboard Cards
-5. Create Compact Overview Goal Timing Heatmap Preview
-6. Make Overview Main Grid A Balanced Dashboard Band
-7. Turn Top 5 Teams Into A Sports-Native Ranking Module
-8. Convert Recent Matches Into Compact Result Rows
-9. Compress Insight Strip Into A True Dashboard Footer
-10. Add Football-Native Visual Markers Without Fake Data
-11. Separate Overview Preview Detail From Explorer Detail
-12. Run screenshot review against the mockup on desktop and mobile
+9. Add Football-Native Visual Markers Without Fake Data
+11. Run screenshot review against the mockup on desktop and mobile
 ```
 
 ## Implemented Archive
@@ -719,8 +727,15 @@ Implemented entries stay intentionally short.
 
 - Mobile-first redesign mentality adopted as the default for product-facing
   frontend work.
+- Convert Recent Matches Into Compact Result Rows
+- Separate Overview Preview Detail From Explorer Detail
+- Establish Overview First-Viewport Contract
+- Rebuild KPI Row As Compact Football Scoreboard Cards
+- Create Compact Overview Goal Timing Heatmap Preview
+- Turn Top 5 Teams Into A Sports-Native Ranking Module
 - Frontend data needs should be mapped before adding endpoints.
 - Page-based product navigation replaced the older sticky-anchor pattern.
+- Make Overview Main Grid A Balanced Dashboard Band
 - Compact mobile primary navigation was introduced.
 - League Overview V1 was redesigned using existing API data.
 - Goal Timing was implemented as a dedicated featured insight page.
@@ -735,6 +750,8 @@ Implemented entries stay intentionally short.
 - Shared typography and metric hierarchy were strengthened.
 - Loading, empty, error, and cold-start states were improved.
 - Visual acceptance criteria were added to the frontend review standard.
+- The League Overview mockup acceptance checklist was added to the frontend
+  design system.
 - Recharts was adopted as the standard chart library, with reusable chart
   primitives and the Goal Timing chart converted first.
 - Surface hierarchy and visual depth were refined with shared radius,

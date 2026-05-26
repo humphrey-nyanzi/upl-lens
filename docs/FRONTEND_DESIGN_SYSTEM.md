@@ -157,11 +157,15 @@ AppShell
   Sidebar
   Main
     TopBar
-    PageHeader or Hero
+    Compact PageHeader
     KPI Row
     Main Grid
     Supporting Insights
 ```
+
+League Overview should use a compact dashboard header, not a hero banner:
+title, one short subtitle, no duplicated season/status/coverage content, and no
+decorative panel treatment that delays the KPI row.
 
 ### Mobile Layout
 
@@ -417,6 +421,37 @@ Every frontend redesign pass should be reviewed against these checks:
 - Caveats remain visible near the data they affect.
 - The implementation uses shared tokens and reusable patterns instead of
   page-by-page styling drift.
+
+### League Overview Mockup Checklist
+
+Use this checklist when reviewing League Overview work against the approved
+mockup direction. The goal is close product feel, not pixel-perfect copying.
+
+- Desktop first viewport shows the compact page header, KPI row, and the start
+  of Goal Timing, Top 5 Teams, and Recent Matches without requiring a long
+  scroll.
+- The page reads as a football intelligence workspace: dense, practical,
+  sports-native, and fan-facing, not a generic dashboard or marketing page.
+- The hero/header is compact and supports the dashboard instead of becoming the
+  main content.
+- KPI cards feel like a scoreboard summary: short labels, dominant numbers,
+  one-line context, and restrained visual treatment.
+- Goal Timing on the overview is a compact visual preview, not the full explorer
+  detail view.
+- Top 5 Teams and Recent Matches are visible near Goal Timing on desktop and
+  feel like quick football modules rather than database tables.
+- The insight strip is compact enough to behave like a dashboard footer, with
+  short routes into deeper analysis.
+- Mobile review uses a common narrow width and confirms the order is header,
+  KPIs, Goal Timing, teams/results, then insights, with no horizontal overflow.
+- Loading, empty, and error states preserve the same layout contracts so the
+  overview does not jump into a different composition.
+- No panel introduces fake scores, fake crests, unsupported claims, or data not
+  returned by the FastAPI JSON contract.
+- Caveats remain visible where they affect interpretation, but do not dominate
+  the first viewport.
+- Green and gold accents remain purposeful: action/selection/positive emphasis
+  for green, peak timing or attention moments for gold.
 
 ## Update Rules
 

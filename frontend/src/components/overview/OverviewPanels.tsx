@@ -1,19 +1,34 @@
 import type { MatchSummary, SeasonOverviewResponse, SeasonResponse, TeamResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
-import { formatDate } from "../../utils/format";
+import { formatDate, matchStatus } from "../../utils/format";
 import { EmptyState } from "../common/EmptyState";
 import { TopFiveCard, type TopFiveItem } from "../common/TopFiveCard";
-import { MatchRow } from "../matches/MatchRow";
 
-export function TeamSignalPanel({ teams, loadState }: { teams: TeamResponse[]; loadState: LoadState }) {
+export function TeamSignalPanel({
+  loadState,
+  onPageChange,
+  teams,
+}: {
+  loadState: LoadState;
+  onPageChange: (page: PageKey) => void;
+  teams: TeamResponse[];
+}) {
   const rankingItems: TopFiveItem[] = teams.map((team) => {
     const points = team.wins * 3 + team.draws;
     const winRate = team.matches_played > 0 ? Math.round((team.wins / team.matches_played) * 100) : 0;
+    const marker = team.team_name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase();
 
     return {
       context: `${team.wins}W ${team.draws}D ${team.losses}L - ${winRate}% wins`,
       id: team.team_name,
       label: team.team_name,
+      marker,
       value: points,
     };
   });
@@ -23,6 +38,11 @@ export function TeamSignalPanel({ teams, loadState }: { teams: TeamResponse[]; l
       emptyMessage={loadState === "loading" ? "Loading team rankings." : "No team rankings returned yet."}
       eyebrow="Top 5 teams"
       items={rankingItems}
+      action={
+        <button className="text-button top-five-link" type="button" onClick={() => onPageChange("teams")}>
+          View team insights
+        </button>
+      }
       title="League leaders"
       valueLabel="By estimated points from cleaned team records."
     />
@@ -57,43 +77,50 @@ export function EventSignalPanel({ eventBreakdown }: { eventBreakdown: Array<{ e
 export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey) => void }) {
   const exploreCards = [
     {
+      marker: "90",
       page: "goal-timing" as PageKey,
       status: "Timing",
-      title: "Goal window signal",
-      description: "See which regular-time periods shape the scoring pattern.",
+      title: "Goal windows",
+      description: "Find the scoring periods shaping this season.",
     },
     {
+      marker: "FT",
       page: "matches" as PageKey,
       status: "Evidence",
-      title: "Recent match context",
-      description: "Move from the overview into scorelines and match evidence.",
+      title: "Match evidence",
+      description: "Check the scorelines behind the overview.",
     },
     {
+      marker: "5",
       page: "teams" as PageKey,
       status: "Teams",
-      title: "Top-team preview",
-      description: "Compare records and scoring summaries from cleaned match data.",
+      title: "Team form",
+      description: "Compare leaders from cleaned match records.",
     },
   ];
 
   return (
-    <section className="explore-panel" aria-labelledby="explore-title">
-      <div className="section-heading">
+    <section className="explore-panel overview-insight-strip" aria-labelledby="explore-title">
+      <div className="section-heading compact overview-insight-heading">
         <div>
-          <p className="eyebrow">Insight strip</p>
+          <p className="eyebrow">Next reads</p>
           <h2 id="explore-title">What to inspect next</h2>
-          <p>Three quick routes from the league overview into the evidence behind the numbers.</p>
         </div>
-        <button className="text-button dark" type="button" onClick={() => onPageChange("goal-timing")}>
+        <button className="text-button dark overview-insight-action" type="button" onClick={() => onPageChange("goal-timing")}>
           View all insights
         </button>
       </div>
-      <div className="explore-grid">
+      <div className="explore-grid overview-insight-grid">
         {exploreCards.map((card) => (
-          <button className="explore-card" key={card.title} type="button" onClick={() => onPageChange(card.page)}>
-            <span>{card.status}</span>
-            <strong>{card.title}</strong>
-            <p>{card.description}</p>
+          <button className="explore-card overview-insight-card" key={card.title} type="button" onClick={() => onPageChange(card.page)}>
+            <span className="overview-insight-marker" aria-hidden="true">
+              {card.marker}
+            </span>
+            <div className="overview-insight-copy">
+              <span>{card.status}</span>
+              <strong>{card.title}</strong>
+              <p>{card.description}</p>
+            </div>
           </button>
         ))}
       </div>
@@ -101,7 +128,40 @@ export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey)
   );
 }
 
-export function RecentMatchPanel({ matches, loadState }: { matches: MatchSummary[]; loadState: LoadState }) {
+function CompactResultRow({ match }: { match: MatchSummary }) {
+  const homeScore = match.home_score ?? "-";
+  const awayScore = match.away_score ?? "-";
+
+  return (
+    <article className="compact-result-row">
+      <div className="compact-result-main">
+        <span className="compact-result-meta">
+          {formatDate(match.match_date)}
+          {match.match_day ? ` · Matchday ${match.match_day}` : ""}
+        </span>
+        <strong>
+          {match.home_team ?? "Home team TBC"} vs {match.away_team ?? "Away team TBC"}
+        </strong>
+      </div>
+      <div className="compact-result-score">
+        <strong>
+          {homeScore}:{awayScore}
+        </strong>
+        <span>{matchStatus(match)}</span>
+      </div>
+    </article>
+  );
+}
+
+export function RecentMatchPanel({
+  loadState,
+  matches,
+  onPageChange,
+}: {
+  loadState: LoadState;
+  matches: MatchSummary[];
+  onPageChange: (page: PageKey) => void;
+}) {
   return (
     <section className="panel">
       <div className="section-heading compact">
@@ -109,10 +169,13 @@ export function RecentMatchPanel({ matches, loadState }: { matches: MatchSummary
           <h2>Recent matches</h2>
           <p>Latest scorelines for context around the season view.</p>
         </div>
+        <button className="text-button compact-result-link" type="button" onClick={() => onPageChange("matches")}>
+          View all matches
+        </button>
       </div>
       <div className="match-list">
         {matches.length > 0 ? (
-          matches.map((match) => <MatchRow key={match.match_id} match={match} />)
+          matches.map((match) => <CompactResultRow key={match.match_id} match={match} />)
         ) : (
           <EmptyState message={loadState === "loading" ? "Loading recent matches." : "No matches returned for this season yet."} />
         )}

@@ -90,8 +90,10 @@ export function OverviewPage({
 
       <section className="overview-main-grid" aria-label="League intelligence dashboard">
         <FeaturedInsight goalTiming={goalTiming} loadState={loadState} onPageChange={onPageChange} />
-        <TeamSignalPanel teams={topTeams} loadState={loadState} />
-        <RecentMatchPanel matches={recentMatches} loadState={loadState} />
+        <div className="overview-side-stack">
+          <TeamSignalPanel teams={topTeams} loadState={loadState} onPageChange={onPageChange} />
+          <RecentMatchPanel matches={recentMatches} loadState={loadState} onPageChange={onPageChange} />
+        </div>
       </section>
 
       <ExplorePreview onPageChange={onPageChange} />

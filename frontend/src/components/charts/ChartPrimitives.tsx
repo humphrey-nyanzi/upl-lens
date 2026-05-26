@@ -275,3 +275,33 @@ export function GoalTimingHeatmap({ data, height, valueLabel = "Goals" }: BarCha
     </div>
   );
 }
+
+export function GoalTimingHeatmapPreview({ data, valueLabel = "Goals" }: BarChartProps) {
+  if (data.length === 0) return <ChartEmptyState message="No regular-time goal timing data available yet." />;
+
+  const maxValue = Math.max(...data.map((item) => item.value), 1);
+
+  return (
+    <div className="goal-heatmap-preview" role="list" aria-label="Compact regular-time goal timing heatmap">
+      {data.map((item) => {
+        const intensity = item.value / maxValue;
+        const isPeak = item.rank === 1 || item.value === maxValue;
+
+        return (
+          <div
+            className={isPeak ? "goal-heatmap-preview-cell peak" : "goal-heatmap-preview-cell"}
+            key={item.label}
+            role="listitem"
+            aria-label={`${item.label}: ${item.value.toLocaleString()} ${valueLabel.toLowerCase()}${
+              item.share !== undefined ? `, ${Math.round(item.share * 100)} percent` : ""
+            }${isPeak ? ", peak window" : ""}`}
+            style={{ "--heat": intensity.toFixed(3) } as CSSProperties}
+          >
+            <span>{item.label}</span>
+            {isPeak ? <strong>Peak</strong> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
 import type { GoalTimingInsightResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
 import { formatPercent } from "../../utils/format";
-import { ChartLegend, GoalTimingHeatmap, InsightChartCard } from "../charts/ChartPrimitives";
+import { ChartLegend, GoalTimingHeatmapPreview, InsightChartCard } from "../charts/ChartPrimitives";
 
 type FeaturedInsightProps = {
   goalTiming: GoalTimingInsightResponse | null;
@@ -18,6 +18,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
       share: interval.share,
       value: interval.goals,
     })) ?? [];
+  const peakInterval = goalTiming?.intervals.find((interval) => interval.rank === 1);
 
   return (
     <InsightChartCard
@@ -28,28 +29,20 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
       }
       caveat={
         goalTiming ? (
-          <>
-            <div className="chart-value-list compact" aria-label="Readable goal timing values">
-              {goalTiming.intervals.map((interval) => (
-                <span key={interval.interval}>
-                  <strong>{interval.interval}</strong>
-                  {interval.goals.toLocaleString()} goals, {formatPercent(interval.share)}
-                </span>
-              ))}
-            </div>
-            <p className="caveat">Data note: added-time goals are excluded from this period comparison.</p>
-          </>
+          <p className="caveat compact">
+            Preview only: added-time goals and full interval values live on the Goal Timing page.
+          </p>
         ) : null
       }
       chart={
         goalTiming ? (
-          <div className="overview-goal-layout">
-            <div className="insight-stat">
-              <span>Peak scoring window</span>
+          <div className="overview-goal-preview">
+            <div className="overview-goal-peek" aria-label="Peak goal timing summary">
+              <span>Peak window</span>
               <strong>{goalTiming.peak_interval ?? "Unavailable"}</strong>
-              <p>{goalTiming.total_regular_time_goals.toLocaleString()} regular-time goals counted.</p>
+              {peakInterval ? <small>{peakInterval.goals.toLocaleString()} goals, {formatPercent(peakInterval.share)}</small> : null}
             </div>
-            <GoalTimingHeatmap data={chartData} height={210} valueLabel="Goals" />
+            <GoalTimingHeatmapPreview data={chartData} valueLabel="Goals" />
           </div>
         ) : null
       }
@@ -68,8 +61,8 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
           />
         ) : null
       }
-      text="The current flagship insight compares regular-time scoring windows and points readers toward the periods that shape a season."
-      title="When do UPL goals arrive?"
+      text="Heatmap preview of the strongest regular-time scoring windows."
+      title="Goal timing heatmap"
     />
   );
 }
