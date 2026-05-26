@@ -4,8 +4,8 @@ This guide is the practical developer-experience path for running, checking, and
 debugging UPL Match Intelligence on a local machine.
 
 Use [START_HERE.md](START_HERE.md) for project orientation and
-[DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) when you need to find a deeper
-reference doc.
+[CHANGELOG.md](CHANGELOG.md) when you need quick recent context before digging
+deeper.
 
 ## First 30 Minutes
 
@@ -227,9 +227,8 @@ Routine refreshes should not need admin migration privileges. Use:
 .venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
 ```
 
-Schema changes belong to an admin/migration path. See
-[OPERATIONS.md](OPERATIONS.md) and
-[PHASE5_AUTOMATION.md](PHASE5_AUTOMATION.md).
+Schema changes belong to an admin or migration path. See
+[OPERATIONS.md](OPERATIONS.md).
 
 ## Where To Go Next
 
@@ -238,5 +237,6 @@ Schema changes belong to an admin/migration path. See
 - [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) for notebook
   research promotion.
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) for planned UI/UX work.
-- [PHASE7_DEPLOYMENT_RUNBOOK.md](PHASE7_DEPLOYMENT_RUNBOOK.md) for hosted
-  deployment setup and browser troubleshooting.
+- [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for approved frontend
+  behavior and design rules.
+- [CHANGELOG.md](CHANGELOG.md) for recent repo changes.

@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 
 import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
-import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
 import { MatchRow } from "../components/matches/MatchRow";
 
@@ -84,9 +83,21 @@ export function MatchExplorerPage({ data, loadState, onPageChange }: PageProps) 
       </section>
 
       <section className="metric-grid compact-metrics" aria-label="Match explorer summary">
-        <KpiCard label="Matches found" value={filteredMatches.length} detail="Matches matching the current filters." />
-        <KpiCard accent="green" label="Completed" value={completedMatches} detail="Rows with a recorded result." />
-        <KpiCard accent="gold" label="Average goals" value={averageGoals.toFixed(1)} detail="Goals per completed match in this filtered set." />
+        <article className="metric-card">
+          <span>Matches found</span>
+          <strong>{filteredMatches.length.toLocaleString()}</strong>
+          <p>Matches matching the current filters.</p>
+        </article>
+        <article className="metric-card">
+          <span>Completed</span>
+          <strong>{completedMatches.toLocaleString()}</strong>
+          <p>Rows with a recorded result.</p>
+        </article>
+        <article className="metric-card">
+          <span>Average goals</span>
+          <strong>{averageGoals.toFixed(1)}</strong>
+          <p>Goals per completed match in this filtered set.</p>
+        </article>
       </section>
 
       <section className="panel">

@@ -79,6 +79,19 @@ export function AppShell({
               </span>
             </button>
           </div>
+          <nav className="mobile-nav" aria-label="Mobile product sections">
+            {pages.map((page) => (
+              <button
+                className={page.key === currentPage ? "mobile-nav-item active" : "mobile-nav-item"}
+                key={page.key}
+                type="button"
+                aria-current={page.key === currentPage ? "page" : undefined}
+                onClick={() => onPageChange(page.key)}
+              >
+                {page.shortLabel}
+              </button>
+            ))}
+          </nav>
           <SeasonControls
             seasons={seasons}
             selectedSeason={selectedSeason}
@@ -100,21 +113,6 @@ export function AppShell({
           {children}
         </section>
       </div>
-
-      <nav className="bottom-nav" aria-label="Mobile product sections">
-        {pages.map((page) => (
-          <button
-            className={page.key === currentPage ? "bottom-nav-item active" : "bottom-nav-item"}
-            key={page.key}
-            type="button"
-            aria-current={page.key === currentPage ? "page" : undefined}
-            onClick={() => onPageChange(page.key)}
-          >
-            <span aria-hidden="true">{navIcons[page.key]}</span>
-            {page.shortLabel}
-          </button>
-        ))}
-      </nav>
     </main>
   );
 }

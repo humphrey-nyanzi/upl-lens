@@ -2,23 +2,13 @@
 
 This is the first orientation document for UPL Match Intelligence.
 
-The project began as a goal timing analysis and then moved through a seven-step
-launch build: scraper, Postgres, staging validation, FastAPI, React, automation,
-research promotion, and deployment. That launch sequence is now complete enough
-for a basic public product.
-
-From this point forward, the project should be discussed and improved through
-four continuous development areas instead of old launch phases.
+Use this file when you are new to the repo, returning after a gap, or unsure
+which document owns a decision.
 
 ## The Project In One Minute
 
 UPL Match Intelligence turns official Uganda Premier League match pages into a
-small data platform and public football analysis product.
-
-For product identity and positioning, read
-[PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md). In short, this app is an
-independent UPL football intelligence platform: it should explain what the
-numbers reveal beyond ordinary fixtures, results, and tables.
+football intelligence product.
 
 The production path is:
 
@@ -37,8 +27,12 @@ The product rule is:
 React UI -> FastAPI endpoint -> Postgres query/view -> JSON -> chart/table
 ```
 
-The frontend must not read CSV files, notebooks, or exported notebook images.
-Notebooks are the research lab. Postgres is the production data store.
+React must not read CSV files, notebooks, exported notebook images, or local
+database files. Notebooks are the research lab. Postgres plus FastAPI is the
+production path.
+
+For product identity and positioning, read
+[PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md).
 
 ## Four Continuous Development Areas
 
@@ -52,37 +46,23 @@ flowchart TD
     B --> B1["scraper, Postgres, validation, automation, deployment health"]
     C --> C1["notebooks, football questions, feature packages, caveats"]
     D --> D1["FastAPI, React, UI/UX, charts, filters, browser states"]
-    E --> E1["onboarding, setup, commands, troubleshooting, doc navigation"]
+    E --> E1["onboarding, setup, commands, troubleshooting, doc clarity"]
 ```
 
 ### 1. Data Reliability & Operations
 
-Purpose: keep the source data, database, automation, and deployment trustworthy.
-
-Owns:
-
-- scraper behavior and source-site changes
-- raw CSV outputs and cache behavior
-- Postgres migrations and permissions
-- raw-to-staging rebuilding
-- validation checks and validation issue severity
-- current-season automation
-- deployment health, secrets, and database roles
-- stage logs, run summaries, and escalation rules
-- early unit tests around risky data logic
+Purpose: keep the source data, database, automation, and deployment
+trustworthy.
 
 Read first:
 
-- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 - [OPERATIONS.md](OPERATIONS.md)
-- [PHASE5_AUTOMATION.md](PHASE5_AUTOMATION.md)
-- [PHASE7_DEPLOYMENT_RUNBOOK.md](PHASE7_DEPLOYMENT_RUNBOOK.md)
+- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 
 Useful commands:
 
 ```powershell
 .venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
-.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope all --run-type rebuild-from-existing-raw
 .venv\Scripts\python.exe scripts\data_platform\verify_raw_postgres_counts.py
 .venv\Scripts\python.exe scripts\data_platform\verify_staging_outputs.py
 ```
@@ -98,24 +78,13 @@ Escalate when:
 
 ### 2. Research & Football Intelligence
 
-Purpose: discover useful football questions and promote only validated insights.
-
-Owns:
-
-- feature notebooks
-- research briefs
-- product plans for promoted insights
-- metric definitions and caveats
-- feature registry status
-- direct-query versus `analytics.*` view decisions
+Purpose: discover useful football questions and promote only validated
+insights.
 
 Read first:
 
 - [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
-- [FEATURE_DATA_ACCESS.md](FEATURE_DATA_ACCESS.md)
-- [RESEARCH_IDEAS.md](RESEARCH_IDEAS.md)
-- [FEATURE_REGISTRY.md](FEATURE_REGISTRY.md)
-- [ANALYTICS_VIEW_CONVENTIONS.md](ANALYTICS_VIEW_CONVENTIONS.md)
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 
 Useful starting command:
 
@@ -125,43 +94,24 @@ Copy-Item -Recurse notebooks\features\_feature_template notebooks\features\featu
 
 Escalate when:
 
-- a dashboard metric cannot be traced back to a notebook, SQL query, or clear
+- a dashboard metric cannot be traced to a notebook, SQL query, or clear
   product plan
 - a feature depends on raw data or CSVs without a documented reason
-- a finding looks interesting but the source data caveats are too large to show
+- a finding looks interesting but the source-data caveats are too large to show
   publicly without explanation
 
 ### 3. Product Experience
 
 Purpose: turn trusted data and validated research into a useful public app.
 
-Owns:
-
-- FastAPI route design
-- query/service functions under `src/api/`
-- typed API response models
-- React pages, filters, tables, charts, and loading states
-- frontend API client and response types
-- browser-facing error states, including hosted API cold starts
-
 Read first:
 
-- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
-- `api/main.py`
+- [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
+- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
 - `api/routers/`
 - `src/api/query_services/`
-- `src/api/queries.py` compatibility facade
-- `src/api/schemas.py`
-- `frontend/src/App.tsx`
-- `frontend/src/app/`
-- `frontend/src/pages/`
-- `frontend/src/components/`
-- `frontend/src/hooks/`
-- `frontend/src/api/client.ts`
-- `frontend/src/api/types.ts`
-- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
-- [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md)
+- `frontend/src/`
 
 Useful commands:
 
@@ -184,24 +134,11 @@ Escalate when:
 Purpose: make the project understandable and repeatable for a junior developer,
 future contributor, reviewer, or AI agent.
 
-Owns:
-
-- onboarding docs
-- local setup instructions
-- command guides
-- troubleshooting notes
-- testing instructions
-- documentation navigation
-- beginner-readable explanations
-- repo conventions such as `AGENTS.md`
-
 Read first:
 
-- [README.md](../README.md)
-- [START_HERE.md](START_HERE.md)
-- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 - [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+- [CHANGELOG.md](CHANGELOG.md)
 - [../AGENTS.md](../AGENTS.md)
 
 Escalate when:
@@ -210,6 +147,64 @@ Escalate when:
 - a new developer cannot tell which doc to read first
 - a command works only because of hidden local setup
 - a feature or operational decision exists in code but not in the docs
+
+## The 10 Docs
+
+This repo now keeps its `docs/` folder intentionally small. These are the only
+docs that should exist there unless the repo genuinely outgrows this shape.
+
+| Doc | Purpose | Open it when |
+|-----|---------|--------------|
+| [START_HERE.md](START_HERE.md) | Orientation and doc navigation | You are new, returning, or unsure where a task belongs. |
+| [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Local setup, commands, verification, troubleshooting | You want to run or debug the project locally. |
+| [OPERATIONS.md](OPERATIONS.md) | Data-refresh, automation, deployment, logs, escalation | You are touching scraping, loading, staging, hosting, or workflow health. |
+| [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) | Product identity and decision rules | You are planning product-facing work or checking scope. |
+| [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Planning map, strengths, gaps, next priorities | You need project direction or milestone context. |
+| [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) | Research playbook: ideas, data access, promotion, analytics decisions | You are working in notebooks or promoting a football insight. |
+| [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) | Frontend playbook: visual system, product UI rules, page templates | You are designing or implementing frontend behavior. |
+| [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) | Proposed frontend changes and request workflow | You are capturing or implementing approved UI/UX requests. |
+| [diagram_collection.md](diagram_collection.md) | Visual system overview | You need architecture, data-flow, API-flow, or scraper diagrams. |
+| [CHANGELOG.md](CHANGELOG.md) | High-signal project change history | You want recent context before editing. |
+
+## Reading Paths By Task
+
+If you want to run the project locally:
+
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- `.env.example`
+- `frontend/.env.example`
+
+If you want to refresh or validate data:
+
+- [OPERATIONS.md](OPERATIONS.md)
+- [diagram_collection.md](diagram_collection.md)
+
+If you want to add a football insight:
+
+- [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
+- the relevant feature folder under `notebooks/features/`
+
+If you want to improve the app:
+
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
+- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
+- [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
+- `api/`
+- `src/api/`
+- `frontend/src/`
+
+If you want a visual system overview:
+
+- [diagram_collection.md](diagram_collection.md)
+- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+
+If you want current priorities before touching anything:
+
+- [CHANGELOG.md](CHANGELOG.md)
+- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 
 ## Logs, Tests, Validation, And Escalation
 
@@ -220,18 +215,6 @@ Logs = what happened during a real run.
 Tests = what should always be true when code changes.
 Validation = whether the current real data is safe and coherent.
 Escalation = what to do when logs, tests, or validation reveal risk.
-```
-
-Recommended log shape:
-
-```text
-outputs/automation/
-  scrape.log
-  raw-load.log
-  raw-verify.log
-  staging-build.log
-  staging-verify.log
-  run-summary.md or run-summary.json
 ```
 
 Recommended severity ladder:
@@ -253,12 +236,11 @@ Level 3: Fail the automation run
 Level 4: Require manual/admin intervention
 ```
 
-Do not fail the whole pipeline for every source-data imperfection. Do fail when
-the app would publish structurally broken or misleading data.
+For the detailed version, use [OPERATIONS.md](OPERATIONS.md).
 
 ## Where The Old Launch Phases Went
 
-The old launch phases are now historical context:
+The old launch phases are now historical context, not the main planning model.
 
 | Old launch phase | New continuous area |
 |------------------|---------------------|
@@ -271,67 +253,31 @@ The old launch phases are now historical context:
 | Notebook research promotion | Research & Football Intelligence; Product Experience |
 | Deployment and portfolio polish | Data Reliability & Operations; Developer Experience & Documentation |
 
-The phase documents and notes can stay as reference, but new work should be
-planned, discussed, and reviewed through the four areas above.
+Use [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for the current planning model and
+[CHANGELOG.md](CHANGELOG.md) for a concise history of recent work.
 
-## How To Navigate The Docs
+## Updating Docs Without Re-Creating Sprawl
 
-Start here when you are unsure where a change belongs. Then use:
+Use these rules:
 
-- [README.md](../README.md) for the public project overview and live demo.
-- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for current planning and priorities.
-- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for local setup, common
-  commands, verification, and troubleshooting.
-- [diagram_collection.md](diagram_collection.md) for a visual overview of the
-  codebase, pipeline, database, API flow, and scraper lifecycle.
-- [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md) for a file-by-file guide to every
-  docs file.
-- [OPERATIONS.md](OPERATIONS.md) for logs, tests, validation, and escalation.
-- Phase-named docs, such as [PHASE5_AUTOMATION.md](PHASE5_AUTOMATION.md),
-  [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md), and
-  [PHASE7_DEPLOYMENT_RUNBOOK.md](PHASE7_DEPLOYMENT_RUNBOOK.md), as detailed
-  historical references or runbooks.
+- Update [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) when setup, common
+  commands, verification steps, or local troubleshooting changes.
+- Update [OPERATIONS.md](OPERATIONS.md) when logs, tests, validation, GitHub
+  Actions behavior, hosted deployment steps, or escalation rules change.
+- Update [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) when
+  notebook workflow, research backlog, data-source rules, feature lifecycle, or
+  analytics-promotion rules change.
+- Update [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) for proposed UI/UX
+  changes and request status.
+- Update [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for approved
+  frontend behavior, visual rules, component patterns, and page templates.
+- Update [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) only when the app's
+  identity, audience, positioning, or decision rules change.
+- Update [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for strengths, gaps,
+  near-term priorities, and major planning shifts.
+- Update [diagram_collection.md](diagram_collection.md) when architecture,
+  workflows, endpoints, database shape, or known gaps change.
+- Update [CHANGELOG.md](CHANGELOG.md) when a meaningful repo change ships.
 
-If two docs disagree, prefer the newer four-area model in this file and the
-current roadmap, then update the stale doc in the smallest useful place.
-
-## First Things To Read By Task
-
-If you want to run the project locally:
-
-- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
-- [README.md](../README.md)
-- `.env.example`
-- `frontend/.env.example`
-
-If you want a visual codebase overview:
-
-- [diagram_collection.md](diagram_collection.md)
-- [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md)
-
-If you want to refresh data:
-
-- [OPERATIONS.md](OPERATIONS.md)
-- [PHASE5_AUTOMATION.md](PHASE5_AUTOMATION.md)
-- `scripts/data_platform/update_current_season.py`
-
-If you want to add a football insight:
-
-- [RESEARCH_IDEAS.md](RESEARCH_IDEAS.md)
-- [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
-- [FEATURE_DATA_ACCESS.md](FEATURE_DATA_ACCESS.md)
-- [FEATURE_REGISTRY.md](FEATURE_REGISTRY.md)
-
-If you want to improve the app:
-
-- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
-- [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md)
-- `api/`
-- `src/api/`
-- `frontend/src/`
-- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
-
-If you want to understand deployment:
-
-- [PHASE7_DEPLOYMENT_RUNBOOK.md](PHASE7_DEPLOYMENT_RUNBOOK.md)
-- [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)
+Avoid creating a new doc just because a section is getting detailed. Prefer a
+clear section inside an existing source-of-truth file first.

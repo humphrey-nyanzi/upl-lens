@@ -45,7 +45,7 @@ to answer from individual match pages:
 - Which teams, players, and matches stand out across seasons?
 
 Highlighted analyses belong in the dashboard and
-[feature docs](docs/FEATURE_REGISTRY.md) rather than in this README. The first
+[research playbook](docs/FEATURE_PROMOTION_WORKFLOW.md) rather than in this README. The first
 promoted analysis is the goal-timing explorer, which started as a notebook
 finding and now runs through Postgres, FastAPI, and React.
 
@@ -75,8 +75,8 @@ For portfolio and recruiting review, this repository demonstrates:
   layer under `src/api/`.
 - **Frontend development**: React dashboard surfaces for league summaries,
   goal-timing insight, match/team/event data, loading states, and API status.
-- **Research workflow**: notebooks, research briefs, product plans, a feature
-  registry, and data-access rules for moving useful analysis into production.
+- **Research workflow**: notebooks, research briefs, product plans, and a
+  single research playbook for moving useful analysis into production.
 - **Deployment**: Cloudflare Pages, Render, Supabase, GitHub Actions, CORS, and
   environment-based configuration.
 
@@ -156,13 +156,13 @@ Use these docs instead of trying to learn the whole repository from the README:
 | Product identity and strategy | [docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md) |
 | Local setup and common commands | [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) |
 | Visual codebase overview | [docs/diagram_collection.md](docs/diagram_collection.md) |
-| Which doc to open | [docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md) |
+| Which doc to open | [docs/START_HERE.md](docs/START_HERE.md) |
 | Roadmap and current priorities | [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) |
 | Operations, logs, tests, validation, escalation | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 | Notebook-to-product feature workflow | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
-| Research ideas and feature status | [docs/RESEARCH_IDEAS.md](docs/RESEARCH_IDEAS.md), [docs/FEATURE_REGISTRY.md](docs/FEATURE_REGISTRY.md) |
-| Frontend UX requests, visual system, and approved UI rules | [docs/FRONTEND_UX_REQUESTS.md](docs/FRONTEND_UX_REQUESTS.md), [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md), [docs/UI_UX_GUIDELINES.md](docs/UI_UX_GUIDELINES.md) |
-| Deployment notes | [docs/PHASE7_DEPLOYMENT_RUNBOOK.md](docs/PHASE7_DEPLOYMENT_RUNBOOK.md) |
+| Research ideas, feature status, and promotion rules | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
+| Frontend UX requests and approved design rules | [docs/FRONTEND_UX_REQUESTS.md](docs/FRONTEND_UX_REQUESTS.md), [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md) |
+| Deployment and operations notes | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 
 ## Data Note
 

@@ -188,7 +188,8 @@ dashboard decoration.
 Owns:
 
 - feature notebooks
-- research ideas in `docs/RESEARCH_IDEAS.md`
+- research backlog and feature lifecycle notes in
+  `docs/FEATURE_PROMOTION_WORKFLOW.md`
 - research briefs and product plans
 - metric definitions and source-data caveats
 - feature registry status
@@ -200,7 +201,7 @@ Current strengths:
 - Feature 1 goal timing is promoted into FastAPI and React
 - feature templates and registry exist
 - notebook data-access rules prefer cleaned Postgres `staging.*`
-- analytics view conventions exist for reusable metrics
+- analytics promotion rules exist for reusable metrics
 
 Known weaknesses:
 
@@ -211,8 +212,8 @@ Known weaknesses:
 Next useful work:
 
 - start Feature 2, likely discipline/card trends
-- use `docs/RESEARCH_IDEAS.md` to compare candidate football questions before
-  creating a feature package
+- use `docs/FEATURE_PROMOTION_WORKFLOW.md` to compare candidate football
+  questions before creating a feature package
 - validate a second useful football question in a notebook
 - decide whether the metric should use a direct API query or `analytics.*` view
 - promote the validated metric into FastAPI and React
@@ -238,7 +239,8 @@ Owns:
 - browser-facing error handling for API offline states and free-tier cold starts
 - product navigation and UI/UX quality
 - frontend change requests in `docs/FRONTEND_UX_REQUESTS.md`
-- approved UI/UX decisions in `docs/UI_UX_GUIDELINES.md`
+- mockup-derived visual-system guidance in `docs/FRONTEND_DESIGN_SYSTEM.md`
+- approved frontend behavior in `docs/FRONTEND_DESIGN_SYSTEM.md`
 
 Current strengths:
 
@@ -246,6 +248,8 @@ Current strengths:
   and goal timing insight endpoints
 - route functions are thin and query logic is centralized
 - React reads FastAPI JSON instead of CSV files
+- the frontend has a modular `AppShell`, page components, reusable product
+  surfaces, and first-pass design-system treatment
 - the deployed app proves the full public request flow
 
 Known weaknesses:
@@ -260,7 +264,9 @@ Next useful work:
 - redesign the frontend into real product pages
 - use `docs/FRONTEND_UX_REQUESTS.md` as the editable source of truth before
   implementation
-- move approved durable decisions into `docs/UI_UX_GUIDELINES.md`
+- use `docs/FRONTEND_DESIGN_SYSTEM.md` when applying the approved visual system
+- keep approved durable frontend decisions in
+  `docs/FRONTEND_DESIGN_SYSTEM.md`
 - add stronger loading, empty, and error states
 - add API endpoints only when product features prove the need
 - create a visible path from summary views to match/team detail views
@@ -292,8 +298,8 @@ Current strengths:
 - the project has detailed docs for roadmap, automation, deployment, and feature
   promotion
 - `docs/START_HERE.md`, `docs/LOCAL_DEVELOPMENT.md`, and
-  `docs/DOCUMENTATION_MAP.md` give new readers a beginner-friendly entrypoint,
-  a runnable local setup guide, and a file-by-file documentation index
+  `docs/CHANGELOG.md` give new readers a beginner-friendly entrypoint, a
+  runnable local setup guide, and a concise recent-history summary
 - `docs/diagram_collection.md` gives maintainers and agents a visual overview
   of the codebase, data pipeline, database shape, API flow, and scraper
   lifecycle
@@ -312,7 +318,7 @@ Next useful work:
 - use `docs/START_HERE.md` as the beginner entrypoint
 - use `docs/LOCAL_DEVELOPMENT.md` for setup, command, verification, and local
   troubleshooting guidance
-- use `docs/DOCUMENTATION_MAP.md` as the file-by-file navigation aid
+- use `docs/START_HERE.md` as the doc navigation hub
 - maintain `docs/diagram_collection.md` when high-level codebase structure or
   known gaps change
 - use `docs/OPERATIONS.md` for log, summary, test, and escalation rules
@@ -767,8 +773,9 @@ Current foundation:
 - The workflow uses operator-level inputs such as `season_scope`, `run_type`,
   `apply_migrations`, `use_cache`, and `force_full_scrape`. Routine runs skip
   migrations by default so they can use the least-privilege loader role.
-- `docs/PHASE5_AUTOMATION.md` documents the working GitHub secrets, Supabase
-  pooler username pattern, artifact behavior, and common connection errors.
+- `docs/OPERATIONS.md` documents the working GitHub secrets, Supabase pooler
+  username pattern, artifact behavior, hosted deployment checks, and common
+  connection errors.
 - The workflow installs `requirements-automation.txt` with pip caching instead
   of installing the full notebook/API/developer `requirements.txt`.
 
@@ -839,14 +846,10 @@ Current foundation:
 - Feature 1 goal timing is the first promoted notebook insight.
 - `docs/FEATURE_PROMOTION_WORKFLOW.md` defines the standard feature package
   workflow for future notebook experiments.
-- `docs/FEATURE_DATA_ACCESS.md` defines safe notebook data-source rules:
-  default to `staging.*`, use `raw.*` for source debugging, use CSVs for legacy
-  comparison only, and move stable reusable logic into `analytics.*`.
-- `docs/FEATURE_REGISTRY.md` tracks each feature's lifecycle status, source,
-  endpoint, and frontend surface.
-- `docs/ANALYTICS_VIEW_CONVENTIONS.md` explains when promoted notebook logic
-  should become a direct API query, an `analytics.*` SQL view, or a stored
-  analytics table/materialized view.
+- `docs/FEATURE_PROMOTION_WORKFLOW.md` also defines safe notebook data-source
+  rules, tracks each feature's lifecycle status, source, endpoint, and
+  frontend surface, and explains when promoted notebook logic should become a
+  direct API query, an `analytics.*` SQL view, or a stored analytics table.
 - `src.research.read_sql` provides a read-only pandas helper for feature
   notebooks.
 - `database/permissions/002_create_upl_research_reader.sql` provides an optional
@@ -865,7 +868,8 @@ Current foundation:
 Promotion process:
 
 1. Copy `notebooks/features/_feature_template/` into a new feature folder.
-2. Add the feature to `docs/FEATURE_REGISTRY.md` with status `researching`.
+2. Add the feature to the feature table in
+   `docs/FEATURE_PROMOTION_WORKFLOW.md` with status `researching`.
 3. Explore a question in `analysis.ipynb`.
 4. Use `staging.*` through `src.research.read_sql` unless the feature clearly
    needs raw-source debugging.
@@ -897,7 +901,7 @@ Acceptance criteria:
 - Dashboard insights can be traced back to reproducible notebook or SQL work.
 - Caveats are documented, especially where source data is incomplete.
 - Feature status and production location are discoverable from
-  `docs/FEATURE_REGISTRY.md`.
+  `docs/FEATURE_PROMOTION_WORKFLOW.md`.
 - Reusable promoted metrics have a clear direct-query or `analytics.*` decision.
 
 ## Launch Milestone 7 - Deployment And Portfolio Polish

@@ -2,19 +2,25 @@ import type { MatchSummary, SeasonOverviewResponse, SeasonResponse, TeamResponse
 import type { LoadState, PageKey } from "../../app/types";
 import { formatDate } from "../../utils/format";
 import { EmptyState } from "../common/EmptyState";
-import { RankingList } from "../common/RankingList";
 import { MatchRow } from "../matches/MatchRow";
+import { TeamCard } from "../teams/TeamCard";
 
 export function TeamSignalPanel({ teams, loadState }: { teams: TeamResponse[]; loadState: LoadState }) {
-  const rankingItems = teams.slice(0, 5).map((team) => ({
-    context: `${team.wins}W ${team.draws}D ${team.losses}L`,
-    label: team.team_name,
-    value: team.goals_for,
-  }));
-
   return (
     <section className="panel">
-      {teams.length > 0 ? <RankingList title="Top 5 teams" items={rankingItems} actionLabel="View all teams" /> : <EmptyState message={loadState === "loading" ? "Loading team summaries." : "No team summaries returned yet."} />}
+      <div className="section-heading compact">
+        <div>
+          <h2>Team trends</h2>
+          <p>Quick summaries from cleaned match records.</p>
+        </div>
+      </div>
+      <div className="team-list">
+        {teams.length > 0 ? (
+          teams.map((team) => <TeamCard key={team.team_name} team={team} />)
+        ) : (
+          <EmptyState message={loadState === "loading" ? "Loading team summaries." : "No team summaries returned yet."} />
+        )}
+      </div>
     </section>
   );
 }
@@ -48,27 +54,21 @@ export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey)
   const exploreCards = [
     {
       page: "goal-timing" as PageKey,
-      status: "Available",
-      title: "Goal Timing",
-      description: "Read the main scoring-window insight and inspect the period chart.",
+      status: "Timing",
+      title: "Goal window signal",
+      description: "See which regular-time periods shape the scoring pattern.",
     },
     {
       page: "matches" as PageKey,
-      status: "Coming soon",
-      title: "Match Explorer",
-      description: "Browse matches and event evidence as the explorer grows.",
+      status: "Evidence",
+      title: "Recent match context",
+      description: "Move from the overview into scorelines and match evidence.",
     },
     {
       page: "teams" as PageKey,
-      status: "Available",
-      title: "Team Trends",
-      description: "Scan team records and scoring summaries from cleaned match data.",
-    },
-    {
-      page: "methodology" as PageKey,
-      status: "Data notes",
-      title: "How It Works",
-      description: "See source, freshness, and limitations behind the numbers.",
+      status: "Teams",
+      title: "Top-team preview",
+      description: "Compare records and scoring summaries from cleaned match data.",
     },
   ];
 
@@ -76,10 +76,13 @@ export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey)
     <section className="explore-panel" aria-labelledby="explore-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Explore more</p>
-          <h2 id="explore-title">Choose your next question</h2>
-          <p>Start with the insight, then move into matches, teams, and data notes when you need more context.</p>
+          <p className="eyebrow">Insight strip</p>
+          <h2 id="explore-title">What to inspect next</h2>
+          <p>Three quick routes from the league overview into the evidence behind the numbers.</p>
         </div>
+        <button className="text-button dark" type="button" onClick={() => onPageChange("goal-timing")}>
+          View all insights
+        </button>
       </div>
       <div className="explore-grid">
         {exploreCards.map((card) => (
@@ -105,7 +108,7 @@ export function RecentMatchPanel({ matches, loadState }: { matches: MatchSummary
       </div>
       <div className="match-list">
         {matches.length > 0 ? (
-          matches.map((match) => <MatchRow key={match.match_id} match={match} compact />)
+          matches.map((match) => <MatchRow key={match.match_id} match={match} />)
         ) : (
           <EmptyState message={loadState === "loading" ? "Loading recent matches." : "No matches returned for this season yet."} />
         )}

@@ -1,6 +1,5 @@
 import type { PageProps } from "../app/types";
 import { GoalTimingChart } from "../components/charts/GoalTimingChart";
-import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
 import { GoalTimingSkeleton } from "../components/common/Skeletons";
 import { formatPercent } from "../utils/format";
@@ -21,41 +20,31 @@ export function GoalTimingPage({
       <PageIntro
         eyebrow="Featured insight"
         title="Goal Timing"
-        text="The flagship insight: when regular-time UPL goals arrive, where the scoring pressure rises, and what to read with caution."
+        text="A fan-facing look at when UPL goals arrive, built from the first validated notebook insight promoted into the app."
       />
 
       {loadState === "loading" && !goalTiming ? <GoalTimingSkeleton /> : null}
 
       {goalTiming ? (
         <>
-          <section className="feature-story insight-hero">
+          <section className="feature-story">
             <div>
               <p className="eyebrow">Main finding</p>
               <h2>Goals cluster most in the {goalTiming.peak_interval ?? "available"} window.</h2>
               <p>
-                The available regular-time event data shows {goalTiming.total_regular_time_goals.toLocaleString()} goals for this season.
-                The strongest period accounts for{" "}
+                The available regular-time event data shows {goalTiming.total_regular_time_goals.toLocaleString()} goals for
+                this season. The strongest period accounts for{" "}
                 {peakInterval ? `${peakInterval.goals.toLocaleString()} goals (${formatPercent(peakInterval.share)})` : "the clearest share"}.
               </p>
             </div>
-            <KpiCard
-              accent="gold"
-              label="Second-half share"
-              value={formatPercent(secondHalfShare)}
-              detail={`${secondHalfGoals.toLocaleString()} regular-time goals came after halftime.`}
-            />
+            <div className="insight-stat">
+              <span>Second-half share</span>
+              <strong>{formatPercent(secondHalfShare)}</strong>
+              <p>{secondHalfGoals.toLocaleString()} regular-time goals came after halftime.</p>
+            </div>
           </section>
 
-          <section className="featured-insight chart-panel">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Explore the timing</p>
-                <h2>Goal timing heatmap</h2>
-                <p>Each tile shows a 15-minute scoring window. The peak period is highlighted and also labelled in text.</p>
-              </div>
-            </div>
-            <GoalTimingChart goalTiming={goalTiming} />
-          </section>
+          <GoalTimingChart goalTiming={goalTiming} />
 
           <section className="overview-grid">
             <section className="panel">

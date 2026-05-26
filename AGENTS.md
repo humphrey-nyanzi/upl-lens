@@ -163,11 +163,9 @@ user explicitly changes the scope.
 Research & Football Intelligence notebook experiments should use the feature
 package workflow documented in
 [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md).
-Use [docs/FEATURE_DATA_ACCESS.md](docs/FEATURE_DATA_ACCESS.md) for notebook data
-source rules and read-only research access. Use
-[docs/FEATURE_REGISTRY.md](docs/FEATURE_REGISTRY.md) to track feature lifecycle
-status, and [docs/ANALYTICS_VIEW_CONVENTIONS.md](docs/ANALYTICS_VIEW_CONVENTIONS.md)
-to decide when stable notebook metrics should become `analytics.*` views.
+That document also owns notebook data-source rules, feature lifecycle tracking,
+research backlog notes, and the decision guide for when stable notebook metrics
+should become `analytics.*` views.
 
 When starting a new experimental feature, copy:
 
@@ -190,8 +188,9 @@ Each feature package should contain:
   React UI, validation plan, and implementation history.
 - `outputs/` for reference notebook exports only.
 
-When creating a feature package, add it to `docs/FEATURE_REGISTRY.md` and update
-its lifecycle status as it moves from research to promotion.
+When creating a feature package, add it to the feature table in
+`docs/FEATURE_PROMOTION_WORKFLOW.md` and update its lifecycle status as it moves
+from research to promotion.
 
 For notebook data access, default to cleaned Postgres `staging.*` tables through
 `src.research.read_sql`. Use `raw.*` only for source-data debugging, CSVs only

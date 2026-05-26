@@ -2,14 +2,12 @@ import { useMemo } from "react";
 
 import type { PageProps } from "../app/types";
 import { ErrorPanel } from "../components/common/ErrorPanel";
-import { KpiCard } from "../components/common/KpiCard";
+import { MetricCard } from "../components/common/MetricCard";
 import { OverviewSkeleton } from "../components/common/Skeletons";
 import { FeaturedInsight } from "../components/overview/FeaturedInsight";
 import { HeroSection } from "../components/overview/HeroSection";
 import {
-  EventSignalPanel,
   ExplorePreview,
-  OverviewDataNote,
   RecentMatchPanel,
   TeamSignalPanel,
 } from "../components/overview/OverviewPanels";
@@ -50,16 +48,6 @@ export function OverviewPage({
     },
   ];
 
-  const eventBreakdown = useMemo(() => {
-    return (
-      overview?.event_breakdown.map((item) => ({
-        eventType: item.event_type,
-        label: item.label,
-        count: item.count,
-      })) ?? []
-    );
-  }, [overview]);
-
   const topTeams = useMemo(() => {
     return [...data.teams]
       .sort((left, right) => right.wins - left.wins || right.goals_for - left.goals_for)
@@ -94,24 +82,18 @@ export function OverviewPage({
       {loadState === "error" ? <ErrorPanel errorMessage={errorMessage} /> : null}
 
       <section className="metric-grid" aria-label="Selected season intelligence summary">
-        {summaryCards.map((card, index) => (
-          <KpiCard key={card.label} {...card} accent={index === 1 ? "gold" : index === 2 ? "green" : "neutral"} />
+        {summaryCards.map((card) => (
+          <MetricCard key={card.label} {...card} />
         ))}
       </section>
 
-      <FeaturedInsight goalTiming={goalTiming} loadState={loadState} onPageChange={onPageChange} />
-
-      <section className="overview-grid" aria-label="League patterns preview">
+      <section className="overview-main-grid" aria-label="League intelligence dashboard">
+        <FeaturedInsight goalTiming={goalTiming} loadState={loadState} onPageChange={onPageChange} />
         <TeamSignalPanel teams={topTeams} loadState={loadState} />
-        <EventSignalPanel eventBreakdown={eventBreakdown} />
+        <RecentMatchPanel matches={recentMatches} loadState={loadState} />
       </section>
 
       <ExplorePreview onPageChange={onPageChange} />
-
-      <section className="overview-grid" aria-label="Recent matches and data notes">
-        <RecentMatchPanel matches={recentMatches} loadState={loadState} />
-        <OverviewDataNote onPageChange={onPageChange} selectedSeasonInfo={selectedSeasonInfo} overview={overview} />
-      </section>
     </>
   );
 }

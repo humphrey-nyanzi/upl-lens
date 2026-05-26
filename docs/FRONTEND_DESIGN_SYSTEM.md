@@ -1,562 +1,426 @@
 # Frontend Design System
 
-This document translates the approved mockup direction into an implementation
-reference for UPL Match Intelligence.
+This document is the frontend playbook for UPL Match Intelligence.
 
-It is not a pixel-copy instruction. It defines the product visual system,
-component intent, data-display rules, and rollout checklist for future frontend
-work.
+It is the single source of truth for:
+
+- approved visual direction
+- durable UI and UX rules
+- layout, token, and component guidance
+- page templates and product-surface expectations
+- visual acceptance criteria for future frontend work
 
 Use this with:
 
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
-- [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md)
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
+- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+
+## Product Architecture Rule
+
+The product path is:
+
+```text
+React UI -> FastAPI endpoint -> Postgres query/view -> JSON -> chart/table
+```
+
+React must not read:
+
+- raw CSV files
+- notebooks
+- exported notebook charts
+- local database files
+
+If the UI needs new data, add or extend the FastAPI and query layer instead of
+bypassing it.
 
 ## Product Visual Identity
 
-UPL Match Intelligence should feel like a modern football intelligence operating
-system.
-
-The closest product model is:
+UPL Match Intelligence should feel like:
 
 ```text
-league dashboard + sports analytics control room + football report card
+a football intelligence workspace
++ a league analytics control room
++ a clean sports report card
 ```
 
 The app should feel:
 
-- data-rich
-- powerful
-- modern
 - practical
+- premium
+- data-rich
+- football-native
+- fast to scan
 - mobile-first
-- fan-facing
 - credible for analysts
+- understandable for fans
 
-It should not feel:
+It should not feel like:
 
-- like a generic AI SaaS dashboard
-- like a betting product
-- like Power BI or Tableau
-- like a raw database admin panel
-- like a notebook export
-- like a developer portfolio landing page
-- like a decorative marketing site
+- a generic AI SaaS dashboard
+- a betting product
+- Power BI or Tableau
+- a raw database admin panel
+- a notebook export
+- a developer portfolio homepage
+- a decorative marketing website
+- a purple or cyan glassmorphic template
 
-## Mockup Interpretation
+## Approved Product Surfaces
 
-The approved mockup shows a dashboard system with:
+These surfaces are approved as part of the public product direction:
 
-- a dark-first desktop app shell
-- a left sidebar for primary navigation
-- a top control/search/filter bar
-- season and competition controls near the page title
-- KPI cards for fast season scanning
-- a central goal timing heatmap
-- top-five rankings
-- recent results
-- contextual insight cards
-- mobile views that preserve the same analytical hierarchy
-- light-mode equivalents using the same structure
-- side panels that explain principles, palette, and feature highlights
+- League Overview
+- Goal Timing Explorer
+- Match Explorer
+- Team Insights / Team Profile
+- Discipline Dashboard
+- Methodology / Data Notes
 
-Copy conceptually:
+The current deployed app is still a pilot. It proves the architecture, but the
+long-term direction is a richer analytical product.
 
-- the operational sports analytics feel
-- compact density without raw-table clutter
-- green and gold football-native accents
-- goal timing as a flagship heatmap-style insight
-- top-five previews before full tables
-- visible data status
-- desktop sidebar plus mobile navigation adaptation
-- numbers with interpretation, not numbers alone
+## Current Implementation Baseline
 
-Do not copy literally:
+The current frontend uses:
 
-- the exact fake team names, values, or logos
-- every navigation item before the app has those product areas
-- decorative side panels inside the real product
-- the exact phone mockup framing
-- any AI-concept artifacts that do not map to real data
-- dense layouts that would break mobile readability
+- a dark-first sports intelligence shell
+- a desktop left sidebar for primary navigation
+- a compact top control bar for season, search affordance, and report export
+- compact mobile navigation
+- reusable surface primitives
+- modular page components under `frontend/src/pages/`
+- reusable components under `frontend/src/components/`
+- FastAPI-backed hooks and client calls
 
-## Alignment With Existing Direction
+The first mockup-aligned redesign pass is complete. Future frontend work should
+come from [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) or explicit user
+instruction.
 
-Strong alignment:
+## Approved Visual Direction
 
-- The product is already defined as a football intelligence platform.
-- The docs already reject raw official-site duplication.
-- The app already uses FastAPI JSON instead of CSVs.
-- Goal Timing is already the flagship promoted insight.
-- Existing docs already prefer top-five previews, fan-facing language, caveats,
-  and mobile-first layouts.
+The approved direction is a hybrid of:
 
-Partial alignment:
+1. grounded sports analytics dashboard structure
+2. restrained premium product polish
 
-- Current React pages are modular, but the shell is still a top-nav light
-  workspace rather than a mature sports intelligence app shell.
-- Current cards and panels are clean, but not yet a full reusable design system.
-- Current charts are readable, but Goal Timing is still bar-based rather than a
-  richer heatmap treatment.
-- Team and match views exist, but they are still early analytical summaries.
+That means:
 
-Divergence:
+- structured, readable, operational layouts
+- subtle elevation and spacing improvements
+- football-native green and gold accents
+- strong number hierarchy
+- mobile-first composition
 
-- The mockup uses a desktop sidebar; the current app uses sticky top navigation.
-- The mockup is dark-first; the current app is light-first with dark feature
-  panels.
-- The mockup includes search, export, players, statistics, standings, compare,
-  and news areas that are not all current product surfaces.
-- The mockup presents richer visual hierarchy than the current CSS token set.
+It does not mean:
 
-Main risk:
+- heavy glassmorphism
+- decorative blur
+- fake AI gradients
+- unsupported navigation concepts
+- dense desktop layouts that collapse on mobile
 
-The mockup is visually attractive enough that future agents may overbuild the
-surface before the API, research, and data caveats support it. The correct path
-is to build tokens and reusable components first, then apply them page by page.
+## Layout Principles
 
-## Color Tokens
+Approved principles:
 
-Use semantic tokens before hardcoding page colors.
+- Design product-facing screens mobile first, then enhance for desktop.
+- Use dense but readable layouts.
+- Keep controls close to the data they affect.
+- Use the available desktop width like a real workspace.
+- Avoid article-style narrow columns on analytical pages.
+- Keep the first screen useful, not promotional.
+- Avoid decorative sections that do not help analysis.
 
-Suggested dark-first palette:
+### Desktop App Shell
 
-| Token | Purpose | Suggested value |
-|-------|---------|-----------------|
-| `--color-bg-app` | app background | `#071118` |
-| `--color-bg-shell` | sidebar/topbar surface | `#0b1720` |
-| `--color-bg-panel` | primary card/panel | `#101f2a` |
-| `--color-bg-panel-soft` | secondary panel | `#162533` |
-| `--color-border-subtle` | default border | `#243544` |
-| `--color-text-primary` | primary text | `#f3f7f2` |
-| `--color-text-secondary` | secondary text | `#a9b6bf` |
-| `--color-text-muted` | quiet labels | `#7f8d99` |
-| `--color-accent-green` | primary action/selected | `#16a34a` |
-| `--color-accent-lime` | active data highlight | `#a3e635` |
-| `--color-accent-gold` | peak/caution/key insight | `#f5b82e` |
-| `--color-risk` | errors/negative/discipline risk | `#ef4444` |
-| `--color-success` | healthy status | `#22c55e` |
+Desktop should use:
 
-Suggested light equivalent:
-
-| Token | Purpose | Suggested value |
-|-------|---------|-----------------|
-| `--color-bg-app-light` | app background | `#f5f7f1` |
-| `--color-bg-panel-light` | card/panel | `#ffffff` |
-| `--color-bg-panel-soft-light` | secondary surface | `#eef3ea` |
-| `--color-border-light` | default border | `#d9dfd2` |
-| `--color-text-primary-light` | primary text | `#17211b` |
-| `--color-text-secondary-light` | secondary text | `#59665b` |
+```text
+Sidebar | Main Workspace
+        | Top Controls
+        | Page Content Grid
+```
 
 Rules:
 
-- Green is the main football/action accent.
-- Lime is for active data highlights and selected chart cells.
-- Gold is for peak zones, key insights, cautions, or attention moments.
-- Red is only for error, risk, discipline, or negative state.
-- Purple should not become a dominant brand color.
-- Avoid generic purple/cyan gradients.
+- Sidebar remains fixed on desktop.
+- Main workspace fills the remaining width.
+- Analytical pages should support widths around `1200px-1440px`.
+- The top bar should align visually with the content grid.
+- KPI rows and main grids should use multiple columns when helpful.
 
-## Typography And Numbers
-
-Use compact, readable typography.
-
-Principles:
-
-- Headline metrics should be visually dominant.
-- Labels should use football language, not database column names.
-- Every major number needs context: comparison, interpretation, rank, trend, or
-  caveat.
-- Short uppercase labels are acceptable for compact dashboard metadata.
-- Avoid long article paragraphs inside dense product panels.
-- Use tables only when comparison needs the table.
-
-Number pattern:
+Recommended structure:
 
 ```text
-Label
-Primary number
-Context line
-Optional trend/rank/caveat
+AppShell
+  Sidebar
+  Main
+    TopBar
+    PageHeader or Hero
+    KPI Row
+    Main Grid
+    Supporting Insights
 ```
 
-Examples:
-
-- `Goals scored`, `256`, `2.0 per match`
-- `Peak scoring window`, `61-75`, `Highest regular-time goal share`
-- `Top attack`, `28`, `Vipers SC goals scored`
-
-## Spacing And Layout
-
-Desktop layout direction:
-
-- left sidebar
-- top control/search/filter bar
-- main analytical workspace
-- reusable card and panel grid
-- high-priority metrics above deeper evidence
-- controls close to the data they affect
-
-Mobile layout direction:
-
-- top app bar
-- menu or bottom navigation for primary product areas
-- season/status controls near the first meaningful content
-- one-column panels
-- top-five previews instead of wide tables where possible
-- horizontal scroll only when the data is genuinely tabular
-
-Recommended spacing tokens:
-
-| Token | Purpose | Suggested value |
-|-------|---------|-----------------|
-| `--space-1` | tight inline gap | `4px` |
-| `--space-2` | small gap | `8px` |
-| `--space-3` | card internal gap | `12px` |
-| `--space-4` | panel padding mobile | `16px` |
-| `--space-5` | panel padding desktop | `20px` |
-| `--space-6` | section gap | `24px` |
-
-Radius:
-
-- Controls: `5px`
-- Cards and panels: `6px`
-- Large shell surfaces: `8px` maximum unless a component needs otherwise
-
-## Surface Hierarchy
-
-Use surfaces intentionally:
-
-1. App shell
-   - Sidebar, mobile top bar, top controls.
-   - Dark, stable, navigation-focused.
-
-2. Workspace background
-   - Deep app background in dark mode.
-   - Light neutral background in light mode.
-
-3. Primary panels
-   - KPI groups, chart panels, rankings, recent results.
-   - Solid enough for readability.
-
-4. Secondary panels
-   - data notes, supporting explanations, caveats.
-   - Quieter contrast.
-
-5. Attention panels
-   - flagship insight, peak zone, major finding.
-   - Use green/gold sparingly.
-
-Avoid putting cards inside decorative cards. Use nested structure only when it
-helps scanning and remains visually quiet.
-
-## Component Variants
-
-### App Shell
-
-Purpose: hold the product structure.
-
-Treatment:
-
-- desktop sidebar with brand, navigation, data status, and profile/contact area
-- top bar with season, competition, search/filter, and export/report actions
-- mobile top bar with compact menu or bottom navigation
-
-Responsive behavior:
-
-- desktop: sidebar remains visible
-- tablet: sidebar may collapse to icons or compact rail
-- mobile: top bar plus bottom navigation or menu
-
-Do not use for:
-
-- marketing hero layouts
-- long methodology content
-
-### Sidebar Navigation
-
-Purpose: move between product areas.
-
-Treatment:
-
-- dark surface
-- clear active state using green
-- icons plus text on desktop where practical
-- disabled/future sections should be visibly unfinished, not fake-active
-
-Hover/focus:
-
-- visible border or background change
-- keyboard focus ring must be clear
-
-### Top Bar And Controls
-
-Purpose: hold season, competition, search, filters, status, and report actions.
-
-Treatment:
-
-- compact, solid, slightly elevated
-- subtle glass-like treatment allowed only here
-- controls should remain close to affected data
-
-Do not use:
-
-- global filters that silently change unrelated pages without clear context
-
-### KPI Cards
-
-Purpose: provide fast season scanning.
-
-Treatment:
-
-- strong number
-- short label
-- one context line
-- optional trend/rank/caveat
-- icon optional but not required
-
-Responsive behavior:
-
-- mobile: two-column only if values remain readable; otherwise one column
-- desktop: compact grid
-
-### Insight Cards
-
-Purpose: explain what a number means.
-
-Treatment:
-
-- football question
-- main finding
-- chart or compact evidence
-- caveat near the evidence
-- action to explore deeper
-
-Do not use:
-
-- vague promotional copy
-- unvalidated findings
-
-### Ranking And Top-Five Cards
-
-Purpose: replace boring tables when the user only needs the leaders.
-
-Treatment:
-
-- rank number
-- team/player/official name
-- value
-- optional trend or context
-- action to open full table only when useful
-
-Mobile:
-
-- preferred over wide tables
-- keep row labels short
-
-### Recent Results Cards
-
-Purpose: show match context without becoming a fixtures clone.
-
-Treatment:
-
-- teams
-- scoreline/result state
-- date or matchday
-- optional venue/status
-
-Do not use:
-
-- as the main product identity
-
-### Chart Panels
-
-Purpose: answer a football question.
-
-Treatment:
-
-- clear title written as a question or useful claim
-- chart with readable labels
-- legend close to chart
-- caveat close to chart
-- table/text fallback when needed
-
-### Heatmap Panels
-
-Purpose: show distribution over time, especially Goal Timing.
-
-Treatment:
-
-- green-to-gold intensity scale
-- labeled period rows/columns
-- peak zones clearly labelled in text
-- accessible fallback list of values
-
-Do not use:
-
-- decorative heatmaps without an interpretable football question
-
-### Mobile Bottom Navigation
-
-Purpose: keep core product areas reachable on phones.
-
-Treatment:
-
-- 4 to 5 primary items maximum
-- icons plus short labels
-- clear selected state
-
-Do not use:
-
-- every desktop navigation item
-- future sections that are not usable
-
-### Empty, Loading, Error, And Data Status States
-
-Purpose: preserve trust during cold starts, missing data, or source issues.
-
-Treatment:
-
-- skeletons before confirmed errors
-- calm empty-state copy
-- API/data status visible but not alarming
-- source limitations visible where they affect interpretation
-
-## Chart And Table Guidance
-
-Charts should answer football questions, not decorate the page.
-
-Use:
-
-- heatmaps for timing/distribution patterns
-- top-five lists for leaders and rankings
-- bars for simple comparisons
-- compact tables for structured comparison
-- text summaries for caveats and interpretation
-
-Avoid:
-
-- charts without labels
-- charts whose meaning depends on color alone
-- raw database tables as a default view
-- notebook screenshots
-- over-animated dashboards
-
-## Mobile Adaptation Rules
+### Mobile Layout
 
 Mobile is not a squeezed desktop.
 
 Rules:
 
-- preserve the core analytics workflow
-- show the most important number first
-- use top-five previews before full tables
-- keep filters local to the affected section
-- let charts simplify if labels become unreadable
-- keep caveats near the data they affect
-- keep tap targets at least 44px high where practical
-- avoid horizontal scrolling except for genuine comparison tables
+- Show the most important numbers first.
+- Use one-column flow by default.
+- Use two-column KPI grids only when readable.
+- Prefer compact previews over wide tables.
+- Keep caveats near affected data.
+- Avoid horizontal scroll except for genuinely tabular comparison.
 
-## Motion And Interaction
+## Navigation Principles
 
-Motion should be minimal and functional.
+Approved principles:
 
-Allowed:
+- The app should have clear sections for major workflows.
+- Primary navigation should behave like page navigation once a section is a real
+  product area.
+- Lightweight hash-based navigation is acceptable while the product has only a
+  few top-level pages.
+- Navigation labels should use product language, not database language.
+- Disabled or future sections should not look like finished features.
+- Phone layouts should use compact primary navigation instead of horizontally
+  scrolling link bars.
+- Navigation must expose the current page clearly.
 
-- quick hover/focus transitions
-- skeleton shimmer, disabled for reduced motion
-- menu open/close transitions
-- chart hover states if they remain accessible
+## Data Display Principles
 
-Avoid:
+Approved principles:
 
-- excessive animation
-- parallax
-- decorative pulsing
-- motion that makes analytical content harder to read
+- Use readable football labels instead of raw database column names.
+- Map visible frontend data needs before adding new API endpoints.
+- Show season context clearly.
+- Show loading, empty, and error states.
+- Do not hide source-data limitations.
+- Do not calculate durable league-wide metrics in React if they belong in
+  Postgres or FastAPI.
+- Keep backend route functions thin and query logic in `src/api/`.
 
-## Accessibility Requirements
+## UX State Principles
 
-Minimum requirements:
+Approved principles:
 
-- semantic HTML for navigation, sections, buttons, lists, and tables
-- keyboard-accessible controls
-- visible focus states
-- readable contrast in dark and light modes
-- do not rely on color alone for status or peak values
-- labels for filters and chart legends
-- reduced-motion support
-- text must wrap without overlap on mobile
+- Use skeleton loading states during the first meaningful wait before confirmed
+  errors.
+- Skeletons should match the incoming content shape and avoid layout jumps.
+- Loading states should make free-tier backend cold starts understandable.
+- API offline states should identify the API host when useful.
+- Empty states should explain what is missing without blaming the user.
+- Validation and data caveats should stay visible when they affect
+  interpretation.
+
+## Accessibility Principles
+
+Approved principles:
+
+- Use semantic HTML where practical.
+- Keep interactive controls keyboard-accessible.
+- Preserve readable contrast.
+- Do not rely on color alone to communicate status.
+- Use clear labels for filters and controls.
+
+## Color System
+
+The color system should feel football-native, premium, and analytical.
+
+### Dark Mode Tokens
+
+| Token | Purpose | Value |
+|------|---------|-------|
+| `--color-bg-app` | Main app background | `#071118` |
+| `--color-bg-shell` | Sidebar and top bar | `#0B1720` |
+| `--color-bg-panel` | Primary cards and panels | `#101F2A` |
+| `--color-bg-panel-soft` | Secondary surfaces | `#162533` |
+| `--color-bg-elevated` | Raised cards | `#122635` |
+| `--color-border-subtle` | Default border | `#243544` |
+| `--color-border-strong` | Active border | `#315062` |
+| `--color-text-primary` | Main text | `#F3F7F2` |
+| `--color-text-secondary` | Supporting text | `#A9B6BF` |
+| `--color-text-muted` | Quiet labels | `#7F8D99` |
+| `--color-accent-green` | Primary accent | `#16A34A` |
+| `--color-accent-lime` | Data highlight | `#9BD44A` |
+| `--color-accent-gold` | Peak insight | `#F5B82E` |
+| `--color-risk` | Error and discipline | `#EF4444` |
+| `--color-success` | Healthy status | `#22C55E` |
+
+### Light Mode Tokens
+
+| Token | Purpose | Value |
+|------|---------|-------|
+| `--color-bg-app-light` | Main background | `#F5F7F1` |
+| `--color-bg-shell-light` | Sidebar and top bar | `#FFFFFF` |
+| `--color-bg-panel-light` | Primary card | `#FFFFFF` |
+| `--color-bg-panel-soft-light` | Secondary card | `#EEF3EA` |
+| `--color-border-light` | Default border | `#D9DFD2` |
+| `--color-text-primary-light` | Main text | `#17211B` |
+| `--color-text-secondary-light` | Supporting text | `#59665B` |
+| `--color-text-muted-light` | Quiet labels | `#7B867C` |
+
+### Color Rules
+
+- Football green is the main action and selected-state accent.
+- Lime is for active data highlights, not for default body text or borders.
+- Warm gold is reserved for peak insight moments and chart emphasis.
+- Red is for errors, risk, discipline, or negative states.
+- Purple and cyan gradients should not become the dominant treatment.
+- Default surfaces should use neutral borders unless they are selected or
+  carrying a meaningful signal.
+
+## Typography And Number Hierarchy
+
+Approved decisions:
+
+- Headline numbers should be visually dominant.
+- Metric cards should prioritize the number, then a short context line.
+- Page titles should be strong and clear without becoming oversized.
+- Section labels should remain small, uppercase, and muted.
+- Every major number should carry context, trend, rank, or caveat.
+- Use football-facing labels instead of database field names.
+
+## Spacing, Radius, And Elevation
+
+Approved decisions:
+
+- Use a restrained radius, currently around `5px-6px`, for cards, panels,
+  controls, and data surfaces.
+- Cards should have softer corners than the old prototype, but not playful UI
+  rounding.
+- Use subtle depth instead of heavy shadows.
+- Panels should not all look identical; hierarchy should come from surface tone,
+  size, and information density.
+
+## Component System
+
+Approved reusable directions:
+
+- `PageHero`
+- `SectionPanel`
+- `MetricCard`
+- `InsightCard`
+- `RankingCard`
+- `ChartPanel`
+- `MatchCard`
+- `DataStatusCard`
+
+Component rules:
+
+- Metric cards should combine a clear label, strong numeric value, and one
+  short football-readable explanation.
+- Rankings should show clear rank, team, and value hierarchy.
+- Match rows should surface date, teams, score, and result state before deeper
+  detail.
+- Team summary cards should show analytical signals such as win rate, ranking,
+  record, goal difference, and goals for or against where available.
+- Filter groups should be moderate and page-specific.
+- Empty states should explain what is missing calmly and briefly.
+
+## Chart And Table Guidelines
+
+Approved principles:
+
+- Analytical charts must use Recharts through reusable frontend chart
+  components. Do not build new chart-like visuals from ad hoc cards, div bars,
+  or CSS-only blocks when a real chart is being displayed.
+- Charts should answer a football question, not merely decorate the page.
+- Tables should support comparison and scanning.
+- Chart labels should be understandable without reading code.
+- Caveats should sit near the chart or table they affect.
+- Explorer pages should favor filters, compact cards, summaries, and drilldown
+  paths over raw database-style tables.
+- Top-level pages should use previews before full tables when the data is still
+  understandable clearly.
+
+## Page Templates
+
+### League Overview
+
+The first screen should present UPL Match Intelligence as a football data
+observatory, not a generic dashboard or fixtures site.
+
+It should lead with:
+
+- product positioning
+- season and data status
+- analytical summary cards
+- the current featured insight
+- visible trust and caveat context
+
+### Featured Insight Pages
+
+Use a reusable structure:
+
+- football question
+- headline finding
+- useful chart
+- short explanation
+- data note
+- drilldown where the data supports it
+
+Goal Timing is the current flagship example.
+
+### Explorer Pages
+
+Use:
+
+- moderate filters
+- compact summaries
+- compact ranked or grouped cards
+- drilldown paths instead of giant raw tables by default
+
+### Team Pages
+
+Team pages should be analytical summaries, not basic profiles.
+
+### Methodology And Data Notes
+
+Technical trust details belong on a dedicated page instead of crowding the
+overview. Explain source, data path, freshness, known limitations, and caveats
+in plain language.
 
 ## Anti-Patterns
 
-Avoid:
+Avoid these directions in this order:
 
-- generic AI SaaS dashboard look
-- purple gradient glassmorphism
-- betting-site aesthetics
-- Power BI or Tableau clone
-- developer portfolio landing page
-- raw database admin panel
-- notebook-export interface
-- overcrowded cards
-- overly empty decorative sections
-- excessive animation
-- visual effects that reduce trust or readability
+- too much like Tableau or Power BI
+- too much like a betting site
+- too much like a generic template dashboard
+- too developer-ish
+- too crowded
+- too empty
+- too playful
+- too corporate
 
-## Surface Adoption Map
+## Visual Acceptance Criteria
 
-League Overview:
+Every frontend redesign pass should be reviewed against these checks:
 
-- adopt the app shell, KPI system, goal timing preview, top teams, recent
-  results, and data status first
+- It feels like a real sports intelligence product.
+- It avoids generic AI dashboard aesthetics.
+- It uses desktop width properly without becoming visually crowded.
+- The most important numbers are easier to scan than before.
+- Green and gold accents are used intentionally and sparingly.
+- Cards and panels are visually distinct by purpose.
+- Mobile preserves the analysis workflow instead of merely shrinking desktop.
+- Caveats remain visible near the data they affect.
+- The implementation uses shared tokens and reusable patterns instead of
+  page-by-page styling drift.
 
-Goal Timing Explorer:
+## Update Rules
 
-- become the flagship heatmap-style insight page with question, finding,
-  heatmap, values, caveats, and drilldown
+Only add guidance here when one of these is true:
 
-Match Explorer:
+- a request in [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) was approved
+  and implemented
+- the user explicitly approved a frontend behavior or design decision
+- an existing implementation was accepted as the durable standard
 
-- use filters, compact match cards, result summaries, and future match detail
-  links
-
-Team Insights / Team Profile:
-
-- use top-five rankings, team cards, compact trend summaries, and later team
-  detail pages
-
-Discipline Dashboard:
-
-- wait for a promoted research feature before final UI; the visual system may
-  define the placeholder and future card/chart style
-
-Methodology / Data Notes:
-
-- use calmer secondary surfaces, clear source/freshness indicators, and visible
-  limitations without turning into a technical landing page
-
-## Implementation Checklist
-
-Before redesigning a page:
-
-- confirm the request is approved in `FRONTEND_UX_REQUESTS.md`
-- map visible data needs to existing FastAPI endpoints
-- propose backend/API changes separately if data is missing
-- define the mobile version first
-- use design tokens instead of page-specific hardcoded colors where practical
-- use reusable cards/panels before one-off page CSS
-- keep caveats near affected data
-- run `npm run build`
-- run a rendered browser check on mobile and desktop when code changes
-
-Recommended rollout:
-
-1. Design tokens and shell/component foundations.
-2. App shell redesign.
-3. League Overview.
-4. Goal Timing Explorer.
-5. Team Insights.
-6. Match Explorer.
-7. Discipline Dashboard after research promotion.
+Keep brainstorm notes and unapproved requests out of this file. Those belong in
+[FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md).

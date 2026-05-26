@@ -444,13 +444,12 @@ Before coding product-facing work, an AI agent should check:
 For frontend work, also check:
 
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
-- [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md)
+- [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
 
 For research promotion work, also check:
 
 - [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
-- [FEATURE_DATA_ACCESS.md](FEATURE_DATA_ACCESS.md)
-- [FEATURE_REGISTRY.md](FEATURE_REGISTRY.md)
+- the relevant feature folder under `notebooks/features/`
 
 Do not implement a product feature only because it is technically possible.
 Implement it because it advances the product promise:

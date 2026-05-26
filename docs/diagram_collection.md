@@ -9,8 +9,8 @@ code changes affect the architecture, major workflows, endpoints, database
 tables, or known gaps.
 
 Current planning home: use [START_HERE.md](START_HERE.md) for the four
-continuous development areas and [DOCUMENTATION_MAP.md](DOCUMENTATION_MAP.md)
-for the full documentation index.
+continuous development areas and [CHANGELOG.md](CHANGELOG.md) for concise
+recent-history context.
 
 ---
 
@@ -134,7 +134,7 @@ flowchart TD
         NB["📓 analysis.ipynb\nExploratory queries\nCharts · stats · hypotheses"]
         RB["📝 research_brief.md\nFootball question defined\nMetric definitions\nCaveats documented"]
         PP["📋 product_plan.md\nPromotion decision\nSQL design\nAPI shape\nReact UI plan"]
-        REG["📒 docs/FEATURE_REGISTRY.md\nLifecycle status:\nexperiment → promoted"]
+        REG["📒 docs/FEATURE_PROMOTION_WORKFLOW.md\nLifecycle + backlog\nexperiment → promoted"]
 
         NB --> RB --> PP --> REG
     end
@@ -172,7 +172,7 @@ flowchart TD
         direction TB
         CLIENT["api/client.ts\napiClient fetch() wrappers\nAPI_BASE_URL from .env"]
         HOOKS["hooks/\nuseDashboardData\nuseHashNavigation\nloadState: idle/loading/success/error"]
-        SHELL["App.tsx shell\nTopNavigation\nhash-based page switch"]
+        SHELL["App.tsx shell\nAppShell\nsidebar · top bar · bottom nav\nhash-based page switch"]
         PAGES["pages/\nOverview\nGoal Timing\nMatch Explorer\nTeam Insights\nMethodology"]
         COMPONENTS["components/\ncharts · common · matches\nnavigation · overview\nseason · teams"]
 
@@ -183,7 +183,7 @@ flowchart TD
     INS_EP -->|"JSON :8000"| CLIENT
     HEALTH -->|"JSON :8000"| CLIENT
 
-    NOTE6["ℹ️ Current behavior:\nHash navigation keeps the\nfrontend lightweight.\nA fuller router may be useful\nonce deep links and mature\ndetail pages grow."]
+    NOTE6["ℹ️ Current behavior:\nHash navigation keeps the\nfrontend lightweight.\nA fuller router may be useful\nonce deeper detail pages grow."]
     FRONTEND -.->|"operator note"| NOTE6
 
     %% ═══════════════════════════════

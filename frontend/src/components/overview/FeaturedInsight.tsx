@@ -1,8 +1,7 @@
 import type { GoalTimingInsightResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
-import { GoalTimingChart } from "../charts/GoalTimingChart";
+import { ChartLegend, GoalTimingHeatmap } from "../charts/ChartPrimitives";
 import { EmptyState } from "../common/EmptyState";
-import { KpiCard } from "../common/KpiCard";
 
 type FeaturedInsightProps = {
   goalTiming: GoalTimingInsightResponse | null;
@@ -11,8 +10,15 @@ type FeaturedInsightProps = {
 };
 
 export function FeaturedInsight({ goalTiming, loadState, onPageChange }: FeaturedInsightProps) {
+  const chartData =
+    goalTiming?.intervals.map((interval) => ({
+      color: interval.rank === 1 ? "#f5b82e" : "#16a34a",
+      label: interval.interval,
+      value: interval.goals,
+    })) ?? [];
+
   return (
-    <section className="featured-insight" aria-labelledby="featured-insight-title">
+    <section className="featured-insight overview-goal-card" aria-labelledby="featured-insight-title">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Featured insight</p>
@@ -28,14 +34,19 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
       </div>
 
       {goalTiming ? (
-        <div className="insight-layout">
-          <KpiCard
-            accent="gold"
-            label="Peak scoring window"
-            value={goalTiming.peak_interval ?? "Unavailable"}
-            detail={`${goalTiming.total_regular_time_goals.toLocaleString()} regular-time goals counted.`}
+        <div className="overview-goal-layout">
+          <div className="insight-stat">
+            <span>Peak scoring window</span>
+            <strong>{goalTiming.peak_interval ?? "Unavailable"}</strong>
+            <p>{goalTiming.total_regular_time_goals.toLocaleString()} regular-time goals counted.</p>
+          </div>
+          <GoalTimingHeatmap data={chartData} height={240} valueLabel="Goals" />
+          <ChartLegend
+            items={[
+              { color: "#16a34a", label: "Regular window" },
+              { color: "#f5b82e", label: "Peak window" },
+            ]}
           />
-          <GoalTimingChart goalTiming={goalTiming} />
           <p className="caveat">Data note: added-time goals are excluded from this period comparison.</p>
         </div>
       ) : (
