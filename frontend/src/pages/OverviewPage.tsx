@@ -13,14 +13,12 @@ import {
 } from "../components/overview/OverviewPanels";
 
 export function OverviewPage({
-  apiOnline,
   data,
   errorMessage,
   goalTiming,
   loadState,
   onPageChange,
   overview,
-  selectedSeason,
   selectedSeasonInfo,
 }: PageProps) {
   const initialLoading = loadState === "loading" && overview === null;
@@ -29,28 +27,33 @@ export function OverviewPage({
     {
       label: "Matches covered",
       value: overview?.match_count ?? selectedSeasonInfo?.match_count ?? data.matches.length,
-      detail: "Cleaned match records available for the selected season.",
+      detail: "Cleaned match records for this season.",
     },
     {
       label: "Timeline goals",
       value: overview?.timeline_goal_count ?? overview?.goal_count ?? 0,
-      detail: "Goals recorded from match event timelines.",
+      detail: "Goals from match event timelines.",
     },
     {
       label: "Teams tracked",
       value: overview?.team_count ?? selectedSeasonInfo?.team_count ?? data.teams.length,
-      detail: "Distinct clubs appearing in official match pages.",
+      detail: "Clubs in official match pages.",
     },
     {
       label: "Cards logged",
       value: overview ? overview.yellow_card_count + overview.red_card_count : 0,
-      detail: "Cards available for future discipline analysis.",
+      detail: "Cards ready for discipline analysis.",
     },
   ];
 
   const topTeams = useMemo(() => {
     return [...data.teams]
-      .sort((left, right) => right.wins - left.wins || right.goals_for - left.goals_for)
+      .sort((left, right) => {
+        const leftPoints = left.wins * 3 + left.draws;
+        const rightPoints = right.wins * 3 + right.draws;
+
+        return rightPoints - leftPoints || right.goals_for - left.goals_for;
+      })
       .slice(0, 5);
   }, [data.teams]);
 
@@ -69,21 +72,19 @@ export function OverviewPage({
   }
 
   return (
-    <>
-      <HeroSection
-        apiOnline={apiOnline}
-        selectedSeason={selectedSeason}
-        selectedSeasonInfo={selectedSeasonInfo}
-        overview={overview}
-        loadState={loadState}
-        onPageChange={onPageChange}
-      />
+    <div className="overview-page">
+      <HeroSection />
 
       {loadState === "error" ? <ErrorPanel errorMessage={errorMessage} /> : null}
 
-      <section className="metric-grid" aria-label="Selected season intelligence summary">
+      <section className="metric-grid overview-kpi-grid" aria-label="Selected season intelligence summary">
         {summaryCards.map((card, index) => (
-          <KpiCard key={card.label} {...card} accent={index === 1 ? "gold" : index === 2 ? "green" : "neutral"} />
+          <KpiCard
+            key={card.label}
+            {...card}
+            accent={index === 1 ? "gold" : index === 2 ? "green" : "neutral"}
+            variant="compact"
+          />
         ))}
       </section>
 
@@ -94,6 +95,6 @@ export function OverviewPage({
       </section>
 
       <ExplorePreview onPageChange={onPageChange} />
-    </>
+    </div>
   );
 }

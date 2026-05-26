@@ -13,6 +13,7 @@ type ChartPanelProps = {
   caveat?: ReactNode;
   chart?: ReactNode;
   children?: ReactNode;
+  className?: string;
   emptyMessage?: string;
   eyebrow?: string;
   isEmpty?: boolean;
@@ -116,6 +117,7 @@ export function ChartPanel({
   caveat,
   chart,
   children,
+  className,
   emptyMessage = "No chart data available yet.",
   eyebrow,
   isEmpty = false,
@@ -127,7 +129,7 @@ export function ChartPanel({
   const body = chart ?? children;
 
   return (
-    <section className="chart-panel">
+    <section className={className ? `chart-panel ${className}` : "chart-panel"}>
       <div className="surface-heading">
         <div>
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}

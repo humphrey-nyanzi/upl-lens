@@ -75,273 +75,643 @@ When asked to work on frontend improvements, an AI agent should:
    logic under `src/api/`.
 10. After implementation, move durable behavior into
     [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md), then compress this
-    file's implemented entry to one short note and remove the detailed description from active requests
+    file's implemented entry to one short note and remove the detailed
+    description from active requests.
 11. Run `npm run build` for frontend changes and any relevant backend or API
     verification if endpoints changed.
 
 ## Active Requests
 
+These requests translate the approved mockup direction into specific frontend
+work. The goal is one cohesive League Overview screen: compact, football-native,
+dashboard-like, readable on mobile, and powered only by existing FastAPI JSON
+unless a request explicitly says API work must be proposed separately.
 
-### Request: Build A Real Goal Timing Heatmap
+### Request: Establish Overview First-Viewport Contract
 
-Status: approved
+Status: implemented
 
-Area: charts, Goal Timing, visual identity
+Area: League Overview, layout, visual hierarchy
 
 Request:
 
-Replace the current Goal Timing chart alias with a real branded heatmap component that becomes the signature visualization of UPL Match Intelligence.
+Make the League Overview first viewport behave like the mockup: page header,
+KPI row, top of the Goal Timing preview, Top 5 Teams, and Recent Matches should
+all be visible or clearly beginning on standard desktop without requiring a long
+scroll.
 
 Why it matters:
 
-Goal Timing is the flagship insight. The current implementation uses a basic distribution bar chart, which does not match the approved mockup or the intended heatmap-led product identity.
+The current Overview has the right ingredients but still feels vertically
+stacked. The mockup feels like a control room because the user can understand the
+page's purpose in one scan.
 
 Implementation requirements:
 
-- Create a dedicated `GoalTimingHeatmap` component instead of wrapping `DistributionBarChart`.
-- Show each timing interval as a heatmap cell.
-- Use a green-to-gold intensity scale:
-  - low values: muted dark green
-  - medium values: football green
-  - high/peak values: lime/gold highlight
-- Clearly label the peak interval in text and visually.
-- Include interval labels such as `0–15`, `16–30`, `31–45`, `46–60`, `61–75`, `76–90`.
-- Include the value and percentage where space allows.
-- Provide an accessible value list fallback below or near the heatmap.
-- Keep the legend close to the chart.
-- Keep added-time caveat close to the chart.
-- Support dark and light mode tokens.
-- Avoid decorative fake heatmaps that do not reflect actual values.
+- Treat the Overview as a dashboard surface, not an article page.
+- Keep the page header compact and outside any oversized hero treatment.
+- Keep KPI cards shallow enough to support the main grid appearing quickly.
+- Ensure the main grid begins in the first viewport on desktop.
+- Reduce vertical gaps between header, KPI row, and main grid.
+- Keep Overview content width aligned with the top bar and sidebar shell.
+- Use existing `AppShell`, `HeroSection`, `KpiCard`, `FeaturedInsight`,
+  `TopFiveCard`, and `RecentMatchPanel` patterns where practical.
+- Do not hide important content below decorative spacing.
+
+Acceptance criteria:
+
+- On desktop, the user can see the page title, KPI row, and the start of the
+  Goal Timing/Top 5/Recent Matches area at once.
+- The Overview does not feel like a set of full-width sections stacked down the
+  page.
+- The first viewport communicates "UPL football intelligence workspace" before
+  the user scrolls.
 
 Data/API needs:
 
-Use the existing Goal Timing API data. No backend changes unless the current payload lacks percentage values needed for display.
+None. Use current overview, goal timing, teams, and matches data.
 
 Mobile/accessibility notes:
 
-On mobile, cells may stack into a 2-column or single-column layout if a full grid becomes unreadable. Do not rely on color alone; text values must remain available.
+Mobile may still scroll naturally, but the order must remain: compact header,
+KPIs, Goal Timing preview, Top 5 Teams, Recent Matches, insight strip.
 
 Out of scope:
 
-Do not redesign the whole Goal Timing page yet. This request only creates the reusable heatmap and updates current Goal Timing usages.
+Do not redesign Goal Timing Explorer, Match Explorer, Team Insights, or Data
+Notes as part of this request.
 
 Approval notes:
 
-Approved because the heatmap is the visual anchor of the target mockup and should be fixed before broader page redesign.
+Implemented after approval. The Overview page now has a scoped first-viewport
+layout wrapper, tighter header/KPI spacing, shallower KPI cards, and a more
+compact main grid so the dashboard modules begin sooner without changing API
+contracts or redesigning other pages.
 
-### Request: Redesign League Overview To Match Approved Dashboard Structure
+### Request: Convert Overview Header Into Compact Dashboard Header
 
-Status: approved
+Status: needs_review
 
-Area: League Overview, layout, dashboard composition
+Area: League Overview, header, page composition
 
 Request:
 
-Redesign only the League Overview page using the approved hybrid mockup structure after the shared surface system and real Goal Timing Heatmap are implemented.
+Replace any hero-like Overview header treatment with a compact dashboard header
+that matches the mockup: title, one short fan-facing subtitle, and no large
+status/coverage panel.
 
 Why it matters:
 
-League Overview is the first impression of the app. It should prove the visual direction before the same system is applied to other pages.
+The mockup gets to the analytical content quickly. A large hero makes the page
+feel like a landing page instead of a practical league workspace.
 
-Target desktop structure:
+Implementation requirements:
+
+- Keep `League Overview` as the main title.
+- Use one short sentence under the title.
+- Keep season selection in the top bar only.
+- Keep data status in the sidebar and Data Notes page.
+- Do not show coverage window or selected-season details prominently in the
+  Overview header.
+- Reduce header padding on desktop and mobile.
+- Keep the title visually strong but smaller than a marketing hero.
+- Remove decorative hero-only effects that do not help scanning.
+
+Acceptance criteria:
+
+- The header feels like the start of a dashboard, not a banner.
+- KPIs appear immediately after the header with minimal dead space.
+- The header does not duplicate information already shown in the top bar or
+  sidebar.
+
+Data/API needs:
+
+None.
+
+Mobile/accessibility notes:
+
+On mobile, the header should be short enough that the first KPI row begins early
+on the screen.
+
+Out of scope:
+
+Do not remove the Data Notes page or sidebar data status.
+
+Approval notes:
+
+Needs review. This is a prerequisite for the Overview density target.
+
+### Request: Rebuild KPI Row As Compact Football Scoreboard Cards
+
+Status: needs_review
+
+Area: League Overview, KPI cards, metric hierarchy
+
+Request:
+
+Refine the Overview KPI row so it reads like the mockup's compact sports
+scoreboard: four tight cards with a small icon/marker, football-native label,
+dominant value, and short trend/context line.
+
+Why it matters:
+
+The current KPI cards are accurate but still feel too tall and partly
+data-platform oriented. The mockup's KPIs are faster to scan and use less
+vertical space.
+
+Implementation requirements:
+
+- Use exactly four Overview KPI cards on desktop.
+- Keep all four cards in one row at desktop widths.
+- Use shorter fan-facing labels, for example:
+  - `Matches Played` or `Matches Covered`
+  - `Goals Scored` or `Recorded Goals`
+  - `Teams`
+  - `Cards Logged`
+- Avoid internal labels such as `Timeline goals` unless the wording is clearly
+  explained in the card context.
+- Put the primary number first visually.
+- Keep supporting text to one short line where possible.
+- Use icons or stable visual markers consistently; do not use random decorative
+  symbols.
+- Use green only for positive/status emphasis and gold only for the key/peak
+  card.
+- Keep card height close to the mockup's compact rhythm.
+
+Acceptance criteria:
+
+- KPIs are readable at a glance without making the first screen tall.
+- Card labels sound like football product language, not database language.
+- The row feels like one system, not four unrelated cards.
+
+Data/API needs:
+
+Use existing season overview data only.
+
+Mobile/accessibility notes:
+
+Mobile should use a readable two-column KPI grid. Values must not overflow or
+force horizontal scrolling.
+
+Out of scope:
+
+Do not add new metrics or backend endpoints.
+
+Approval notes:
+
+Needs review. Implement after the compact header so the top of the Overview
+matches the mockup rhythm.
+
+### Request: Create Compact Overview Goal Timing Heatmap Preview
+
+Status: needs_review
+
+Area: League Overview, Goal Timing preview, chart design
+
+Request:
+
+Create a compact Overview-specific Goal Timing preview that looks closer to the
+mockup's heatmap panel. The Overview preview should show the scoring pattern
+quickly, while the dedicated Goal Timing page can keep fuller values, caveats,
+and explanation.
+
+Why it matters:
+
+The current Overview heatmap is readable but behaves like a full Goal Timing
+Explorer embedded into the Overview. The mockup uses Goal Timing as a compact
+signature visual, not a long detailed chart section.
+
+Implementation requirements:
+
+- Keep the existing detailed `GoalTimingHeatmap` available for the Goal Timing
+  page.
+- Add or configure an Overview variant such as `GoalTimingHeatmapPreview`.
+- Use compact cells or a matrix-like chart treatment rather than large metric
+  tiles.
+- Keep the peak window visually gold/lime and labelled in nearby text.
+- Show enough labels to understand the timing intervals without creating a
+  long value table.
+- Keep legend close to the chart and visually small.
+- Hide, collapse, or shorten the full interval value list on Overview.
+- Keep added-time caveat visible but compact.
+- Make the Goal Timing panel the largest Overview panel, but not taller than the
+  combined side column without purpose.
+- Use design tokens for green/gold/neutral colors.
+
+Acceptance criteria:
+
+- Overview Goal Timing feels like a visual preview, not the full feature page.
+- The chart area is recognizable as a heatmap-style football signal.
+- The panel fits alongside Top 5 Teams and Recent Matches in a balanced desktop
+  grid.
+
+Data/API needs:
+
+Use the existing Goal Timing API payload. Do not add backend work.
+
+Mobile/accessibility notes:
+
+Mobile may use two-column cells or a simplified stacked layout. A readable value
+fallback must remain available near the chart or in the dedicated Goal Timing
+page.
+
+Out of scope:
+
+Do not redesign the full Goal Timing Explorer page in this request.
+
+Approval notes:
+
+Needs review. This is the highest-impact visual alignment item for the mockup.
+
+### Request: Make Overview Main Grid A Balanced Dashboard Band
+
+Status: needs_review
+
+Area: League Overview, grid composition
+
+Request:
+
+Refine the Overview main grid so Goal Timing, Top 5 Teams, and Recent Matches
+read as one coordinated dashboard band rather than separate stacked sections.
+
+Why it matters:
+
+The mockup feels cohesive because the three main panels share height, spacing,
+and alignment. The current version has the right panels, but the Goal Timing
+panel dominates vertical space and pushes supporting context too far down.
+
+Implementation requirements:
+
+- Use a desktop grid where Goal Timing takes the larger left area.
+- Stack Top 5 Teams and Recent Matches in the right column.
+- Align panel tops and keep right-column panels visually connected.
+- Set panel padding and internal gaps specifically for Overview density.
+- Avoid making the Goal Timing preview taller than the right column unless the
+  visual design clearly justifies it.
+- Keep the bottom insight strip close enough to feel like part of the Overview,
+  not a separate page section.
+- Avoid nested-card visual clutter inside panels.
+- Use reusable components, but allow Overview-specific compact variants.
+
+Acceptance criteria:
+
+- The main grid feels like one dashboard composition.
+- Top 5 Teams and Recent Matches are visible beside Goal Timing on desktop.
+- The user does not need to scroll through the entire heatmap detail before
+  seeing Recent Matches or the insight strip.
+
+Data/API needs:
+
+Use existing Overview, teams, matches, and Goal Timing data.
+
+Mobile/accessibility notes:
+
+Mobile order should remain: Goal Timing preview, Top 5 Teams, Recent Matches.
+The panels should stack cleanly with no horizontal overflow.
+
+Out of scope:
+
+Do not modify Match Explorer or Team Insights.
+
+Approval notes:
+
+Needs review. Implement after the compact Goal Timing preview is available.
+
+### Request: Turn Top 5 Teams Into A Sports-Native Ranking Module
+
+Status: needs_review
+
+Area: League Overview, rankings, football identity
+
+Request:
+
+Refine the Overview Top 5 Teams panel into a compact sports ranking module like
+the mockup: rank, team identity marker, team name, primary value, and optional
+short context.
+
+Why it matters:
+
+The current `TopFiveCard` is structurally useful, but the Overview ranking still
+feels generic. The mockup reads like a football table preview.
+
+Implementation requirements:
+
+- Keep `TopFiveCard` or a similar reusable ranking component.
+- Add a small team marker slot:
+  - team badge if available later
+  - stable initials or colored team chip if badges are not available
+- Show rank, marker, team name, and points/value in one compact row.
+- Keep context such as record/win rate secondary and short.
+- Highlight the leader subtly with gold or active surface treatment.
+- Add an optional action slot for `View full table` or `Compare teams`.
+- Keep row heights compact enough for all five teams to fit in the panel.
+- Avoid wide tables and repeated generic cards.
+
+Acceptance criteria:
+
+- The panel communicates "Top 5 Teams" in under two seconds.
+- Values align cleanly on the right.
+- The module feels football-native even without real club crest assets.
+
+Data/API needs:
+
+Use existing team data. Do not add player rankings or standings endpoints.
+
+Mobile/accessibility notes:
+
+Rows should wrap team names gracefully and preserve the right-aligned value. The
+rank and marker should not crowd the label on narrow screens.
+
+Out of scope:
+
+Do not build full standings, player rankings, or a team comparison feature.
+
+Approval notes:
+
+Needs review. This should be implemented before final Overview polish.
+
+### Request: Convert Recent Matches Into Compact Result Rows
+
+Status: needs_review
+
+Area: League Overview, recent results, match previews
+
+Request:
+
+Replace large Overview match cards with compact recent-result rows that match
+the mockup's "Recent Results" treatment: date/context, teams, scoreline, and
+result state in a tight scan-friendly format.
+
+Why it matters:
+
+Current match cards are readable but too large for the Overview side column.
+The mockup uses results as supporting evidence, not as full match cards.
+
+Implementation requirements:
+
+- Keep the larger `MatchRow` treatment available for Match Explorer if useful.
+- Create an Overview-specific compact result row or variant.
+- Show date or matchday in a small muted label.
+- Show both teams in a compact football-readable line.
+- Show scoreline as the strongest element on the right.
+- Show result state such as `Home win`, `Away win`, or `Draw` as compact
+  metadata.
+- Limit the number of rows so the panel height matches the Top 5 panel rhythm.
+- Add an optional `View all matches` action only if it links to Match Explorer.
+- Avoid multiline rows becoming tall unless team names genuinely require it.
+
+Acceptance criteria:
+
+- Recent Matches fits comfortably in the right column.
+- The scoreline is instantly visible.
+- The panel supports the Overview without competing with Goal Timing.
+
+Data/API needs:
+
+Use existing matches data only.
+
+Mobile/accessibility notes:
+
+Rows may stack scoreline below team names on very narrow screens, but they must
+not overflow horizontally.
+
+Out of scope:
+
+Do not build match detail pages or timelines.
+
+Approval notes:
+
+Needs review. This should be paired with the main grid refinement.
+
+### Request: Compress Insight Strip Into A True Dashboard Footer
+
+Status: needs_review
+
+Area: League Overview, insight strip, navigation
+
+Request:
+
+Refine the Overview insight strip so it behaves like the mockup's compact
+bottom band: three short insight/action cards plus one clear action, all visually
+connected to the main dashboard.
+
+Why it matters:
+
+The current insight strip is useful but too section-like. The mockup uses it as
+a slim continuation of the dashboard, not a new large content block.
+
+Implementation requirements:
+
+- Keep exactly three short insight/action items on Overview.
+- Use compact cards or rows with small icon/marker, title, and one short line.
+- Keep copy football-facing and action-oriented.
+- Keep the `View all insights` action visually aligned with the strip.
+- Reduce vertical padding and card height.
+- Avoid long paragraphs inside the strip.
+- Avoid making the strip visually heavier than the main grid.
+- Keep the strip close to the main grid.
+
+Acceptance criteria:
+
+- The strip reads as a quick next-step band.
+- It does not require a large scroll after Recent Matches.
+- It supports, rather than competes with, Goal Timing and Top 5 Teams.
+
+Data/API needs:
+
+None. Use current navigation actions and supported product areas.
+
+Mobile/accessibility notes:
+
+On mobile, the three items can stack, but each should remain short and tappable.
+
+Out of scope:
+
+Do not create new insight pages or unsupported features.
+
+Approval notes:
+
+Needs review. Implement after the main grid is balanced.
+
+### Request: Add Football-Native Visual Markers Without Fake Data
+
+Status: needs_review
+
+Area: visual identity, team markers, sports-native UI
+
+Request:
+
+Introduce restrained football-native visual markers across Overview modules so
+the page feels less like a generic dashboard and more like a UPL product, while
+avoiding fake logos or unsupported data.
+
+Why it matters:
+
+The mockup feels sports-native partly because rankings and results include team
+identity markers. The current app is credible but still visually generic in
+some list modules.
+
+Implementation requirements:
+
+- Add a reusable marker style for teams and match rows.
+- If real crest assets are unavailable, use stable initials, seeded color chips,
+  or small neutral badge placeholders.
+- Use markers in Top 5 Teams and Recent Matches first.
+- Keep markers small; they should aid scanning, not decorate the page.
+- Do not invent official crests.
+- Do not use random icons that change between renders.
+- Keep colors restrained and compatible with the dark sports palette.
+
+Acceptance criteria:
+
+- Team rows become easier to scan.
+- The Overview feels more football-specific without pretending to have assets
+  the project does not have.
+- Markers work in both desktop and mobile row layouts.
+
+Data/API needs:
+
+Use existing team names. No backend change unless later real crest URLs become
+available.
+
+Mobile/accessibility notes:
+
+Markers must not reduce label readability or tap target size. Text labels remain
+the source of meaning.
+
+Out of scope:
+
+Do not scrape or add club crest assets in this request.
+
+Approval notes:
+
+Needs review. This can be implemented alongside Top 5 and Recent Matches row
+work.
+
+### Request: Separate Overview Preview Detail From Explorer Detail
+
+Status: needs_review
+
+Area: information architecture, Overview, Goal Timing, Match Explorer
+
+Request:
+
+Create a clear rule in the frontend implementation: Overview modules should
+preview the most important signal, while dedicated pages should carry detailed
+values, caveats, filters, and explanations.
+
+Why it matters:
+
+The current Overview sometimes includes too much detail from deeper pages,
+especially around Goal Timing values and caveats. The mockup succeeds by
+showing enough to invite exploration without turning the Overview into the full
+analysis.
+
+Implementation requirements:
+
+- Audit Overview modules for details that belong on dedicated pages.
+- Keep the strongest number, visual, or row set on Overview.
+- Move longer value lists, long caveats, and interpretation text to the
+  dedicated page or Data Notes when appropriate.
+- Keep a compact caveat on Overview only when the caveat affects immediate
+  interpretation.
+- Provide action buttons into deeper pages where supported.
+- Do not remove trust information entirely.
+
+Acceptance criteria:
+
+- Overview feels scannable.
+- Dedicated pages remain the place for explanation and detail.
+- Caveats remain visible but no longer dominate preview modules.
+
+Data/API needs:
+
+None.
+
+Mobile/accessibility notes:
+
+Mobile users should see the key signal before long explanatory text.
+
+Out of scope:
+
+Do not remove caveats from the product. Reposition or shorten them.
+
+Approval notes:
+
+Needs review. This is a coordination request that should guide the Goal Timing,
+Recent Matches, and insight-strip refinements.
+
+### Request: Define Overview Mockup Acceptance Checklist
+
+Status: needs_review
+
+Area: QA, visual acceptance, implementation governance
+
+Request:
+
+Add a specific visual acceptance checklist for the League Overview mockup
+alignment so future implementation passes can be judged against the target
+instead of subjective "looks better" feedback.
+
+Why it matters:
+
+The project now has a clear mockup target. Implementation needs an explicit
+definition of done so agents do not overbuild individual components while
+missing the overall composition.
+
+Implementation requirements:
+
+- Add an Overview-specific checklist to the relevant docs after approval.
+- Require desktop screenshot review against the mockup.
+- Require mobile screenshot review at a common narrow width.
+- Check that first viewport contains header, KPIs, and start of main grid.
+- Check that Goal Timing preview is compact and visual.
+- Check that Top 5 and Recent Matches are visible beside Goal Timing on desktop.
+- Check that insight strip is compact.
+- Check that no panel uses fake unsupported data.
+- Check that React still reads FastAPI JSON only.
+
+Acceptance criteria:
+
+- A future agent can implement and verify Overview work without guessing what
+  "closer to the mockup" means.
+- The checklist focuses on composition, density, hierarchy, and product feel.
+
+Data/API needs:
+
+None.
+
+Mobile/accessibility notes:
+
+Checklist must include mobile layout and overflow review.
+
+Out of scope:
+
+Do not require pixel-perfect copying of the mockup.
+
+Approval notes:
+
+Needs review. This should be approved before the next major Overview
+implementation pass.
+
+## Recommended Implementation Order
+
+Use this order once requests are approved:
 
 ```text
-PageHero / League Status Panel
-KPI Row
-Main Dashboard Grid:
-  Large Goal Timing Heatmap / Featured Insight
-  Top 5 Teams
-  Recent Results
-Bottom Insight Strip:
-  3 short insight cards
-  View all insights action
+1. Define Overview Mockup Acceptance Checklist
+2. Establish Overview First-Viewport Contract
+3. Convert Overview Header Into Compact Dashboard Header
+4. Rebuild KPI Row As Compact Football Scoreboard Cards
+5. Create Compact Overview Goal Timing Heatmap Preview
+6. Make Overview Main Grid A Balanced Dashboard Band
+7. Turn Top 5 Teams Into A Sports-Native Ranking Module
+8. Convert Recent Matches Into Compact Result Rows
+9. Compress Insight Strip Into A True Dashboard Footer
+10. Add Football-Native Visual Markers Without Fake Data
+11. Separate Overview Preview Detail From Explorer Detail
+12. Run screenshot review against the mockup on desktop and mobile
 ```
-
-Implementation requirements:
-
-Use the available desktop width properly.
-Avoid a narrow centered article-column layout.
-Use a 2–3 column dashboard grid on desktop.
-Make Goal Timing the largest and most visually important panel.
-Place Top 5 Teams and Recent Results beside the main visual on desktop.
-Make KPI cards compact and strongly number-led.
-Add a bottom insight strip with short, football-readable insights.
-Use the refined surface hierarchy from the design system.
-Use reusable components, not page-specific one-off CSS.
-Preserve existing API data only.
-Do not add unsupported fake features.
-
-Data/API needs:
-
-Use existing overview, team, match, and goal timing data. If a desired insight is not supported by existing data, show only supported insights.
-
-Mobile/accessibility notes:
-
-Mobile order should be:
-
-page title/status
-KPI cards
-Goal Timing featured insight
-Top 5 Teams
-Recent Results
-insight strip/caveat
-
-Out of scope:
-
-Do not redesign Goal Timing Explorer, Match Explorer, Team Insights, or Data Notes in this request.
-
-Approval notes:
-
-Approved because this is the highest-impact page and should become the reference implementation for the rest of the frontend.
-
-
-### Request: Standardize Chart Panel Treatment
-
-Status: approved
-
-Area: charts, components, design system
-
-Request:
-
-Create a polished reusable `ChartPanel` treatment for all analytical charts, including title, subtitle, chart body, legend, caveat, loading, and empty states.
-
-Why it matters:
-
-Recharts has been added, but charts still need product-level presentation. Without standardized chart panels, visual drift will continue.
-
-Implementation requirements:
-
-- Create or refine a `ChartPanel` component with:
-  - eyebrow/section label
-  - title
-  - short explanation
-  - chart slot
-  - legend slot
-  - caveat slot
-  - optional action
-- Use consistent spacing around charts.
-- Use design tokens for colors, borders, radius, and text.
-- Tooltips should use the app’s dark/light theme.
-- Legends should be compact and near the chart.
-- Empty chart states should be calm and useful.
-- Avoid chart-specific CSS scattered across pages.
-
-Data/API needs:
-
-None.
-
-Mobile/accessibility notes:
-
-Chart panels must remain readable on mobile. If chart labels become unreadable, use simplified mobile labels or value lists.
-
-Out of scope:
-
-Do not add new chart types beyond current required primitives.
-
-Approval notes:
-
-Approved because the app now has a chart library but needs a consistent visual container system.
-
-### Request: Redesign Top Five And Ranking Previews
-
-Status: needs_review
-
-Area: rankings, Team Insights, League Overview
-
-Request:
-
-Create a reusable ranking preview pattern for top-five lists, then apply it first to League Overview and later to Team Insights.
-
-Why it matters:
-
-The target mockup uses rankings as a major sports-native pattern. Current lists still feel like plain rows rather than designed analytical previews.
-
-Implementation requirements:
-
-- Create a `RankingPreviewCard` or `TopFiveCard` component.
-- Each row should show:
-  - rank
-  - team/player label
-  - value
-  - optional context
-- Values should align cleanly.
-- Use compact visual hierarchy.
-- Add a clear “View full table” or “Compare teams” action only when useful.
-- Support green/gold accent for leader or selected metric.
-- Avoid wide tables where a top-five preview is better.
-
-Data/API needs:
-
-Use existing team data first.
-
-Mobile/accessibility notes:
-
-Ranking cards should be mobile-first and easier to read than tables.
-
-Out of scope:
-
-Do not build full standings, compare tools, or unsupported player rankings yet.
-
-Approval notes:
-
-Needs review after League Overview redesign confirms the pattern.
-
-### Request: Mobile Layout Polish Pass
-
-Status: needs_review
-
-Area: mobile UX, responsive design
-
-Request:
-
-After the League Overview desktop redesign is approved, run a dedicated mobile polish pass to make the app feel like a real mobile sports intelligence product.
-
-Why it matters:
-
-The approved mockup emphasizes mobile-first design. Mobile should not be a squeezed version of desktop.
-
-Implementation requirements:
-
-- Review all key pages at common mobile widths.
-- Ensure KPI cards are readable.
-- Ensure heatmap/chart labels remain readable.
-- Prefer top-five cards over wide tables.
-- Keep primary navigation reachable.
-- Keep caveats close to affected data.
-- Improve tap targets.
-- Avoid horizontal overflow.
-- Ensure text wraps cleanly.
-
-Data/API needs:
-
-None.
-
-Mobile/accessibility notes:
-
-This request is specifically about mobile UX.
-
-Out of scope:
-
-Do not add new data features.
-
-Approval notes:
-
-Needs review after League Overview and real heatmap are implemented.
-
-## Approved Implementation Queue
-
-1. Standardize Chart Panel Treatment
-2. Build A Real Goal Timing Heatmap
-3. Redesign League Overview To Match Approved Dashboard Structure
-4. Review screenshots against approved mockup
-5. Visual Cleanup Of App Shell And Navigation
-6. Redesign Top Five And Ranking Previews
-7. Mobile Layout Polish Pass
-8. Then move to Goal Timing Explorer redesign
-
-## Needs Review Queue
-
-
 
 ## Implemented Archive
 
@@ -373,8 +743,9 @@ Implemented entries stay intentionally short.
 
 ## Implementation Notes
 
-The current approved frontend pass is complete enough to reset this file to a
-planning state.
+The active requests above are intentionally written as design/build tickets.
+They should be approved individually or in a named implementation batch before
+code changes begin.
 
 Future frontend work should either:
 

@@ -27,7 +27,7 @@ export function GoalTimingPage({
 
       {goalTiming ? (
         <>
-          <section className="feature-story">
+          <section className="feature-story goal-timing-summary">
             <div>
               <p className="eyebrow">Main finding</p>
               <h2>Goals cluster most in the {goalTiming.peak_interval ?? "available"} window.</h2>
@@ -46,7 +46,7 @@ export function GoalTimingPage({
 
           <GoalTimingChart goalTiming={goalTiming} />
 
-          <section className="overview-grid">
+          <section className="overview-grid goal-timing-notes">
             <section className="panel">
               <div className="section-heading compact">
                 <div>

@@ -2,26 +2,30 @@ import type { MatchSummary, SeasonOverviewResponse, SeasonResponse, TeamResponse
 import type { LoadState, PageKey } from "../../app/types";
 import { formatDate } from "../../utils/format";
 import { EmptyState } from "../common/EmptyState";
+import { TopFiveCard, type TopFiveItem } from "../common/TopFiveCard";
 import { MatchRow } from "../matches/MatchRow";
-import { TeamCard } from "../teams/TeamCard";
 
 export function TeamSignalPanel({ teams, loadState }: { teams: TeamResponse[]; loadState: LoadState }) {
+  const rankingItems: TopFiveItem[] = teams.map((team) => {
+    const points = team.wins * 3 + team.draws;
+    const winRate = team.matches_played > 0 ? Math.round((team.wins / team.matches_played) * 100) : 0;
+
+    return {
+      context: `${team.wins}W ${team.draws}D ${team.losses}L - ${winRate}% wins`,
+      id: team.team_name,
+      label: team.team_name,
+      value: points,
+    };
+  });
+
   return (
-    <section className="panel">
-      <div className="section-heading compact">
-        <div>
-          <h2>Team trends</h2>
-          <p>Quick summaries from cleaned match records.</p>
-        </div>
-      </div>
-      <div className="team-list">
-        {teams.length > 0 ? (
-          teams.map((team) => <TeamCard key={team.team_name} team={team} />)
-        ) : (
-          <EmptyState message={loadState === "loading" ? "Loading team summaries." : "No team summaries returned yet."} />
-        )}
-      </div>
-    </section>
+    <TopFiveCard
+      emptyMessage={loadState === "loading" ? "Loading team rankings." : "No team rankings returned yet."}
+      eyebrow="Top 5 teams"
+      items={rankingItems}
+      title="League leaders"
+      valueLabel="By estimated points from cleaned team records."
+    />
   );
 }
 

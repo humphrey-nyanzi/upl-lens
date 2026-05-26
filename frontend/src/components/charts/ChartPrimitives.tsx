@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import {
   Bar,
   BarChart,
@@ -17,6 +17,8 @@ import { ChartPanel } from "../common/Surface";
 type ChartDatum = {
   color?: string;
   label: string;
+  rank?: number | null;
+  share?: number;
   value: number;
 };
 
@@ -48,6 +50,7 @@ type ChartCardProps = {
   caveat?: ReactNode;
   chart?: ReactNode;
   children?: ReactNode;
+  className?: string;
   emptyMessage?: string;
   eyebrow?: string;
   isEmpty?: boolean;
@@ -75,11 +78,12 @@ type TrendLineChartProps = {
 };
 
 const chartColors = {
-  axis: "#7f8d99",
-  grid: "rgba(169, 182, 191, 0.16)",
-  green: "#16a34a",
-  gold: "#f5b82e",
-  line: "#9bd44a",
+  axis: "var(--color-text-muted)",
+  gold: "var(--color-accent-gold)",
+  green: "var(--color-accent-green)",
+  grid: "rgba(169, 182, 191, 0.13)",
+  line: "var(--color-accent-lime)",
+  tooltipCursor: "rgba(169, 182, 191, 0.075)",
 };
 
 export function InsightChartCard({
@@ -87,6 +91,7 @@ export function InsightChartCard({
   caveat,
   chart,
   children,
+  className,
   emptyMessage,
   eyebrow,
   isEmpty,
@@ -100,6 +105,7 @@ export function InsightChartCard({
       action={action}
       caveat={caveat}
       chart={chart ?? children}
+      className={className}
       emptyMessage={emptyMessage}
       eyebrow={eyebrow}
       isEmpty={isEmpty}
@@ -178,7 +184,7 @@ export function RankingBarChart({ data, height, valueLabel = "Value" }: BarChart
           type="category"
           width={72}
         />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(169, 182, 191, 0.08)" }} />
+        <Tooltip content={<ChartTooltip />} cursor={{ fill: chartColors.tooltipCursor }} />
         <Bar dataKey="value" name={valueLabel} radius={[0, 5, 5, 0]}>
           {data.map((item) => (
             <Cell fill={item.color ?? chartColors.green} key={item.label} />
@@ -204,7 +210,7 @@ export function DistributionBarChart({ data, height, valueLabel = "Value" }: Bar
           tickLine={false}
         />
         <YAxis axisLine={false} tick={{ fill: chartColors.axis, fontSize: 11 }} tickLine={false} />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(169, 182, 191, 0.08)" }} />
+        <Tooltip content={<ChartTooltip />} cursor={{ fill: chartColors.tooltipCursor }} />
         <Bar dataKey="value" name={valueLabel} radius={[5, 5, 0, 0]}>
           {data.map((item) => (
             <Cell fill={item.color ?? chartColors.green} key={item.label} />
@@ -242,5 +248,30 @@ export function TrendLineChart({ data, height, valueLabel = "Value" }: TrendLine
 export function GoalTimingHeatmap({ data, height, valueLabel = "Goals" }: BarChartProps) {
   if (data.length === 0) return <ChartEmptyState message="No regular-time goal timing data available yet." />;
 
-  return <DistributionBarChart data={data} height={height} valueLabel={valueLabel} />;
+  const maxValue = Math.max(...data.map((item) => item.value), 1);
+
+  return (
+    <div className="goal-heatmap" role="list" style={{ "--heatmap-min-height": `${height ?? 240}px` } as CSSProperties}>
+      {data.map((item) => {
+        const intensity = item.value / maxValue;
+        const isPeak = item.rank === 1 || item.value === maxValue;
+
+        return (
+          <div
+            className={isPeak ? "goal-heatmap-cell peak" : "goal-heatmap-cell"}
+            key={item.label}
+            role="listitem"
+            style={{ "--heat": intensity.toFixed(3) } as CSSProperties}
+          >
+            <span>{item.label}</span>
+            <strong>{item.value.toLocaleString()}</strong>
+            <small>
+              {item.share !== undefined ? `${Math.round(item.share * 100)}%` : valueLabel}
+              {isPeak ? " peak" : ""}
+            </small>
+          </div>
+        );
+      })}
+    </div>
+  );
 }

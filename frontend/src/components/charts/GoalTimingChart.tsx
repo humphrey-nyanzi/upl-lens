@@ -5,8 +5,10 @@ import { ChartLegend, GoalTimingHeatmap, InsightChartCard } from "./ChartPrimiti
 export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightResponse }) {
   const maxGoals = Math.max(...goalTiming.intervals.map((interval) => interval.goals), 1);
   const chartData = goalTiming.intervals.map((interval) => ({
-    color: interval.rank === 1 ? "#f5b82e" : "#16a34a",
+    color: interval.rank === 1 ? "var(--color-accent-gold)" : "var(--color-accent-green)",
     label: interval.interval,
+    rank: interval.rank,
+    share: interval.share,
     value: interval.goals,
   }));
 
@@ -28,13 +30,13 @@ export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightR
           </p>
         </>
       }
-      chart={<GoalTimingHeatmap data={chartData} height={300} valueLabel="Goals" />}
+      chart={<GoalTimingHeatmap data={chartData} height={252} valueLabel="Goals" />}
       eyebrow="Explore the timing"
       legend={
         <ChartLegend
           items={[
-            { color: "#16a34a", label: "Regular scoring window" },
-            { color: "#f5b82e", label: "Peak scoring window" },
+            { color: "var(--color-accent-green)", label: "Regular scoring window" },
+            { color: "var(--color-accent-gold)", label: "Peak scoring window" },
           ]}
         />
       }
