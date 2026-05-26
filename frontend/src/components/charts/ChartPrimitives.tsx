@@ -44,8 +44,15 @@ type ChartShellProps = {
 };
 
 type ChartCardProps = {
-  children: ReactNode;
+  action?: ReactNode;
+  caveat?: ReactNode;
+  chart?: ReactNode;
+  children?: ReactNode;
+  emptyMessage?: string;
   eyebrow?: string;
+  isEmpty?: boolean;
+  isLoading?: boolean;
+  legend?: ReactNode;
   text?: string;
   title: string;
 };
@@ -75,11 +82,32 @@ const chartColors = {
   line: "#9bd44a",
 };
 
-export function InsightChartCard({ children, eyebrow, text, title }: ChartCardProps) {
+export function InsightChartCard({
+  action,
+  caveat,
+  chart,
+  children,
+  emptyMessage,
+  eyebrow,
+  isEmpty,
+  isLoading,
+  legend,
+  text,
+  title,
+}: ChartCardProps) {
   return (
-    <ChartPanel eyebrow={eyebrow} text={text} title={title}>
-      {children}
-    </ChartPanel>
+    <ChartPanel
+      action={action}
+      caveat={caveat}
+      chart={chart ?? children}
+      emptyMessage={emptyMessage}
+      eyebrow={eyebrow}
+      isEmpty={isEmpty}
+      isLoading={isLoading}
+      legend={legend}
+      text={text}
+      title={title}
+    />
   );
 }
 
@@ -108,6 +136,9 @@ export function ChartTooltip({ active, label, payload }: ChartTooltipProps) {
       <strong>{label}</strong>
       {payload.map((item) => (
         <span key={`${item.name ?? "value"}-${item.value}`}>
+          {item.color ? (
+            <i aria-hidden="true" className="chart-tooltip-marker" style={{ backgroundColor: item.color }} />
+          ) : null}
           {item.name ?? "Value"}: {typeof item.value === "number" ? item.value.toLocaleString() : item.value}
         </span>
       ))}

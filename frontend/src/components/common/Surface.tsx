@@ -8,6 +8,20 @@ type SurfaceProps = {
   title?: string;
 };
 
+type ChartPanelProps = {
+  action?: ReactNode;
+  caveat?: ReactNode;
+  chart?: ReactNode;
+  children?: ReactNode;
+  emptyMessage?: string;
+  eyebrow?: string;
+  isEmpty?: boolean;
+  isLoading?: boolean;
+  legend?: ReactNode;
+  text?: string;
+  title?: string;
+};
+
 type InsightCardProps = {
   action?: ReactNode;
   metric?: ReactNode;
@@ -97,7 +111,21 @@ export function RankingCard({ action, children, subtitle, title }: RankingCardPr
   );
 }
 
-export function ChartPanel({ action, children, eyebrow, text, title }: SurfaceProps) {
+export function ChartPanel({
+  action,
+  caveat,
+  chart,
+  children,
+  emptyMessage = "No chart data available yet.",
+  eyebrow,
+  isEmpty = false,
+  isLoading = false,
+  legend,
+  text,
+  title,
+}: ChartPanelProps) {
+  const body = chart ?? children;
+
   return (
     <section className="chart-panel">
       <div className="surface-heading">
@@ -108,7 +136,13 @@ export function ChartPanel({ action, children, eyebrow, text, title }: SurfacePr
         </div>
         {action}
       </div>
-      {children}
+      <div className="chart-panel-body" aria-busy={isLoading || undefined}>
+        {isLoading ? <div className="chart-loading-state">Loading chart data...</div> : null}
+        {!isLoading && isEmpty ? <div className="chart-empty-state">{emptyMessage}</div> : null}
+        {!isLoading && !isEmpty ? body : null}
+      </div>
+      {legend ? <div className="chart-panel-legend">{legend}</div> : null}
+      {caveat ? <div className="chart-panel-caveat">{caveat}</div> : null}
     </section>
   );
 }

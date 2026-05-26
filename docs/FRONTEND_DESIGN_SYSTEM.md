@@ -280,6 +280,9 @@ Approved decisions:
 
 - Headline numbers should be visually dominant.
 - Metric cards should prioritize the number, then a short context line.
+- `KpiCard` is the shared component for headline metric cards. It supports
+  label, value, context/detail text, optional trend/meta text, optional icon,
+  neutral/green/gold/risk accents, and default/featured/compact variants.
 - Page titles should be strong and clear without becoming oversized.
 - Section labels should remain small, uppercase, and muted.
 - Every major number should carry context, trend, rank, or caveat.
@@ -289,13 +292,15 @@ Approved decisions:
 
 Approved decisions:
 
-- Use a restrained radius, currently around `5px-6px`, for cards, panels,
-  controls, and data surfaces.
-- Cards should have softer corners than the old prototype, but not playful UI
-  rounding.
+- Use a restrained but more polished radius scale: `6px` controls, `10px` KPI
+  cards, `12px` panels, and `14px` large featured surfaces.
+- Shared surface variants are `surface-flat`, `surface-card`,
+  `surface-panel`, `surface-featured`, `surface-muted`, and `surface-active`.
 - Use subtle depth instead of heavy shadows.
 - Panels should not all look identical; hierarchy should come from surface tone,
   size, and information density.
+- Data-heavy surfaces should stay mostly solid for readability. Avoid heavy
+  glow, strong blur, neon borders, and generic glassmorphism.
 
 ## Component System
 
