@@ -1,11 +1,12 @@
 import type { GoalTimingInsightResponse } from "../../api/types";
 import { formatPercent } from "../../utils/format";
-import { ChartLegend, GoalTimingHeatmap, InsightChartCard } from "./ChartPrimitives";
+import { ChartLegend, DistributionBarChart, InsightChartCard } from "./ChartPrimitives";
 
 export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightResponse }) {
   const maxGoals = Math.max(...goalTiming.intervals.map((interval) => interval.goals), 1);
+  const peakInterval = goalTiming.intervals.find((interval) => interval.rank === 1);
   const chartData = goalTiming.intervals.map((interval) => ({
-    color: interval.rank === 1 ? "var(--color-accent-gold)" : "var(--color-accent-green)",
+    color: interval.rank === 1 ? "var(--color-accent-gold)" : "var(--color-accent-green-muted)",
     label: interval.interval,
     rank: interval.rank,
     share: interval.share,
@@ -30,18 +31,31 @@ export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightR
           </p>
         </>
       }
-      chart={<GoalTimingHeatmap data={chartData} height={252} valueLabel="Goals" />}
+      chart={
+        <div className="goal-distribution-chart">
+          {peakInterval ? (
+            <div className="chart-peak-note" aria-label="Peak scoring window">
+              <span>Peak</span>
+              <strong>{peakInterval.interval}</strong>
+              <small>
+                {peakInterval.goals.toLocaleString()} goals, {formatPercent(peakInterval.share)}
+              </small>
+            </div>
+          ) : null}
+          <DistributionBarChart data={chartData} height={224} valueLabel="Goals" />
+        </div>
+      }
       eyebrow="Explore the timing"
       legend={
         <ChartLegend
           items={[
-            { color: "var(--color-accent-green)", label: "Regular scoring window" },
+            { color: "var(--color-accent-green-muted)", label: "Regular scoring window" },
             { color: "var(--color-accent-gold)", label: "Peak scoring window" },
           ]}
         />
       }
       text="Compare each 15-minute regular-time window and keep the peak period visible in both the chart and the text values."
-      title="Regular-time goals by 15-minute period"
+      title="Goal timing distribution"
     />
   );
 }

@@ -11,3 +11,4 @@
 \i migrations/004_add_staging_match_flags.sql
 \i migrations/005_add_staging_source_anomaly_flags.sql
 \i migrations/006_create_analytics_team_season_summary.sql
+\i migrations/007_repair_analytics_team_season_summary.sql

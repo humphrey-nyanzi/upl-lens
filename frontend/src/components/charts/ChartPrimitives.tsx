@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
   Bar,
   BarChart,
@@ -13,6 +13,7 @@ import {
 } from "recharts";
 
 import { ChartPanel } from "../common/Surface";
+import { formatPercent } from "../../utils/format";
 
 type ChartDatum = {
   color?: string;
@@ -146,6 +147,7 @@ export function ChartTooltip({ active, label, payload }: ChartTooltipProps) {
             <i aria-hidden="true" className="chart-tooltip-marker" style={{ backgroundColor: item.color }} />
           ) : null}
           {item.name ?? "Value"}: {typeof item.value === "number" ? item.value.toLocaleString() : item.value}
+          {typeof item.payload?.share === "number" ? ` · ${formatPercent(item.payload.share)}` : ""}
         </span>
       ))}
     </div>
@@ -200,8 +202,8 @@ export function DistributionBarChart({ data, height, valueLabel = "Value" }: Bar
 
   return (
     <ChartShell height={height}>
-      <BarChart data={data} margin={{ bottom: 2, left: -22, right: 4, top: 10 }}>
-        <CartesianGrid stroke={chartColors.grid} vertical={false} />
+      <BarChart data={data} margin={{ bottom: 0, left: -24, right: 4, top: 12 }}>
+        <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 6" vertical={false} />
         <XAxis
           axisLine={false}
           dataKey="label"
@@ -211,7 +213,7 @@ export function DistributionBarChart({ data, height, valueLabel = "Value" }: Bar
         />
         <YAxis axisLine={false} tick={{ fill: chartColors.axis, fontSize: 11 }} tickLine={false} />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: chartColors.tooltipCursor }} />
-        <Bar dataKey="value" name={valueLabel} radius={[5, 5, 0, 0]}>
+        <Bar barSize={28} dataKey="value" maxBarSize={42} name={valueLabel} radius={[8, 8, 2, 2]}>
           {data.map((item) => (
             <Cell fill={item.color ?? chartColors.green} key={item.label} />
           ))}
@@ -242,66 +244,5 @@ export function TrendLineChart({ data, height, valueLabel = "Value" }: TrendLine
         />
       </LineChart>
     </ChartShell>
-  );
-}
-
-export function GoalTimingHeatmap({ data, height, valueLabel = "Goals" }: BarChartProps) {
-  if (data.length === 0) return <ChartEmptyState message="No regular-time goal timing data available yet." />;
-
-  const maxValue = Math.max(...data.map((item) => item.value), 1);
-
-  return (
-    <div className="goal-heatmap" role="list" style={{ "--heatmap-min-height": `${height ?? 240}px` } as CSSProperties}>
-      {data.map((item) => {
-        const intensity = item.value / maxValue;
-        const isPeak = item.rank === 1 || item.value === maxValue;
-
-        return (
-          <div
-            className={isPeak ? "goal-heatmap-cell peak" : "goal-heatmap-cell"}
-            key={item.label}
-            role="listitem"
-            style={{ "--heat": intensity.toFixed(3) } as CSSProperties}
-          >
-            <span>{item.label}</span>
-            <strong>{item.value.toLocaleString()}</strong>
-            <small>
-              {item.share !== undefined ? `${Math.round(item.share * 100)}%` : valueLabel}
-              {isPeak ? " peak" : ""}
-            </small>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export function GoalTimingHeatmapPreview({ data, valueLabel = "Goals" }: BarChartProps) {
-  if (data.length === 0) return <ChartEmptyState message="No regular-time goal timing data available yet." />;
-
-  const maxValue = Math.max(...data.map((item) => item.value), 1);
-
-  return (
-    <div className="goal-heatmap-preview" role="list" aria-label="Compact regular-time goal timing heatmap">
-      {data.map((item) => {
-        const intensity = item.value / maxValue;
-        const isPeak = item.rank === 1 || item.value === maxValue;
-
-        return (
-          <div
-            className={isPeak ? "goal-heatmap-preview-cell peak" : "goal-heatmap-preview-cell"}
-            key={item.label}
-            role="listitem"
-            aria-label={`${item.label}: ${item.value.toLocaleString()} ${valueLabel.toLowerCase()}${
-              item.share !== undefined ? `, ${Math.round(item.share * 100)} percent` : ""
-            }${isPeak ? ", peak window" : ""}`}
-            style={{ "--heat": intensity.toFixed(3) } as CSSProperties}
-          >
-            <span>{item.label}</span>
-            {isPeak ? <strong>Peak</strong> : null}
-          </div>
-        );
-      })}
-    </div>
   );
 }

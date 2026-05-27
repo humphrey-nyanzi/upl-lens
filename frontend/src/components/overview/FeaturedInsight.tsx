@@ -1,7 +1,7 @@
 import type { GoalTimingInsightResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
 import { formatPercent } from "../../utils/format";
-import { ChartLegend, GoalTimingHeatmapPreview, InsightChartCard } from "../charts/ChartPrimitives";
+import { ChartLegend, DistributionBarChart, InsightChartCard } from "../charts/ChartPrimitives";
 
 type FeaturedInsightProps = {
   goalTiming: GoalTimingInsightResponse | null;
@@ -12,7 +12,7 @@ type FeaturedInsightProps = {
 export function FeaturedInsight({ goalTiming, loadState, onPageChange }: FeaturedInsightProps) {
   const chartData =
     goalTiming?.intervals.map((interval) => ({
-      color: interval.rank === 1 ? "var(--color-accent-gold)" : "var(--color-accent-green)",
+      color: interval.rank === 1 ? "var(--color-accent-gold)" : "var(--color-accent-green-muted)",
       label: interval.interval,
       rank: interval.rank,
       share: interval.share,
@@ -42,7 +42,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
               <strong>{goalTiming.peak_interval ?? "Unavailable"}</strong>
               {peakInterval ? <small>{peakInterval.goals.toLocaleString()} goals, {formatPercent(peakInterval.share)}</small> : null}
             </div>
-            <GoalTimingHeatmapPreview data={chartData} valueLabel="Goals" />
+            <DistributionBarChart data={chartData} height={156} valueLabel="Goals" />
           </div>
         ) : null
       }
@@ -55,14 +55,14 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
         goalTiming ? (
           <ChartLegend
             items={[
-              { color: "var(--color-accent-green)", label: "Regular window" },
+              { color: "var(--color-accent-green-muted)", label: "Regular window" },
               { color: "var(--color-accent-gold)", label: "Peak window" },
             ]}
           />
         ) : null
       }
-      text="Heatmap preview of the strongest regular-time scoring windows."
-      title="Goal timing heatmap"
+      text="Compact distribution preview of regular-time scoring windows."
+      title="Goal timing distribution"
     />
   );
 }

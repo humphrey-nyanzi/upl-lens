@@ -84,6 +84,7 @@ def test_schema_sql_includes_team_season_summary_migration() -> None:
     schema_sql = (PROJECT_ROOT / "database" / "schema.sql").read_text(encoding="utf-8")
 
     assert r"\i migrations/006_create_analytics_team_season_summary.sql" in schema_sql
+    assert r"\i migrations/007_repair_analytics_team_season_summary.sql" in schema_sql
 
 
 def test_actions_loader_can_refresh_analytics_tables() -> None:
@@ -114,4 +115,4 @@ def test_staging_rebuild_refreshes_team_analytics_summary() -> None:
         encoding="utf-8"
     )
 
-    assert "SELECT analytics.refresh_team_season_summary(:seasons)" in analytics_py
+    assert "SELECT analytics.refresh_team_season_summary(CAST(:seasons AS TEXT[]))" in analytics_py

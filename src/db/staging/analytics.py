@@ -21,7 +21,7 @@ def _refresh_team_season_summary(
     if progress:
         progress("Refreshing analytics.team_season_summary")
     connection.execute(
-        text("SELECT analytics.refresh_team_season_summary(:seasons)"),
+        text("SELECT analytics.refresh_team_season_summary(CAST(:seasons AS TEXT[]))"),
         {"seasons": seasons},
     )
     if progress:

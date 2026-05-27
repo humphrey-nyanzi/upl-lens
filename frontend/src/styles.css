@@ -1020,92 +1020,42 @@ p {
   font-weight: 850;
 }
 
-.goal-heatmap {
+.goal-distribution-chart {
   display: grid;
-  min-height: var(--heatmap-min-height);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
-.goal-heatmap-cell {
+.chart-peak-note {
   display: grid;
-  min-height: 92px;
-  align-content: space-between;
-  gap: 8px;
-  border: 1px solid rgba(169, 182, 191, calc(0.12 + (var(--heat) * 0.12)));
-  border-radius: var(--radius-kpi);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(22, 163, 74, calc(0.16 + (var(--heat) * 0.38))),
-      rgba(245, 184, 46, calc(var(--heat) * 0.22))
-    ),
-    rgba(255, 255, 255, 0.035);
-  padding: 11px;
-}
-
-.goal-heatmap-cell.peak {
-  border-color: rgba(245, 184, 46, 0.74);
-  box-shadow: inset 0 0 0 1px rgba(245, 184, 46, 0.18);
-}
-
-.goal-heatmap-cell span,
-.goal-heatmap-cell small {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.goal-heatmap-cell strong {
-  color: var(--color-text-primary);
-  font-size: 28px;
-  line-height: 1;
-}
-
-.goal-heatmap-preview {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 5px;
-}
-
-.goal-heatmap-preview-cell {
-  display: flex;
-  min-height: 56px;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(169, 182, 191, calc(0.12 + (var(--heat) * 0.12)));
-  border-radius: 12px;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid rgba(245, 184, 46, 0.3);
+  border-radius: 999px;
   background:
-    linear-gradient(
-      180deg,
-      rgba(22, 163, 74, calc(0.1 + (var(--heat) * 0.44))),
-      rgba(245, 184, 46, calc(var(--heat) * 0.2))
-    ),
-    rgba(255, 255, 255, 0.025);
-  padding: 8px;
-  position: relative;
+    linear-gradient(90deg, rgba(245, 184, 46, 0.14), rgba(22, 163, 74, 0.055)),
+    rgba(255, 255, 255, 0.026);
+  padding: 6px 10px;
 }
 
-.goal-heatmap-preview-cell.peak {
-  border-color: rgba(245, 184, 46, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(245, 184, 46, 0.2);
-}
-
-.goal-heatmap-preview-cell span {
+.chart-peak-note span,
+.chart-peak-note small {
   color: var(--color-text-secondary);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
-  line-height: 1.15;
 }
 
-.goal-heatmap-preview-cell strong {
-  position: absolute;
-  right: 6px;
-  bottom: 5px;
+.chart-peak-note span {
   color: var(--color-accent-gold);
-  font-size: 9px;
-  line-height: 1;
   text-transform: uppercase;
+}
+
+.chart-peak-note strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 1;
 }
 
 .chart-legend,
@@ -1637,11 +1587,6 @@ p {
     padding: 10px;
   }
 
-  .goal-heatmap {
-    min-height: auto;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .overview-goal-context,
   .overview-goal-peek {
     display: grid;
@@ -1656,31 +1601,16 @@ p {
     grid-column: 1 / -1;
   }
 
-  .goal-heatmap-preview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .chart-peak-note {
+    grid-template-columns: max-content minmax(0, 1fr);
+    width: 100%;
+    border-radius: var(--radius-control);
   }
 
-  .goal-heatmap-preview-cell {
-    min-height: 52px;
-    padding: 8px;
+  .chart-peak-note small {
+    grid-column: 1 / -1;
   }
 
-  .goal-heatmap-preview-cell strong {
-    font-size: 9px;
-  }
-
-  .goal-heatmap-cell {
-    min-height: 76px;
-    gap: 6px;
-    padding: 9px;
-  }
-
-  .goal-heatmap-cell strong {
-    font-size: 23px;
-  }
-
-  .goal-heatmap-cell span,
-  .goal-heatmap-cell small,
   .chart-legend span,
   .chart-value-list span {
     font-size: 11px;
@@ -1841,10 +1771,6 @@ p {
   .insight-layout {
     grid-template-columns: minmax(190px, 0.35fr) minmax(0, 1fr);
     align-items: start;
-  }
-
-  .goal-heatmap {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .caveat {
@@ -2089,39 +2015,6 @@ p {
     padding: 7px 9px;
   }
 
-  .overview-main-grid .goal-heatmap-preview {
-    gap: 5px;
-  }
-
-  .overview-main-grid .goal-heatmap-preview-cell {
-    min-height: 50px;
-    padding: 7px;
-  }
-
-  .overview-main-grid .goal-heatmap-preview-cell strong {
-    font-size: 9px;
-  }
-
-  .overview-main-grid .goal-heatmap-preview-cell span {
-    font-size: 10px;
-  }
-
-  .overview-main-grid .goal-heatmap {
-    min-height: 176px;
-  }
-
-  .overview-main-grid .goal-heatmap-cell {
-    min-height: 56px;
-    gap: 5px;
-    padding: 8px;
-  }
-
-  .overview-main-grid .goal-heatmap-cell strong {
-    font-size: 20px;
-  }
-
-  .overview-main-grid .goal-heatmap-cell span,
-  .overview-main-grid .goal-heatmap-cell small,
   .overview-main-grid .chart-value-list span {
     font-size: 11px;
   }
