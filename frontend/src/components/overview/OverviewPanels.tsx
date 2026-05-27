@@ -2,6 +2,7 @@ import type { MatchSummary, SeasonOverviewResponse, SeasonResponse, TeamResponse
 import type { LoadState, PageKey } from "../../app/types";
 import { formatDate, matchStatus } from "../../utils/format";
 import { EmptyState } from "../common/EmptyState";
+import { TeamMarker } from "../common/TeamMarker";
 import { TopFiveCard, type TopFiveItem } from "../common/TopFiveCard";
 
 export function TeamSignalPanel({
@@ -16,19 +17,11 @@ export function TeamSignalPanel({
   const rankingItems: TopFiveItem[] = teams.map((team) => {
     const points = team.wins * 3 + team.draws;
     const winRate = team.matches_played > 0 ? Math.round((team.wins / team.matches_played) * 100) : 0;
-    const marker = team.team_name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase();
 
     return {
       context: `${team.wins}W ${team.draws}D ${team.losses}L - ${winRate}% wins`,
       id: team.team_name,
       label: team.team_name,
-      marker,
       value: points,
     };
   });
@@ -139,8 +132,16 @@ function CompactResultRow({ match }: { match: MatchSummary }) {
           {formatDate(match.match_date)}
           {match.match_day ? ` · Matchday ${match.match_day}` : ""}
         </span>
-        <strong>
-          {match.home_team ?? "Home team TBC"} vs {match.away_team ?? "Away team TBC"}
+        <strong className="compact-result-fixture">
+          <span className="compact-result-team">
+            <TeamMarker label={match.home_team} size="small" />
+            <span>{match.home_team ?? "Home team TBC"}</span>
+          </span>
+          <span className="compact-result-separator">vs</span>
+          <span className="compact-result-team">
+            <TeamMarker label={match.away_team} size="small" />
+            <span>{match.away_team ?? "Away team TBC"}</span>
+          </span>
         </strong>
       </div>
       <div className="compact-result-score">

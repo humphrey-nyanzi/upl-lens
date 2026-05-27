@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { TeamMarker } from "./TeamMarker";
+
 export type TopFiveItem = {
   context?: string;
   id: string;
@@ -16,23 +18,6 @@ type TopFiveCardProps = {
   title: string;
   valueLabel?: string;
 };
-
-function getInitials(label: string) {
-  return label
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
-function getStableMarkerTone(label: string) {
-  const toneCount = 5;
-  const hash = Array.from(label).reduce((total, character) => total + character.charCodeAt(0), 0);
-
-  return (hash % toneCount) + 1;
-}
 
 export function TopFiveCard({
   action,
@@ -55,15 +40,10 @@ export function TopFiveCard({
       {items.length > 0 ? (
         <ol className="top-five-list">
           {items.slice(0, 5).map((item, index) => {
-            const marker = item.marker ?? getInitials(item.label);
-            const markerTone = getStableMarkerTone(item.label);
-
             return (
               <li className={index === 0 ? "leader" : undefined} key={item.id}>
                 <span className="top-five-rank">{index + 1}</span>
-                <span className="top-five-marker" data-tone={markerTone} aria-hidden="true">
-                  {marker}
-                </span>
+                <TeamMarker className="top-five-marker" label={item.label} initials={item.marker} />
                 <span className="top-five-label">
                   <strong>{item.label}</strong>
                   {item.context ? <small>{item.context}</small> : null}

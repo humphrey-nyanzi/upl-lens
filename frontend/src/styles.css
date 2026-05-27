@@ -815,7 +815,7 @@ p {
   color: var(--color-accent-gold);
 }
 
-.top-five-marker {
+.team-marker {
   display: grid;
   width: 28px;
   height: 28px;
@@ -831,32 +831,43 @@ p {
   letter-spacing: -0.02em;
 }
 
-.top-five-marker[data-tone="1"] {
+.team-marker-small {
+  width: 20px;
+  height: 20px;
+  font-size: 8px;
+}
+
+.team-marker-medium {
+  width: 28px;
+  height: 28px;
+}
+
+.team-marker[data-tone="1"] {
   border-color: rgba(22, 163, 74, 0.28);
   background: linear-gradient(180deg, rgba(22, 163, 74, 0.18), rgba(16, 31, 42, 0.92));
 }
 
-.top-five-marker[data-tone="2"] {
+.team-marker[data-tone="2"] {
   border-color: rgba(245, 184, 46, 0.28);
   background: linear-gradient(180deg, rgba(245, 184, 46, 0.16), rgba(16, 31, 42, 0.92));
 }
 
-.top-five-marker[data-tone="3"] {
+.team-marker[data-tone="3"] {
   border-color: rgba(93, 143, 187, 0.3);
   background: linear-gradient(180deg, rgba(93, 143, 187, 0.18), rgba(16, 31, 42, 0.92));
 }
 
-.top-five-marker[data-tone="4"] {
+.team-marker[data-tone="4"] {
   border-color: rgba(169, 182, 191, 0.24);
   background: linear-gradient(180deg, rgba(169, 182, 191, 0.15), rgba(16, 31, 42, 0.92));
 }
 
-.top-five-marker[data-tone="5"] {
+.team-marker[data-tone="5"] {
   border-color: rgba(94, 234, 212, 0.2);
   background: linear-gradient(180deg, rgba(94, 234, 212, 0.12), rgba(16, 31, 42, 0.92));
 }
 
-.top-five-list li.leader .top-five-marker {
+.top-five-list li.leader .team-marker {
   border-color: rgba(245, 184, 46, 0.42);
 }
 
@@ -1226,6 +1237,33 @@ p {
   font-size: 14px;
   line-height: 1.15;
   overflow-wrap: anywhere;
+}
+
+.compact-result-fixture {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.compact-result-team {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.compact-result-team span:last-child {
+  min-width: 0;
+}
+
+.compact-result-separator {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .compact-result-meta,

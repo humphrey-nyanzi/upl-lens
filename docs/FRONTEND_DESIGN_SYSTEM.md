@@ -200,6 +200,10 @@ Approved principles:
 Approved principles:
 
 - Use readable football labels instead of raw database column names.
+- Use football-native team and match markers where they improve scanning, but
+  only from existing team names or real future assets.
+- When crest assets are not available, use stable initials or restrained badge
+  placeholders; never invent official club logos.
 - Map visible frontend data needs before adding new API endpoints.
 - Show season context clearly.
 - Show loading, empty, and error states.

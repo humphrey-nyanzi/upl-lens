@@ -89,7 +89,7 @@ unless a request explicitly says API work must be proposed separately.
 
 ### Request: Add Football-Native Visual Markers Without Fake Data
 
-Status: needs_review
+Status: implemented
 
 Area: visual identity, team markers, sports-native UI
 
@@ -139,8 +139,9 @@ Do not scrape or add club crest assets in this request.
 
 Approval notes:
 
-Needs review. This can be implemented alongside Top 5 and Recent Matches row
-work.
+Implemented in the frontend with reusable stable team markers, Top 5 team
+markers, and recent-match home/away markers. No crest assets, fake logos, API
+changes, or backend changes were added.
 
 
 
