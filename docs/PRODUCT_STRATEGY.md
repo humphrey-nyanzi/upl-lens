@@ -1,7 +1,10 @@
 # Product Strategy
 
-This document defines what UPL Match Intelligence is as a product, what it is
-not, who it is for, and how product decisions should guide technical work.
+This document defines the product principles for the repository. NOTE: the
+public frontend product has been rebranded to **UPL Lens**. This strategy
+document continues to describe product priorities and should be read together
+with [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md) for
+frontend-specific design and launch direction.
 
 Use this document before major UI, API, research-promotion, or documentation
 changes. It should help a human contributor or AI agent understand the kind of
@@ -9,8 +12,11 @@ project they are working on before deciding what to build.
 
 ## Product Definition
 
-UPL Match Intelligence is an independent statistical observatory for the Uganda
-Premier League.
+The public product is now called **UPL Lens**. UPL Lens is an independent
+statistical observatory for the Uganda Premier League (the project previously
+described public-facing work as "UPL Match Intelligence"). The consolidation
+into the UPL Lens brand preserves the same data-to-product philosophy while
+bringing a focused frontend redesign and new naming.
 
 It turns official match data into trustworthy football intelligence: curated
 statistical findings, reusable analytical features, and deeper exploration for
@@ -23,7 +29,7 @@ Official UPL match data -> trusted database -> statistical insight -> public
 football intelligence product
 ```
 
-The product question:
+The product question remains the same:
 
 ```text
 What do the UPL numbers reveal that the official website does not explain?

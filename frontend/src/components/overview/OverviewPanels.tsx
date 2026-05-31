@@ -3,7 +3,7 @@ import type { LoadState, PageKey } from "../../app/types";
 import { formatDate, matchStatus } from "../../utils/format";
 import { EmptyState } from "../common/EmptyState";
 import { TeamMarker } from "../common/TeamMarker";
-import { TopFiveCard, type TopFiveItem } from "../common/TopFiveCard";
+import { Target, Home, TrendingUp, ArrowRight } from "lucide-react";
 
 export function TeamSignalPanel({
   loadState,
@@ -14,31 +14,53 @@ export function TeamSignalPanel({
   onPageChange: (page: PageKey) => void;
   teams: TeamResponse[];
 }) {
-  const rankingItems: TopFiveItem[] = teams.map((team) => {
+  const rankingItems = teams.map((team) => {
     const points = team.wins * 3 + team.draws;
     const winRate = team.matches_played > 0 ? Math.round((team.wins / team.matches_played) * 100) : 0;
+    const strength = Math.max(0, Math.min(5, Math.round((winRate / 100) * 5)));
+    const dots = Array.from({ length: 5 }, (_, index) => index < strength);
 
     return {
-      context: `${team.wins}W ${team.draws}D ${team.losses}L - ${winRate}% wins`,
+      context: `${team.wins}W ${team.draws}D ${team.losses}L`,
+      dots,
       id: team.team_name,
       label: team.team_name,
-      value: points,
+      points,
     };
   });
 
   return (
-    <TopFiveCard
-      emptyMessage={loadState === "loading" ? "Loading team rankings." : "No team rankings returned yet."}
-      eyebrow="Top 5 teams"
-      items={rankingItems}
-      action={
-        <button className="text-button top-five-link" type="button" onClick={() => onPageChange("teams")}>
-          View team insights
-        </button>
-      }
-      title="League leaders"
-      valueLabel="By estimated points from cleaned team records."
-    />
+    <section className="panel overview-signal-card">
+      <div className="section-heading compact overview-list-heading">
+        <div>
+          <p className="eyebrow">Team signals</p>
+          <h2>Form guide</h2>
+          <p>Season form signal.</p>
+        </div>
+      </div>
+      <div className="overview-list">
+        {rankingItems.length > 0 ? (
+          rankingItems.slice(0, 5).map((item, index) => (
+            <article className="overview-list-row signal" key={item.id}>
+              <span className="overview-rank">{index + 1}</span>
+              <TeamMarker className="overview-row-marker" label={item.label} size="small" />
+              <strong>{item.label}</strong>
+              <div className="overview-form-dots" aria-hidden="true">
+                {item.dots.map((isActive, dotIndex) => (
+                  <span className={isActive ? "active" : ""} key={dotIndex} />
+                ))}
+              </div>
+              <span className="overview-points">{item.points} pts</span>
+            </article>
+          ))
+        ) : (
+          <EmptyState message={loadState === "loading" ? "Loading team rankings." : "No team rankings available yet."} />
+        )}
+      </div>
+      <button className="text-button compact-result-link" type="button" onClick={() => onPageChange("teams")}>
+        View full table
+      </button>
+    </section>
   );
 }
 
@@ -68,54 +90,85 @@ export function EventSignalPanel({ eventBreakdown }: { eventBreakdown: Array<{ e
 }
 
 export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey) => void }) {
-  const exploreCards = [
+  const trendCards = [
     {
-      marker: "90",
-      page: "goal-timing" as PageKey,
-      status: "Timing",
-      title: "Goal windows",
-      description: "Find the scoring periods shaping this season.",
+      icon: <Target size={24} />,
+      page: "insights" as PageKey,
+      title: "Featured insight",
+      description: "Open curated football insights built from current FastAPI season data.",
+      action: "Open insights",
     },
     {
-      marker: "FT",
+      icon: <Home size={24} />,
       page: "matches" as PageKey,
-      status: "Evidence",
       title: "Match evidence",
-      description: "Check the scorelines behind the overview.",
+      description: "Review recent scorelines and match-by-match context behind overview signals.",
+      action: "Open matches",
     },
     {
-      marker: "5",
+      icon: <TrendingUp size={24} />,
       page: "teams" as PageKey,
-      status: "Teams",
-      title: "Team form",
-      description: "Compare leaders from cleaned match records.",
+      title: "Team summaries",
+      description: "Compare team form, results, and scoring output across the selected season.",
+      action: "Open teams",
     },
   ];
 
   return (
-    <section className="explore-panel overview-insight-strip" aria-labelledby="explore-title">
+    <section className="explore-panel overview-insight-strip" aria-labelledby="trends-title">
       <div className="section-heading compact overview-insight-heading">
         <div>
-          <p className="eyebrow">Next reads</p>
-          <h2 id="explore-title">What to inspect next</h2>
+          <p className="eyebrow">Explore</p>
+          <h2 id="trends-title">Where to go next</h2>
         </div>
-        <button className="text-button dark overview-insight-action" type="button" onClick={() => onPageChange("goal-timing")}>
-          View all insights
-        </button>
       </div>
-      <div className="explore-grid overview-insight-grid">
-        {exploreCards.map((card) => (
-          <button className="explore-card overview-insight-card" key={card.title} type="button" onClick={() => onPageChange(card.page)}>
-            <span className="overview-insight-marker" aria-hidden="true">
-              {card.marker}
-            </span>
-            <div className="overview-insight-copy">
-              <span>{card.status}</span>
+      <div className="trends-grid">
+        {trendCards.map((card) => (
+          <button
+            className="trends-card"
+            key={card.title}
+            type="button"
+            onClick={() => onPageChange(card.page)}
+          >
+            <div className="trends-card-icon" aria-hidden="true">
+              {card.icon}
+            </div>
+            <div className="trends-card-content">
               <strong>{card.title}</strong>
               <p>{card.description}</p>
             </div>
+            <div className="trends-card-action">
+              <span>{card.action}</span>
+              <ArrowRight size={16} />
+            </div>
           </button>
         ))}
+        <button
+          className="trends-card trends-card-featured"
+          type="button"
+          onClick={() => onPageChange("insights")}
+        >
+          <div className="trends-card-featured-content">
+            <strong>Dive deeper into the data</strong>
+            <p>Move from this overview into dedicated pages for evidence, context, and analysis.</p>
+            <div className="trends-card-action featured">
+              <span>Explore Insights</span>
+              <ArrowRight size={16} />
+            </div>
+          </div>
+          <div className="trends-card-featured-graph" aria-hidden="true">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <polyline
+                points="0,80 20,70 40,75 60,50 80,55 100,30 120,35 140,20 160,25 180,10 200,15"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </button>
       </div>
     </section>
   );
@@ -126,30 +179,22 @@ function CompactResultRow({ match }: { match: MatchSummary }) {
   const awayScore = match.away_score ?? "-";
 
   return (
-    <article className="compact-result-row">
-      <div className="compact-result-main">
-        <span className="compact-result-meta">
-          {formatDate(match.match_date)}
-          {match.match_day ? ` · Matchday ${match.match_day}` : ""}
+    <article className="overview-list-row match">
+      <span className="overview-date">{formatDate(match.match_date)}</span>
+      <div className="overview-fixture-inline">
+        <span className="overview-team-inline">
+          <TeamMarker className="overview-row-marker" label={match.home_team} size="small" />
+          <span>{match.home_team ?? "Home team TBC"}</span>
         </span>
-        <strong className="compact-result-fixture">
-          <span className="compact-result-team">
-            <TeamMarker label={match.home_team} size="small" />
-            <span>{match.home_team ?? "Home team TBC"}</span>
-          </span>
-          <span className="compact-result-separator">vs</span>
-          <span className="compact-result-team">
-            <TeamMarker label={match.away_team} size="small" />
-            <span>{match.away_team ?? "Away team TBC"}</span>
-          </span>
-        </strong>
+        <span className="overview-inline-score">
+          {homeScore} - {awayScore}
+        </span>
+        <span className="overview-team-inline">
+          <TeamMarker className="overview-row-marker" label={match.away_team} size="small" />
+          <span>{match.away_team ?? "Away team TBC"}</span>
+        </span>
       </div>
-      <div className="compact-result-score">
-        <strong>
-          {homeScore}:{awayScore}
-        </strong>
-        <span>{matchStatus(match)}</span>
-      </div>
+      <span className="overview-result">{matchStatus(match)}</span>
     </article>
   );
 }
@@ -164,23 +209,26 @@ export function RecentMatchPanel({
   onPageChange: (page: PageKey) => void;
 }) {
   return (
-    <section className="panel">
-      <div className="section-heading compact">
+    <section className="panel overview-matches-card">
+      <div className="section-heading compact overview-list-heading">
         <div>
+          <p className="eyebrow">Recent matches</p>
           <h2>Recent matches</h2>
-          <p>Latest scorelines for context around the season view.</p>
         </div>
         <button className="text-button compact-result-link" type="button" onClick={() => onPageChange("matches")}>
-          View all matches
+          View all
         </button>
       </div>
-      <div className="match-list">
+      <div className="overview-list">
         {matches.length > 0 ? (
           matches.map((match) => <CompactResultRow key={match.match_id} match={match} />)
         ) : (
-          <EmptyState message={loadState === "loading" ? "Loading recent matches." : "No matches returned for this season yet."} />
+          <EmptyState message={loadState === "loading" ? "Loading recent matches." : "No recent matches available yet."} />
         )}
       </div>
+      <button className="text-button compact-result-link" type="button" onClick={() => onPageChange("matches")}>
+        View all matches
+      </button>
     </section>
   );
 }
@@ -210,7 +258,7 @@ export function OverviewDataNote({
           </p>
         </div>
       </div>
-      <button className="text-button" type="button" onClick={() => onPageChange("methodology")}>
+      <button className="text-button" type="button" onClick={() => onPageChange("about")}>
         Read data notes
       </button>
     </section>

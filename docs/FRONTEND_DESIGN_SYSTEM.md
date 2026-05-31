@@ -1,8 +1,13 @@
 # Frontend Design System
 
-This document is the frontend playbook for UPL Match Intelligence.
+This document is the frontend playbook for the public product now known as
+UPL Lens (frontend). It documents durable visual and UX rules that should
+drive implementation. Historical references to "UPL Match Intelligence"
+remain for archival context; the active frontend source-of-truth for launch is
+the UPL Lens design guidance below and
+[UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md).
 
-It is the single source of truth for:
+This document is the single source of truth for:
 
 - approved visual direction
 - durable UI and UX rules
@@ -15,6 +20,23 @@ Use this with:
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+- [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md)
+
+## UPL Lens Launch Docs
+
+For the current public frontend relaunch, use these companion docs in this
+order:
+
+1. [UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md](UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md)
+2. [UPL_LENS_TEXT_WIREFRAMES.md](UPL_LENS_TEXT_WIREFRAMES.md)
+3. [UPL_LENS_PAGE_REQUIREMENTS.md](UPL_LENS_PAGE_REQUIREMENTS.md)
+4. [UPL_LENS_INFORMATION_ARCHITECTURE.md](UPL_LENS_INFORMATION_ARCHITECTURE.md)
+5. this design system
+6. [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
+
+Use this file for durable implementation rules and accepted standards. If a
+launch-specific UPL Lens artifact carries an explicit exception, follow that
+artifact and then fold the durable part back into this file once implemented.
 
 ## Product Architecture Rule
 
@@ -34,9 +56,35 @@ React must not read:
 If the UI needs new data, add or extend the FastAPI and query layer instead of
 bypassing it.
 
-## Product Visual Identity
 
-UPL Match Intelligence should feel like:
+## UPL Lens high-fidelity design decisions (durable)
+
+The UPL Lens frontend redesign uses a focused set of high-fidelity decisions
+that are binding for the public launch. These are the durable visual rules
+that the frontend must implement unless a new approved request changes them.
+
+- Editorial Light default theme (light visual baseline for content-forward
+  presentation)
+- Stacked "UPL / Lens" brand lockup (do not use legacy long-form logos)
+- Desktop: left fixed sidebar navigation (desktop app shell)
+- Mobile: bottom navigation bar for primary sections (mobile bottom nav)
+- "About" as the only visible support link in the sidebar (keep support
+  minimal and discoverable)
+- Social links grouped in a single bottom row of the sidebar/footer
+- No export button on public pages (no CSV/print export affordance by default)
+- No official club logos embedded or used; use initials/badges instead
+- Team initials badges use native-colour-inspired palettes (stable seeded
+  palettes derived from club name initials)
+
+These decisions are intentionally narrow and durable: they guide the UI
+structure, placement of support links, theming baseline, and asset usage.
+
+Use the rest of this file to describe component tokens, layout rules, and
+accessible behaviors that implement the rules above.
+
+## Product Visual Identity (context)
+
+UPL Lens should feel like:
 
 ```text
 a football intelligence workspace
@@ -82,12 +130,17 @@ long-term direction is a richer analytical product.
 
 ## Current Implementation Baseline
 
-The current frontend uses:
+The current frontend implementation baseline and the approved launch
+direction are aligned as follows:
 
-- a dark-first sports intelligence shell
-- a desktop left sidebar for primary navigation
-- a compact top control bar for season, search affordance, and report export
-- compact mobile navigation
+- Editorial Light is the default theme for UPL Lens (content-forward, readable
+  baseline).
+- Dark mode is supported as an optional future theme/variant; dark tokens are
+  retained in this document as an explicitly labelled optional variant.
+- Desktop left sidebar for primary navigation (fixed on desktop).
+- A compact top control bar for season, search affordance, and contextual
+  controls (avoid export affordances by default).
+- Compact mobile navigation; mobile first layout rules apply.
 - reusable surface primitives
 - modular page components under `frontend/src/pages/`
 - reusable components under `frontend/src/components/`
@@ -239,7 +292,25 @@ Approved principles:
 
 The color system should feel football-native, premium, and analytical.
 
-### Dark Mode Tokens
+
+### Light Mode Tokens (default)
+
+| Token | Purpose | Value |
+|------|---------|-------|
+| `--color-bg-app-light` | Main background | `#F5F7F1` |
+| `--color-bg-shell-light` | Sidebar and top bar | `#FFFFFF` |
+| `--color-bg-panel-light` | Primary card | `#FFFFFF` |
+| `--color-bg-panel-soft-light` | Secondary card | `#EEF3EA` |
+| `--color-border-light` | Default border | `#D9DFD2` |
+| `--color-text-primary-light` | Main text | `#17211B` |
+| `--color-text-secondary-light` | Supporting text | `#59665B` |
+| `--color-text-muted-light` | Quiet labels | `#7B867C` |
+
+### Dark Mode Tokens (optional / future variant)
+
+These tokens are retained for reference. Dark mode is a future/optional
+variant and should be implemented only if explicitly approved as a toggle or
+alternate theme. Use the light tokens as the default implementation target.
 
 | Token | Purpose | Value |
 |------|---------|-------|
@@ -258,19 +329,6 @@ The color system should feel football-native, premium, and analytical.
 | `--color-accent-gold` | Peak insight | `#F5B82E` |
 | `--color-risk` | Error and discipline | `#EF4444` |
 | `--color-success` | Healthy status | `#22C55E` |
-
-### Light Mode Tokens
-
-| Token | Purpose | Value |
-|------|---------|-------|
-| `--color-bg-app-light` | Main background | `#F5F7F1` |
-| `--color-bg-shell-light` | Sidebar and top bar | `#FFFFFF` |
-| `--color-bg-panel-light` | Primary card | `#FFFFFF` |
-| `--color-bg-panel-soft-light` | Secondary card | `#EEF3EA` |
-| `--color-border-light` | Default border | `#D9DFD2` |
-| `--color-text-primary-light` | Main text | `#17211B` |
-| `--color-text-secondary-light` | Supporting text | `#59665B` |
-| `--color-text-muted-light` | Quiet labels | `#7B867C` |
 
 ### Color Rules
 
@@ -353,10 +411,11 @@ Approved principles:
 
 ## Page Templates
 
+
 ### League Overview
 
-The first screen should present UPL Match Intelligence as a football data
-observatory, not a generic dashboard or fixtures site.
+The first screen should present UPL Lens as a football data observatory, not a
+generic dashboard or fixtures site.
 
 It should lead with:
 
@@ -425,6 +484,41 @@ Every frontend redesign pass should be reviewed against these checks:
 - Caveats remain visible near the data they affect.
 - The implementation uses shared tokens and reusable patterns instead of
   page-by-page styling drift.
+
+## UPL Lens Public Launch Acceptance Checklist
+
+Use this checklist to confirm a release build is ready for the UPL Lens public
+launch. Every item marked as required must be satisfied or carry an explicit
+acceptance note in the release PR.
+
+- Theme and tokens:
+  - Editorial Light is implemented as the default theme and matches the
+    `Light Mode Tokens (default)` in this file.
+  - Dark mode is not required for launch; if present it must be behind an
+    explicit toggle and documented as an optional variant.
+- Branding and lockup:
+  - Stacked "UPL / Lens" brand lockup is present on the site header or shell
+    as specified in the high-fidelity brief.
+  - No legacy long-form or unofficial logos are used on public pages.
+- Navigation and support:
+  - Desktop: fixed left sidebar present and functioning.
+  - Mobile: bottom navigation implemented for primary sections.
+  - The sidebar shows only one visible support link: "About". Methodology,
+    data notes, and contact information are accessible from the About page,
+    not as a separate top-level navigation item.
+  - Social links grouped in a single bottom row of the sidebar or footer.
+- Asset and data rules:
+  - No official club logos are embedded; use team-initial badges with stable
+    seeded palettes.
+  - No export button on public pages by default.
+  - No UI element invents or displays fake data (crests, scores, etc.).
+- Accessibility and states:
+  - Loading, empty, and error states match the UX state principles in this
+    document.
+  - Mobile-first layouts validated at typical narrow widths.
+
+Document any approved exceptions in the release PR and link the approving
+note or ticket.
 
 ### League Overview Mockup Checklist
 

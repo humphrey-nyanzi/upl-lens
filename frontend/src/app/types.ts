@@ -8,7 +8,7 @@ import type {
 } from "../api/types";
 
 export type LoadState = "idle" | "loading" | "success" | "error";
-export type PageKey = "overview" | "goal-timing" | "matches" | "teams" | "methodology";
+export type PageKey = "overview" | "matches" | "teams" | "insights" | "trends" | "about";
 
 export type DashboardData = {
   health: HealthResponse | null;

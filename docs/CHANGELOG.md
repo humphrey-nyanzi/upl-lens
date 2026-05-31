@@ -5,6 +5,21 @@ This changelog records high-signal repo changes for UPL Match Intelligence.
 It is intentionally concise. Use it to understand what changed recently before
 you start editing code or docs.
 
+## 2026-05-31
+
+### UPL Lens frontend doc package
+
+- Added the UPL Lens frontend launch docs:
+  `UPL_LENS_FRONTEND_START_HERE.md`,
+  `UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md`,
+  `UPL_LENS_TEXT_WIREFRAMES.md`,
+  `UPL_LENS_PAGE_REQUIREMENTS.md`, and
+  `UPL_LENS_INFORMATION_ARCHITECTURE.md`.
+- Added `visual_inspo.png` as the approved visual-reference asset for the
+  frontend redesign.
+- Updated the central project docs so the new UPL Lens files are discoverable,
+  linked, and treated as a temporary exception to the earlier 10-doc cap.
+
 ## 2026-05-26
 
 ### Documentation consolidation

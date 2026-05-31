@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Goal, Trophy, Home, BarChartBig } from "lucide-react";
 
 import type { PageProps } from "../app/types";
 import { ErrorPanel } from "../components/common/ErrorPanel";
@@ -22,27 +23,43 @@ export function OverviewPage({
   selectedSeasonInfo,
 }: PageProps) {
   const initialLoading = loadState === "loading" && overview === null;
+  const completedMatches = data.matches.filter((match) => match.result !== null);
+  const homeWins = completedMatches.filter((match) => match.result === "home_win").length;
+  const homeWinRate = completedMatches.length > 0 ? Math.round((homeWins / completedMatches.length) * 100) : 0;
+  const averageGoals =
+    completedMatches.length > 0
+      ? completedMatches.reduce((total, match) => total + (match.total_goals ?? 0), 0) / completedMatches.length
+      : 0;
 
   const summaryCards = [
     {
-      label: "Matches covered",
+      label: "Matches Played",
       value: overview?.match_count ?? selectedSeasonInfo?.match_count ?? data.matches.length,
       detail: "Cleaned match records for this season.",
+      icon: <Goal size={18} />,
+      accent: "green" as const,
     },
     {
-      label: "Timeline goals",
+      label: "Goals Scored",
       value: overview?.timeline_goal_count ?? overview?.goal_count ?? 0,
       detail: "Goals from match event timelines.",
+      meta: completedMatches.length > 0 ? `${averageGoals.toFixed(2)} per match` : undefined,
+      icon: <Trophy size={18} />,
+      accent: "gold" as const,
     },
     {
-      label: "Teams tracked",
-      value: overview?.team_count ?? selectedSeasonInfo?.team_count ?? data.teams.length,
-      detail: "Clubs in official match pages.",
+      label: "Home Win %",
+      value: `${homeWinRate}%`,
+      detail: "Home team victory rate this season.",
+      icon: <Home size={18} />,
+      accent: "green" as const,
     },
     {
-      label: "Cards logged",
-      value: overview ? overview.yellow_card_count + overview.red_card_count : 0,
-      detail: "Cards ready for discipline analysis.",
+      label: "Avg. Goals/Match",
+      value: averageGoals.toFixed(2),
+      detail: "Average goals per match this season.",
+      icon: <BarChartBig size={18} />,
+      accent: "green" as const,
     },
   ];
 
@@ -78,11 +95,10 @@ export function OverviewPage({
       {loadState === "error" ? <ErrorPanel errorMessage={errorMessage} /> : null}
 
       <section className="metric-grid overview-kpi-grid" aria-label="Selected season intelligence summary">
-        {summaryCards.map((card, index) => (
+        {summaryCards.map((card) => (
           <KpiCard
             key={card.label}
             {...card}
-            accent={index === 1 ? "gold" : index === 2 ? "green" : "neutral"}
             variant="compact"
           />
         ))}

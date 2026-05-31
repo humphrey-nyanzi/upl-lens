@@ -101,7 +101,7 @@ export function MatchExplorerPage({ data, loadState, onPageChange }: PageProps) 
             <h2>Match cards</h2>
             <p>Showing the latest 12 matches from the current filter set.</p>
           </div>
-          <button className="text-button" type="button" onClick={() => onPageChange("methodology")}>
+          <button className="text-button" type="button" onClick={() => onPageChange("about")}>
             View data notes
           </button>
         </div>

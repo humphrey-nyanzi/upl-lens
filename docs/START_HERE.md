@@ -1,14 +1,21 @@
 # Start Here
 
-This is the first orientation document for UPL Match Intelligence.
+This is the first orientation document for the repository. The public frontend
+product formerly known as "UPL Match Intelligence" has been rebranded to
+**UPL Lens**. Backend, data-platform, and research workflows remain in this
+repo; frontend design direction and launch guidance live under
+[UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md).
 
 Use this file when you are new to the repo, returning after a gap, or unsure
-which document owns a decision.
+which document owns a decision. If your work affects the public frontend
+experience, consult [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md) in addition to the
+docs listed below.
 
 ## The Project In One Minute
 
-UPL Match Intelligence turns official Uganda Premier League match pages into a
-football intelligence product.
+This project turns official Uganda Premier League match pages into a
+football intelligence product. The public frontend product is published as
+**UPL Lens**.
 
 The production path is:
 
@@ -38,7 +45,7 @@ For product identity and positioning, read
 
 ```mermaid
 flowchart TD
-    A["UPL Match Intelligence"] --> B["Data Reliability & Operations"]
+    A["UPL Lens"] --> B["Data Reliability & Operations"]
     A --> C["Research & Football Intelligence"]
     A --> D["Product Experience"]
     A --> E["Developer Experience & Documentation"]
@@ -107,6 +114,7 @@ Purpose: turn trusted data and validated research into a useful public app.
 Read first:
 
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
+- [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md)
 - [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
 - `api/routers/`
@@ -148,10 +156,12 @@ Escalate when:
 - a command works only because of hidden local setup
 - a feature or operational decision exists in code but not in the docs
 
-## The 10 Docs
+## Current Docs
 
-This repo now keeps its `docs/` folder intentionally small. These are the only
-docs that should exist there unless the repo genuinely outgrows this shape.
+This repo still prefers a small `docs/` surface, but the current frontend
+rebrand adds a temporary documentation exception for the UPL Lens launch
+package. Treat those extra frontend docs as implementation-specific companions,
+not as a new default pattern for splitting every topic into another file.
 
 | Doc | Purpose | Open it when |
 |-----|---------|--------------|
@@ -163,6 +173,11 @@ docs that should exist there unless the repo genuinely outgrows this shape.
 | [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) | Research playbook: ideas, data access, promotion, analytics decisions | You are working in notebooks or promoting a football insight. |
 | [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) | Frontend playbook: visual system, product UI rules, page templates | You are designing or implementing frontend behavior. |
 | [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) | Proposed frontend changes and request workflow | You are capturing or implementing approved UI/UX requests. |
+| [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md) | UPL Lens frontend redesign entrypoint and precedence guide | You are implementing or reviewing the public frontend relaunch. |
+| [UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md](UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md) | Highest-priority visual and editorial frontend brief | You need the final launch design direction. |
+| [UPL_LENS_TEXT_WIREFRAMES.md](UPL_LENS_TEXT_WIREFRAMES.md) | Canonical text wireframes | You need page structure before implementation details. |
+| [UPL_LENS_PAGE_REQUIREMENTS.md](UPL_LENS_PAGE_REQUIREMENTS.md) | Page-by-page frontend functional requirements | You need page scope, states, and data needs. |
+| [UPL_LENS_INFORMATION_ARCHITECTURE.md](UPL_LENS_INFORMATION_ARCHITECTURE.md) | Navigation and content model for UPL Lens | You are shaping page hierarchy, navigation, or content relationships. |
 | [diagram_collection.md](diagram_collection.md) | Visual system overview | You need architecture, data-flow, API-flow, or scraper diagrams. |
 | [CHANGELOG.md](CHANGELOG.md) | High-signal project change history | You want recent context before editing. |
 
@@ -189,6 +204,7 @@ If you want to add a football insight:
 If you want to improve the app:
 
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
+- [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md)
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
 - [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
 - `api/`
@@ -271,6 +287,9 @@ Use these rules:
   changes and request status.
 - Update [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for approved
   frontend behavior, visual rules, component patterns, and page templates.
+- Update the `UPL_LENS_*` docs when the frontend rebrand artifacts themselves
+  change: precedence, wireframes, page requirements, information architecture,
+  or launch-specific editorial direction.
 - Update [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) only when the app's
   identity, audience, positioning, or decision rules change.
 - Update [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for strengths, gaps,

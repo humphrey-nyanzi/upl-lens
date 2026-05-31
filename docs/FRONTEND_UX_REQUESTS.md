@@ -63,22 +63,30 @@ When asked to work on frontend improvements, an AI agent should:
 1. Read `AGENTS.md`.
 2. Read [START_HERE.md](START_HERE.md).
 3. Read [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md).
-4. Read this file.
-5. Read [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md).
-6. Inspect `frontend/src/`, `api/`, and `src/api/` only enough to understand
+4. Read [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md) if
+   the work affects the public UPL Lens frontend.
+5. Read this file.
+6. Read [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md).
+7. Inspect `frontend/src/`, `api/`, and `src/api/` only enough to understand
    the affected product surface.
-7. Implement only requests marked `approved`, unless the user explicitly says
+8. Implement only requests marked `approved`, unless the user explicitly says
    to work on a different status.
-8. Keep React dependent on FastAPI JSON. Do not make React read CSV files,
+9. Keep React dependent on FastAPI JSON. Do not make React read CSV files,
    notebooks, or exported notebook images.
-9. If new data is needed, prefer a thin FastAPI endpoint and query or service
+10. If new data is needed, prefer a thin FastAPI endpoint and query or service
    logic under `src/api/`.
-10. After implementation, move durable behavior into
+11. After implementation, move durable behavior into
     [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md), then compress this
     file's implemented entry to one short note and remove the detailed
     description from active requests.
-11. Run `npm run build` for frontend changes and any relevant backend or API
+12. Run `npm run build` for frontend changes and any relevant backend or API
     verification if endpoints changed.
+
+## UPL Lens Note
+
+For the current relaunch, the `UPL_LENS_*` docs define launch-specific
+frontend structure and editorial direction. This file still owns request
+approval state and implementation queue decisions.
 
 ## Active Requests
 
@@ -143,6 +151,58 @@ Implemented in the frontend with reusable stable team markers, Top 5 team
 markers, and recent-match home/away markers. No crest assets, fake logos, API
 changes, or backend changes were added.
 
+### Request: UPL Lens Public Launch Frontend Redesign (Master Request)
+
+Status: approved
+
+Area: frontend redesign, launch
+
+Request:
+
+This is the master approved request that authorizes the frontend redesign and
+public launch under the UPL Lens brand. It supersedes prior mockup-only
+requests and consolidates high-level decisions and approved surface rules.
+
+Why it matters:
+
+The redesign and relaunch unify product naming, visual identity, and the
+approved high-fidelity decisions listed in `docs/FRONTEND_DESIGN_SYSTEM.md`.
+
+Clarifications for launch (binding for this approved request):
+
+- Editorial Light is the default theme for UPL Lens. Implement the light token
+  set as the launch baseline.
+- Dark mode is an optional future variant and is not required for launch.
+- The sidebar must show only one visible support link: "About". Methodology
+  and data notes must be accessible from About, not as a separate top-level
+  navigation item.
+- No export button on public pages by default.
+- No official club logos embedded; use team-initial badges with stable seeded
+  palettes.
+
+Data/API needs:
+
+Map existing frontend data requirements to current FastAPI endpoints. Any new
+data need must be proposed as a separate request with `Data/API needs` filled
+out and approved before implementation.
+
+Mobile/accessibility notes:
+
+Follow existing accessibility principles in the design system. Mobile-first
+layouts are required; desktop enhancements allowed when they preserve
+accessibility.
+
+Out of scope:
+
+- Directly changing backend data models
+- Adding CSV or notebook data sources to the frontend
+
+Approval notes:
+
+Approved as the canonical redesign and launch request for UPL Lens. Use this
+file for ticket-level details, but move durable decisions into
+`docs/FRONTEND_DESIGN_SYSTEM.md` and the UPL Lens start file.
+
 
 
 ### Request: Refine Goal Timing Distribution Chart
@@ -198,6 +258,121 @@ Do not redesign the full Goal Timing page in this request.
 Approval notes:
 
 Approved after identifying that the previous heatmap direction duplicated the timing dimension and weakened analytical clarity.
+
+### Request: Reorganize Overview Cards into Single Horizontal Row
+
+Status: approved
+
+Area: League Overview layout
+
+Request:
+
+Reorganize the featured insight card, league leaders card, and recent matches card into a single horizontal row layout. The featured insight card should take up 60% of the width, while the league leaders and recent matches cards share the remaining 40%. There should be no blank space underneath the featured insights card.
+
+Why it matters:
+
+This creates a more compact, dashboard-like first viewport that uses horizontal space efficiently and eliminates vertical gaps that make the page feel sparse.
+
+Implementation requirements:
+
+- Place featured insight, league leaders, and recent matches cards in one horizontal row
+- Featured insight card: 60% width
+- League leaders and recent matches cards: share 40% (20% each or stacked vertically within the 40% column)
+- No blank space underneath the featured insights card
+- Maintain responsive behavior on mobile (stack vertically on small screens)
+
+Data/API needs:
+
+None - uses existing data.
+
+Mobile/accessibility notes:
+
+On mobile screens, cards should stack vertically to maintain readability.
+
+Out of scope:
+
+None.
+
+Approval notes:
+
+Approved by user for immediate implementation.
+
+### Request: Hero Section Background Image Integration
+
+Status: approved
+
+Area: League Overview hero section
+
+Request:
+
+Make the hero section image a background image of the entire hero section, with the text "understand the premier league" etc appearing on the left side within the image area, and the footballer visible on the right with no text overlaying him.
+
+Why it matters:
+
+This creates a more integrated, cohesive hero section where the image and text feel like part of the same design rather than two separate containers.
+
+Implementation requirements:
+
+- Use the hero image as a background image for the hero section
+- Position text on the left side within the image area
+- Ensure the footballer on the right remains visible with no text overlay
+- Maintain readability of text against the background
+- Ensure responsive behavior on mobile
+
+Data/API needs:
+
+None - uses existing image.
+
+Mobile/accessibility notes:
+
+Text must remain readable against the background image on all screen sizes. Consider overlay or gradient if needed for contrast.
+
+Out of scope:
+
+None.
+
+Approval notes:
+
+Approved by user for immediate implementation.
+
+### Request: Redesign Overview Cards Layout and Styling
+
+Status: approved
+
+Area: League Overview main cards
+
+Request:
+
+Redesign the featured insight, recent matches, and league leaders cards to match the reference design with improved visual hierarchy, clearer data presentation, and more polished card styling.
+
+Why it matters:
+
+The current cards need better visual treatment to match the intended design direction with clearer metrics, better spacing, and more professional appearance.
+
+Implementation requirements:
+
+- Update Featured Insight card to show large metric (e.g., "41%") prominently with chart
+- Update Recent Matches card to show compact result rows with team markers
+- Update Team Signals card to show form guide with visual match history indicators
+- Improve card styling with better borders, shadows, and spacing
+- Ensure all cards maintain the 60%/40% horizontal layout
+- Add appropriate buttons for "Explore", "View all", etc.
+
+Data/API needs:
+
+None - uses existing data.
+
+Mobile/accessibility notes:
+
+Cards should stack vertically on mobile while maintaining readability.
+
+Out of scope:
+
+None.
+
+Approval notes:
+
+Approved by user for immediate implementation.
 
 ## Recommended Implementation Order
 

@@ -18,6 +18,7 @@ type ChartPanelProps = {
   eyebrow?: string;
   isEmpty?: boolean;
   isLoading?: boolean;
+  largeMetric?: string | null;
   legend?: ReactNode;
   text?: string;
   title?: string;
@@ -122,6 +123,7 @@ export function ChartPanel({
   eyebrow,
   isEmpty = false,
   isLoading = false,
+  largeMetric,
   legend,
   text,
   title,
@@ -136,6 +138,7 @@ export function ChartPanel({
           {title ? <h2>{title}</h2> : null}
           {text ? <p>{text}</p> : null}
         </div>
+        {largeMetric ? <div className="chart-large-metric">{largeMetric}</div> : null}
         {action}
       </div>
       <div className="chart-panel-body" aria-busy={isLoading || undefined}>

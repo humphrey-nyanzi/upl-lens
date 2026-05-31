@@ -1,6 +1,7 @@
 import type { SeasonResponse } from "../../api/types";
 import type { LoadState } from "../../app/types";
 import { formatSeason } from "../../utils/format";
+import { Calendar } from "lucide-react";
 
 type SeasonControlsProps = {
   seasons: SeasonResponse[];
@@ -24,19 +25,34 @@ export function SeasonControls({
       className={variant === "hero" ? "season-controls hero-controls" : variant === "shell" ? "season-controls shell-controls" : "season-controls"}
       aria-label="Season controls"
     >
-      <label>
-        Season
-        <select value={selectedSeason} onChange={(event) => onSeasonChange(event.target.value)} disabled={seasons.length === 0}>
-          {seasons.map((season) => (
-            <option value={season.season} key={season.season}>
-              {formatSeason(season.season)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button type="button" onClick={onRefresh} disabled={!selectedSeason || loadState === "loading"}>
-        {loadState === "loading" ? "Refreshing" : "Refresh"}
-      </button>
+      {variant === "shell" ? (
+        <div className="shell-season-select">
+          <Calendar size={14} className="season-icon" aria-hidden />
+          <select value={selectedSeason} onChange={(event) => onSeasonChange(event.target.value)} disabled={seasons.length === 0}>
+            {seasons.map((season) => (
+              <option value={season.season} key={season.season}>
+                {formatSeason(season.season)}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <>
+          <label>
+            Season
+            <select value={selectedSeason} onChange={(event) => onSeasonChange(event.target.value)} disabled={seasons.length === 0}>
+              {seasons.map((season) => (
+                <option value={season.season} key={season.season}>
+                  {formatSeason(season.season)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" onClick={onRefresh} disabled={!selectedSeason || loadState === "loading"}>
+            {loadState === "loading" ? "Refreshing" : "Refresh"}
+          </button>
+        </>
+      )}
     </div>
   );
 }

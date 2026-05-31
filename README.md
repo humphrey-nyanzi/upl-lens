@@ -1,4 +1,4 @@
-# UPL Match Intelligence
+# UPL Lens
 
 An open-source Uganda Premier League data platform that turns official match
 pages into structured data, API access, and a public football intelligence
@@ -18,14 +18,14 @@ The goal is not to mirror the official UPL website. The official site is the
 source archive; this project is the analysis layer on top of it.
 
 The product identity is documented in
-[docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md): UPL Match Intelligence is
-an independent football intelligence platform, not a fixtures clone or a
-developer-portfolio landing page.
+[docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md): the public product is now
+called **UPL Lens**, an independent football intelligence platform rather than
+a fixtures clone or developer-portfolio landing page.
 
 ## Live Demo
 
-- Frontend: [UPL Match Intelligence](https://upl-match-intelligence.pages.dev/)
-- API: [UPL Match Intelligence API](https://upl-match-intelligence-api.onrender.com/)
+- Frontend: [UPL Lens](https://upl-match-intelligence.pages.dev/)
+- API: [UPL Lens API](https://upl-match-intelligence-api.onrender.com/)
 - API liveness check:
   [`/health/live`](https://upl-match-intelligence-api.onrender.com/health/live)
 - API/database health check:
@@ -36,7 +36,7 @@ idle period can be slow while the service wakes up.
 
 ## What It Shows
 
-UPL Match Intelligence is built to answer football questions that are difficult
+UPL Lens is built to answer football questions that are difficult
 to answer from individual match pages:
 
 - Which teams score or concede most in different match periods?
@@ -161,6 +161,7 @@ Use these docs instead of trying to learn the whole repository from the README:
 | Operations, logs, tests, validation, escalation | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 | Notebook-to-product feature workflow | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
 | Research ideas, feature status, and promotion rules | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
+| UPL Lens frontend redesign entrypoint | [docs/UPL_LENS_FRONTEND_START_HERE.md](docs/UPL_LENS_FRONTEND_START_HERE.md) |
 | Frontend UX requests and approved design rules | [docs/FRONTEND_UX_REQUESTS.md](docs/FRONTEND_UX_REQUESTS.md), [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md) |
 | Deployment and operations notes | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 

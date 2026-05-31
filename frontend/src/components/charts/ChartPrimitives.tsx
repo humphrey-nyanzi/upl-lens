@@ -56,6 +56,7 @@ type ChartCardProps = {
   eyebrow?: string;
   isEmpty?: boolean;
   isLoading?: boolean;
+  largeMetric?: string | null;
   legend?: ReactNode;
   text?: string;
   title: string;
@@ -97,6 +98,7 @@ export function InsightChartCard({
   eyebrow,
   isEmpty,
   isLoading,
+  largeMetric,
   legend,
   text,
   title,
@@ -111,6 +113,7 @@ export function InsightChartCard({
       eyebrow={eyebrow}
       isEmpty={isEmpty}
       isLoading={isLoading}
+      largeMetric={largeMetric}
       legend={legend}
       text={text}
       title={title}

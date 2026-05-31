@@ -1,15 +1,22 @@
+import React, { Suspense, lazy } from "react";
 import type { PageProps } from "./app/types";
 import { AppShell } from "./components/navigation/AppShell";
 import { useDashboardData } from "./hooks/useDashboardData";
-import { useHashNavigation } from "./hooks/useHashNavigation";
-import { GoalTimingPage } from "./pages/GoalTimingPage";
-import { MatchExplorerPage } from "./pages/MatchExplorerPage";
-import { MethodologyPage } from "./pages/MethodologyPage";
-import { OverviewPage } from "./pages/OverviewPage";
-import { TeamInsightsPage } from "./pages/TeamInsightsPage";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import type { PageKey } from "./app/types";
+
+const GoalTimingPage = lazy(() => import("./pages/GoalTimingPage").then((m) => ({ default: m.GoalTimingPage })));
+const MatchExplorerPage = lazy(() => import("./pages/MatchExplorerPage").then((m) => ({ default: m.MatchExplorerPage })));
+const MethodologyPage = lazy(() => import("./pages/MethodologyPage").then((m) => ({ default: m.MethodologyPage })));
+const OverviewPage = lazy(() => import("./pages/OverviewPage").then((m) => ({ default: m.OverviewPage })));
+const TeamInsightsPage = lazy(() => import("./pages/TeamInsightsPage").then((m) => ({ default: m.TeamInsightsPage })));
+const MatchDetailPage = lazy(() => import("./pages/MatchDetailPage").then((m) => ({ default: m.default })));
+const TeamDetailPage = lazy(() => import("./pages/TeamDetailPage").then((m) => ({ default: m.default })));
+const InsightsListPage = lazy(() => import("./pages/InsightsListPage").then((m) => ({ default: m.InsightsListPage })));
+const InsightsDetailWrapper = lazy(() => import("./pages/InsightsDetailWrapper").then((m) => ({ default: m.InsightsDetailWrapper })));
+const TrendsPage = lazy(() => import("./pages/TrendsPage").then((m) => ({ default: m.TrendsPage })));
 
 function App() {
-  const { currentPage, setPage } = useHashNavigation();
   const {
     apiOnline,
     data,
@@ -29,7 +36,7 @@ function App() {
     errorMessage,
     goalTiming,
     loadState,
-    onPageChange: setPage,
+    onPageChange: (() => {}) as (page: PageKey) => void,
     onRefresh: refreshSeason,
     onSeasonChange: setSelectedSeason,
     overview,
@@ -37,22 +44,41 @@ function App() {
     selectedSeasonInfo,
   };
 
+  const navigate = useNavigate();
+  function setPage(page: PageKey) {
+    const path = page === "overview" ? "/" : `/${page}`;
+    navigate(path);
+  }
+
+  // supply a working onPageChange for legacy components
+  pageProps.onPageChange = setPage;
   return (
     <AppShell
       apiOnline={apiOnline}
-      currentPage={currentPage}
+      health={data.health}
       loadState={loadState}
-      onPageChange={setPage}
       onRefresh={refreshSeason}
       onSeasonChange={setSelectedSeason}
       seasons={data.seasons}
       selectedSeason={selectedSeason}
+      matches={data.matches}
+      teams={data.teams}
     >
-      {currentPage === "overview" ? <OverviewPage {...pageProps} /> : null}
-      {currentPage === "goal-timing" ? <GoalTimingPage {...pageProps} /> : null}
-      {currentPage === "matches" ? <MatchExplorerPage {...pageProps} /> : null}
-      {currentPage === "teams" ? <TeamInsightsPage {...pageProps} /> : null}
-      {currentPage === "methodology" ? <MethodologyPage {...pageProps} /> : null}
+      <Suspense fallback={<div className="loading">Loading…</div>}>
+        <Routes>
+          <Route path="/" element={<OverviewPage {...pageProps} />} />
+          <Route path="/matches" element={<MatchExplorerPage {...pageProps} />} />
+          <Route path="/matches/:matchId" element={<MatchDetailPage {...pageProps} />} />
+          <Route path="/teams" element={<TeamInsightsPage {...pageProps} />} />
+          <Route path="/teams/:teamSlug" element={<TeamDetailPage {...pageProps} />} />
+          <Route path="/insights" element={<InsightsListPage {...pageProps} />} />
+          <Route path="/insights/:insightSlug" element={<InsightsDetailWrapper {...pageProps} />} />
+          <Route path="/trends" element={<TrendsPage {...pageProps} />} />
+          <Route path="/about" element={<MethodologyPage {...pageProps} />} />
+          <Route path="/goal-timing" element={<Navigate to="/insights/goal-timing" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AppShell>
   );
 }

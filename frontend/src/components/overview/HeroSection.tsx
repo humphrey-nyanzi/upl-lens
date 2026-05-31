@@ -1,10 +1,21 @@
+import heroImage from "../../assets/upl-lens-overview-hero.png";
+
 export function HeroSection() {
+  const heroStyle = {
+    backgroundImage: `linear-gradient(to right, rgba(245, 247, 241, 0.95) 0%, rgba(245, 247, 241, 0.85) 40%, rgba(245, 247, 241, 0.4) 70%, transparent 100%), url(${heroImage})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'right center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <section className="overview-dashboard-header" aria-labelledby="page-title">
+    <section className="overview-dashboard-header" style={heroStyle} aria-labelledby="page-title">
       <div className="overview-dashboard-header-copy">
-        <h1 id="page-title">League Overview</h1>
+        <h1 id="page-title">Understand the Uganda Premier League</h1>
         <p>
-          Uganda Premier League signals in one scan: season totals, scoring windows, team form, and recent evidence.
+          UPL Lens helps fans, analysts, and football professionals understand
+          the Uganda Premier League through trusted match data, statistical
+          insights, and team-level exploration.
         </p>
       </div>
     </section>

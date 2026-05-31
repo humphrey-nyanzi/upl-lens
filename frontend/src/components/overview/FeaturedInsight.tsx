@@ -1,6 +1,7 @@
 import type { GoalTimingInsightResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
 import { formatPercent } from "../../utils/format";
+import { useNavigate } from "react-router-dom";
 import { ChartLegend, DistributionBarChart, InsightChartCard } from "../charts/ChartPrimitives";
 
 type FeaturedInsightProps = {
@@ -10,6 +11,7 @@ type FeaturedInsightProps = {
 };
 
 export function FeaturedInsight({ goalTiming, loadState, onPageChange }: FeaturedInsightProps) {
+  const navigate = useNavigate();
   const chartData =
     goalTiming?.intervals.map((interval) => ({
       color: interval.rank === 1 ? "var(--color-accent-gold)" : "var(--color-accent-green-muted)",
@@ -23,8 +25,8 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
   return (
     <InsightChartCard
       action={
-        <button className="text-button dark" type="button" onClick={() => onPageChange("goal-timing")}>
-          Open Goal Timing
+        <button className="text-button dark" type="button" onClick={() => navigate("/insights/goal-timing")}>
+          Explore Goal Timing
         </button>
       }
       caveat={
@@ -36,19 +38,21 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
       }
       chart={
         goalTiming ? (
-          <div className="overview-goal-preview">
-            <div className="overview-goal-peek" aria-label="Peak goal timing summary">
-              <span>Peak window</span>
-              <strong>{goalTiming.peak_interval ?? "Unavailable"}</strong>
-              {peakInterval ? <small>{peakInterval.goals.toLocaleString()} goals, {formatPercent(peakInterval.share)}</small> : null}
+          <div className="overview-goal-preview compact">
+            <div className="overview-goal-summary" aria-label="Peak goal timing summary">
+              <strong>{peakInterval ? formatPercent(peakInterval.share) : "N/A"}</strong>
+              <p>
+                of all goals scored in{" "}
+                <span>{goalTiming.peak_interval ?? "the peak interval"}</span>
+              </p>
             </div>
-            <DistributionBarChart data={chartData} height={156} valueLabel="Goals" />
+            <DistributionBarChart data={chartData} height={122} valueLabel="Goals" />
           </div>
         ) : null
       }
       className="featured-insight overview-goal-card"
-      emptyMessage="No goal timing insight returned yet."
-      eyebrow="Featured insight"
+      emptyMessage="Goal timing insight is unavailable for this season yet."
+      eyebrow="Featured Insight"
       isEmpty={!goalTiming && loadState !== "loading"}
       isLoading={!goalTiming && loadState === "loading"}
       legend={
@@ -61,8 +65,9 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
           />
         ) : null
       }
-      text="Compact distribution preview of regular-time scoring windows."
-      title="Goal timing distribution"
+      text="Most goals are scored between 61-75 minutes. Late goals continue to decide matches."
+      title="Goal Timing: The Decisive Minutes"
+      largeMetric={null}
     />
   );
 }

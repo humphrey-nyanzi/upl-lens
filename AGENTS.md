@@ -1,9 +1,16 @@
-# AGENTS.md - UPL Match Intelligence
+# AGENTS.md - UPL Match Intelligence (repo-level guidance)
 
 ## Project Direction
 
-This repository is evolving from a one-off Uganda Premier League goal timing
-analysis into an open-source UPL data platform.
+This repository contains the data platform, research lab, API, and frontend
+that historically shipped under the public name "UPL Match Intelligence".
+The frontend product has been redesigned and rebranded as **UPL Lens**.
+Keep historical operational and research guidance here; frontend design and
+launch direction should now follow the UPL Lens frontend docs (see
+`docs/UPL_LENS_FRONTEND_START_HERE.md`).
+
+This repo continues to evolve the data platform and research workflows, while
+the UPL Lens frontend sets the public-facing product and visual direction.
 
 The long-term goal is to collect official UPL match data, store it in Postgres,
 clean and model it for analysis, expose it through a FastAPI backend, and present

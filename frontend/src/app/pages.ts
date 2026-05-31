@@ -1,14 +1,10 @@
-import type { PageDefinition, PageKey } from "./types";
+import type { PageDefinition } from "./types";
 
 export const pages: PageDefinition[] = [
-  { key: "overview", label: "League Overview", shortLabel: "Overview" },
-  { key: "goal-timing", label: "Goal Timing", shortLabel: "Goals" },
-  { key: "matches", label: "Match Explorer", shortLabel: "Matches" },
-  { key: "teams", label: "Team Insights", shortLabel: "Teams" },
-  { key: "methodology", label: "Data Notes", shortLabel: "Notes" },
+  { key: "overview", label: "Overview", shortLabel: "Overview" },
+  { key: "matches", label: "Matches", shortLabel: "Matches" },
+  { key: "teams", label: "Teams", shortLabel: "Teams" },
+  { key: "insights", label: "Insights", shortLabel: "Insights" },
+  { key: "trends", label: "Trends", shortLabel: "Trends" },
+  { key: "about", label: "About", shortLabel: "About" },
 ];
-
-export function parsePageHash(): PageKey {
-  const value = window.location.hash.replace(/^#\/?/, "");
-  return pages.some((page) => page.key === value) ? (value as PageKey) : "overview";
-}

@@ -17,6 +17,8 @@ features.
 
 Read `AGENTS.md`, `docs/START_HERE.md`, `docs/PRODUCT_STRATEGY.md`, and
 `docs/PROJECT_ROADMAP.md` before making large changes.
+If the task affects the public frontend relaunch, also read
+`docs/UPL_LENS_FRONTEND_START_HERE.md`.
 
 ## Current Project State
 

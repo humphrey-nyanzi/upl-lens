@@ -102,3 +102,36 @@ export type EventResponse = {
   sub_out_player_name: string | null;
   sub_in_player_name: string | null;
 };
+
+export type OfficialResponse = {
+  official_row_key: string;
+  match_id: number;
+  season: string;
+  match_day: number | null;
+  role: string | null;
+  official_name: string | null;
+};
+
+export type MatchStatResponse = {
+  stat_row_key: string;
+  match_id: number;
+  season: string;
+  match_day: number | null;
+  statistic_name: string | null;
+  home_value: string | null;
+  away_value: string | null;
+};
+
+export type MatchDetailResponse = MatchSummary & {
+  goal_difference: number | null;
+  ground_address: string | null;
+  man_of_the_match: string | null;
+  man_of_the_match_team: string | null;
+  has_timeline: boolean | null;
+  has_lineups: boolean | null;
+  has_officials: boolean | null;
+  has_stats: boolean | null;
+  events: EventResponse[];
+  officials: OfficialResponse[];
+  stats: MatchStatResponse[];
+};
