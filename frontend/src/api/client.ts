@@ -58,6 +58,8 @@ export const apiClient = {
     getJson<GoalTimingInsightResponse>("/insights/goal-timing", { season }),
   getMatches: (season: string, limit = 200) =>
     getJson<MatchSummary[]>("/matches", { season, limit }),
+  getTeamMatches: (season: string, team: string, limit = 200) =>
+    getJson<MatchSummary[]>("/matches", { season, team, limit }),
   getMatchDetail: (matchId: number) => getJson<MatchDetailResponse>(`/matches/${matchId}`),
   getTeams: (season: string, limit = 200) => getJson<TeamResponse[]>("/teams", { season, limit }),
   getPlayers: (season: string, limit = 200, sort = "goals") =>
@@ -66,6 +68,8 @@ export const apiClient = {
     getJson<PlayerDetailResponse>(`/players/${playerSlug}`, { season }),
   getEvents: (season: string, limit = 200, offset = 0) =>
     getJson<EventResponse[]>("/events", { season, limit, offset }),
+  getTeamEvents: (season: string, team: string, limit = 200, offset = 0) =>
+    getJson<EventResponse[]>("/events", { season, team, limit, offset }),
   getRecentEvents: (season: string, limit = 200) =>
     getJson<EventResponse[]>("/events", { season, limit }),
 };

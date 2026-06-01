@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
@@ -14,7 +15,9 @@ const resultOptions = [
 ];
 
 export function MatchExplorerPage({ data, loadState, onPageChange }: PageProps) {
-  const [teamFilter, setTeamFilter] = useState("all");
+  const [searchParams] = useSearchParams();
+  const initialTeamFilter = searchParams.get("team") ?? "all";
+  const [teamFilter, setTeamFilter] = useState(initialTeamFilter);
   const [resultFilter, setResultFilter] = useState("all");
 
   const teamOptions = useMemo(() => {

@@ -235,12 +235,12 @@ export function AppShell({
           <p>{apiOnline ? "Ready for analysis" : "The hosted API may be starting."}</p>
         </div>
 
-        <div className="sidebar-footer-social" aria-hidden>
+        <nav className="sidebar-footer-social" aria-label="Social links">
           <a href="https://x.com" target="_blank" rel="noreferrer" className="social-link">X</a>
           <a href="https://github.com" target="_blank" rel="noreferrer" className="social-link">GitHub</a>
           <a href="https://humphreyn-substack.com" target="_blank" rel="noreferrer" className="social-link">Substack</a>
           <a href="https://www.linkedin.com" target="_blank" rel="noreferrer" className="social-link">LinkedIn</a>
-        </div>
+        </nav>
       </aside>
 
       <div className="app-main">
@@ -257,13 +257,13 @@ export function AppShell({
                 to={page.key === "overview" ? "/" : `/${page.key}`}
                 className={({ isActive }) => (isActive ? "mobile-nav-item active" : "mobile-nav-item")}
               >
-                <span className="mobile-nav-icon">{navIcons[page.key]}</span>
+                <span className="mobile-nav-icon" aria-hidden="true">{navIcons[page.key]}</span>
                 <span className="mobile-nav-label">{page.shortLabel}</span>
               </NavLink>
             ))}
 
             <button className="mobile-nav-item" type="button" onClick={() => setMoreOpen((s) => !s)} aria-expanded={moreOpen} aria-controls="mobile-more-menu">
-              <span className="mobile-nav-icon"><Info size={16} /></span>
+              <span className="mobile-nav-icon" aria-hidden="true"><Info size={16} /></span>
               <span className="mobile-nav-label">More</span>
             </button>
           </nav>

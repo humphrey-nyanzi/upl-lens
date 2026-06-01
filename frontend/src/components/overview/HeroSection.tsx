@@ -1,4 +1,4 @@
-import heroImage from "../../assets/upl-lens-overview-hero.png";
+import heroImage from "../../assets/upl-lens-overview-hero.jpg";
 
 export function HeroSection() {
   const heroStyle = {

@@ -344,6 +344,11 @@ alternate theme. Use the light tokens as the default implementation target.
 
 Approved decisions:
 
+- Global font rule:
+  - Headings (`h1`-`h6`) must use **Manrope Semibold** (`font-weight: 600`).
+  - Body text must use **Inter Regular** (`font-weight: 400`).
+  - This is a cross-app requirement and should be enforced in shared global
+    styles, not per-page overrides.
 - Headline numbers should be visually dominant.
 - Metric cards should prioritize the number, then a short context line.
 - `KpiCard` is the shared component for headline metric cards. It supports

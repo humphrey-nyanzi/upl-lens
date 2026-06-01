@@ -1,28 +1,48 @@
 import type { TeamResponse } from "../../api/types";
+import { Link } from "react-router-dom";
+import { TeamMarker } from "../common/TeamMarker";
+import { formatGoalDifference, getTeamGoalDifference, getTeamPoints, getTeamSlug, getTeamWinRate } from "../../utils/teams";
 
 export function TeamCard({ rank, team }: { rank?: number; team: TeamResponse }) {
-  const goalDifference = team.goals_for - team.goals_against;
-  const winRate = team.matches_played > 0 ? Math.round((team.wins / team.matches_played) * 100) : 0;
+  const goalDifference = getTeamGoalDifference(team);
+  const points = getTeamPoints(team);
+  const winRate = Math.round(getTeamWinRate(team) * 100);
 
   return (
-    <article className="team-card">
+    <article className="team-card team-index-card">
       <div className="team-card-header">
-        <strong>{rank ? `${rank}. ${team.team_name}` : team.team_name}</strong>
-        <span>{winRate}% wins</span>
+        <div className="team-card-title">
+          {rank ? <span className="team-rank">{rank}</span> : null}
+          <TeamMarker label={team.team_name} />
+          <div>
+            <strong>{team.team_name}</strong>
+            <span>
+              {points} pts · {winRate}% wins
+            </span>
+          </div>
+        </div>
+        <Link className="text-button compact-result-link" to={`/teams/${getTeamSlug(team.team_name)}`}>
+          Open profile
+        </Link>
       </div>
-      <div className="team-stat-row">
-        <span>Record</span>
-        <strong>
-          {team.wins}W {team.draws}D {team.losses}L
-        </strong>
+      <div className="team-card-metrics" aria-label={`${team.team_name} team summary`}>
+        <div>
+          <span>Record</span>
+          <strong>{team.wins}W {team.draws}D {team.losses}L</strong>
+        </div>
+        <div>
+          <span>Goals</span>
+          <strong>{team.goals_for}:{team.goals_against}</strong>
+        </div>
+        <div>
+          <span>GD</span>
+          <strong>{formatGoalDifference(goalDifference)}</strong>
+        </div>
+        <div>
+          <span>Matches</span>
+          <strong>{team.matches_played}</strong>
+        </div>
       </div>
-      <div className="team-stat-row">
-        <span>Goal difference</span>
-        <strong>{goalDifference > 0 ? `+${goalDifference}` : goalDifference}</strong>
-      </div>
-      <p>
-        {team.goals_for} scored, {team.goals_against} conceded across {team.matches_played} matches.
-      </p>
     </article>
   );
 }

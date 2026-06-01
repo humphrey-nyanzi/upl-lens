@@ -20,11 +20,23 @@ export function getTeamInitials(label: string | null | undefined) {
 }
 
 export function getStableTeamTone(label: string | null | undefined) {
-  const toneCount = 5;
   const safeLabel = getSafeTeamLabel(label);
+  const normalizedLabel = safeLabel.toLowerCase();
+
+  if (normalizedLabel.includes("kcca")) return "kcca";
+  if (normalizedLabel.includes("express")) return "express";
+  if (normalizedLabel.includes("vipers")) return "vipers";
+  if (normalizedLabel.includes("villa")) return "villa";
+  if (normalizedLabel.includes("ura")) return "ura";
+  if (normalizedLabel.includes("bul")) return "bul";
+  if (normalizedLabel.includes("kitara")) return "kitara";
+  if (normalizedLabel.includes("maroons")) return "maroons";
+  if (normalizedLabel.includes("nec")) return "nec";
+
+  const toneCount = 5;
   const hash = Array.from(safeLabel).reduce((total, character) => total + character.charCodeAt(0), 0);
 
-  return (hash % toneCount) + 1;
+  return String((hash % toneCount) + 1);
 }
 
 export function TeamMarker({ className, initials, label, size = "medium" }: TeamMarkerProps) {

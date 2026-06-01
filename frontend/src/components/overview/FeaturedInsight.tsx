@@ -14,7 +14,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
   const navigate = useNavigate();
   const chartData =
     goalTiming?.intervals.map((interval) => ({
-      color: interval.rank === 1 ? "var(--color-accent-gold)" : "var(--color-accent-green-muted)",
+      color: interval.rank === 1 ? "var(--color-green)" : "var(--color-featured-bar-muted)",
       label: interval.interval,
       rank: interval.rank,
       share: interval.share,
@@ -59,8 +59,8 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
         goalTiming ? (
           <ChartLegend
             items={[
-              { color: "var(--color-accent-green-muted)", label: "Regular window" },
-              { color: "var(--color-accent-gold)", label: "Peak window" },
+              { color: "var(--color-featured-bar-muted)", label: "Regular window" },
+              { color: "var(--color-green)", label: "Peak window" },
             ]}
           />
         ) : null
