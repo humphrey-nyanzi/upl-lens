@@ -10,6 +10,7 @@ const initialData: DashboardData = {
   goalTiming: null,
   matches: [],
   teams: [],
+  players: [],
 };
 
 export function useDashboardData() {
@@ -58,15 +59,16 @@ export function useDashboardData() {
       setErrorMessage("");
 
       try {
-        const [overview, goalTiming, matches, teams] = await Promise.all([
+        const [overview, goalTiming, matches, teams, players] = await Promise.all([
           apiClient.getSeasonOverview(selectedSeason),
           apiClient.getGoalTimingInsight(selectedSeason),
           apiClient.getMatches(selectedSeason, 200),
           apiClient.getTeams(selectedSeason, 200),
+          apiClient.getPlayers(selectedSeason, 200),
         ]);
 
         if (!ignore) {
-          setData((current) => ({ ...current, overview, goalTiming, matches, teams }));
+          setData((current) => ({ ...current, overview, goalTiming, matches, teams, players }));
           setLoadState("success");
         }
       } catch (error) {
@@ -98,6 +100,7 @@ export function useDashboardData() {
         .then((seasonGoalTiming) => setData((current) => ({ ...current, goalTiming: seasonGoalTiming }))),
       apiClient.getMatches(selectedSeason, 200).then((matches) => setData((current) => ({ ...current, matches }))),
       apiClient.getTeams(selectedSeason, 200).then((teams) => setData((current) => ({ ...current, teams }))),
+      apiClient.getPlayers(selectedSeason, 200).then((players) => setData((current) => ({ ...current, players }))),
     ])
       .then(() => setLoadState("success"))
       .catch((error) => {

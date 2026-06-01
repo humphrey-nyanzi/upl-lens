@@ -4,6 +4,8 @@ import type {
   HealthResponse,
   MatchDetailResponse,
   MatchSummary,
+  PlayerDetailResponse,
+  PlayerSummary,
   SeasonOverviewResponse,
   SeasonResponse,
   TeamResponse,
@@ -58,6 +60,10 @@ export const apiClient = {
     getJson<MatchSummary[]>("/matches", { season, limit }),
   getMatchDetail: (matchId: number) => getJson<MatchDetailResponse>(`/matches/${matchId}`),
   getTeams: (season: string, limit = 200) => getJson<TeamResponse[]>("/teams", { season, limit }),
+  getPlayers: (season: string, limit = 200, sort = "goals") =>
+    getJson<PlayerSummary[]>("/players", { season, limit, sort }),
+  getPlayerDetail: (playerSlug: string, season?: string) =>
+    getJson<PlayerDetailResponse>(`/players/${playerSlug}`, { season }),
   getEvents: (season: string, limit = 200, offset = 0) =>
     getJson<EventResponse[]>("/events", { season, limit, offset }),
   getRecentEvents: (season: string, limit = 200) =>

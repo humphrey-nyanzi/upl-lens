@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Goal, Trophy, Home, BarChartBig } from "lucide-react";
+import { Goal, Trophy, Home, BarChartBig, Grip } from "lucide-react";
 
 import type { PageProps } from "../app/types";
 import { ErrorPanel } from "../components/common/ErrorPanel";
@@ -45,7 +45,7 @@ export function OverviewPage({
       detail: "Goals from match event timelines.",
       meta: completedMatches.length > 0 ? `${averageGoals.toFixed(2)} per match` : undefined,
       icon: <Trophy size={18} />,
-      accent: "gold" as const,
+      accent: "green" as const,
     },
     {
       label: "Home Win %",

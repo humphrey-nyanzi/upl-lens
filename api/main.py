@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import events, health, insights, matches, officials, seasons, teams
+from api.routers import events, health, insights, matches, officials, players, seasons, teams
 from src.db.connection import close_api_connection_pool
 
 
@@ -75,6 +75,7 @@ app.include_router(health.router)
 app.include_router(seasons.router)
 app.include_router(matches.router)
 app.include_router(teams.router)
+app.include_router(players.router)
 app.include_router(events.router)
 app.include_router(officials.router)
 app.include_router(insights.router)

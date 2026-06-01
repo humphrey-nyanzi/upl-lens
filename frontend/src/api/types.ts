@@ -85,6 +85,61 @@ export type TeamResponse = {
   losses: number;
 };
 
+export type PlayerSummary = {
+  player_slug: string;
+  player_name: string;
+  primary_team: string | null;
+  teams: string[];
+  seasons_played: number;
+  appearances: number;
+  starts: number;
+  bench_listings: number;
+  goals: number;
+  assists: number;
+  yellow_cards: number;
+  red_cards: number;
+  substitutions_on: number;
+  substitutions_off: number;
+  player_of_match_awards: number;
+};
+
+export type PlayerSeasonSummary = {
+  season: string;
+  teams: string[];
+  appearances: number;
+  starts: number;
+  bench_listings: number;
+  goals: number;
+  assists: number;
+  yellow_cards: number;
+  red_cards: number;
+  substitutions_on: number;
+  substitutions_off: number;
+  player_of_match_awards: number;
+};
+
+export type PlayerMatchItem = {
+  match_id: number;
+  season: string;
+  match_day: number | null;
+  match_date: string | null;
+  home_team: string | null;
+  away_team: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  team_name: string | null;
+  squad_role: string | null;
+  goals: number;
+  assists: number;
+  yellow_cards: number;
+  red_cards: number;
+};
+
+export type PlayerDetailResponse = PlayerSummary & {
+  season_breakdown: PlayerSeasonSummary[];
+  recent_matches: PlayerMatchItem[];
+};
+
 export type EventResponse = {
   event_row_key: string;
   match_id: number;

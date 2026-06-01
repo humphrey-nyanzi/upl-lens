@@ -11,6 +11,8 @@ const MethodologyPage = lazy(() => import("./pages/MethodologyPage").then((m) =>
 const OverviewPage = lazy(() => import("./pages/OverviewPage").then((m) => ({ default: m.OverviewPage })));
 const TeamInsightsPage = lazy(() => import("./pages/TeamInsightsPage").then((m) => ({ default: m.TeamInsightsPage })));
 const MatchDetailPage = lazy(() => import("./pages/MatchDetailPage").then((m) => ({ default: m.default })));
+const PlayersPage = lazy(() => import("./pages/PlayersPage").then((m) => ({ default: m.PlayersPage })));
+const PlayerDetailPage = lazy(() => import("./pages/PlayerDetailPage").then((m) => ({ default: m.default })));
 const TeamDetailPage = lazy(() => import("./pages/TeamDetailPage").then((m) => ({ default: m.default })));
 const InsightsListPage = lazy(() => import("./pages/InsightsListPage").then((m) => ({ default: m.InsightsListPage })));
 const InsightsDetailWrapper = lazy(() => import("./pages/InsightsDetailWrapper").then((m) => ({ default: m.InsightsDetailWrapper })));
@@ -63,6 +65,7 @@ function App() {
       selectedSeason={selectedSeason}
       matches={data.matches}
       teams={data.teams}
+      players={data.players}
     >
       <Suspense fallback={<div className="loading">Loading…</div>}>
         <Routes>
@@ -71,6 +74,8 @@ function App() {
           <Route path="/matches/:matchId" element={<MatchDetailPage {...pageProps} />} />
           <Route path="/teams" element={<TeamInsightsPage {...pageProps} />} />
           <Route path="/teams/:teamSlug" element={<TeamDetailPage {...pageProps} />} />
+          <Route path="/players" element={<PlayersPage {...pageProps} />} />
+          <Route path="/players/:playerSlug" element={<PlayerDetailPage {...pageProps} />} />
           <Route path="/insights" element={<InsightsListPage {...pageProps} />} />
           <Route path="/insights/:insightSlug" element={<InsightsDetailWrapper {...pageProps} />} />
           <Route path="/trends" element={<TrendsPage {...pageProps} />} />

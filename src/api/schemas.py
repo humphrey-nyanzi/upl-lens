@@ -149,3 +149,58 @@ class TeamResponse(ApiModel):
     wins: int
     draws: int
     losses: int
+
+
+class PlayerSummary(ApiModel):
+    player_slug: str
+    player_name: str
+    primary_team: str | None = None
+    teams: list[str]
+    seasons_played: int
+    appearances: int
+    starts: int
+    bench_listings: int
+    goals: int
+    assists: int
+    yellow_cards: int
+    red_cards: int
+    substitutions_on: int
+    substitutions_off: int
+    player_of_match_awards: int
+
+
+class PlayerSeasonSummary(ApiModel):
+    season: str
+    teams: list[str]
+    appearances: int
+    starts: int
+    bench_listings: int
+    goals: int
+    assists: int
+    yellow_cards: int
+    red_cards: int
+    substitutions_on: int
+    substitutions_off: int
+    player_of_match_awards: int
+
+
+class PlayerMatchItem(ApiModel):
+    match_id: int
+    season: str
+    match_day: int | None = None
+    match_date: date | None = None
+    home_team: str | None = None
+    away_team: str | None = None
+    home_score: int | None = None
+    away_score: int | None = None
+    team_name: str | None = None
+    squad_role: str | None = None
+    goals: int
+    assists: int
+    yellow_cards: int
+    red_cards: int
+
+
+class PlayerDetail(PlayerSummary):
+    season_breakdown: list[PlayerSeasonSummary]
+    recent_matches: list[PlayerMatchItem]

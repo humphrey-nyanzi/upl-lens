@@ -20,5 +20,6 @@ from src.api.query_services.health import get_health_status
 from src.api.query_services.insights import get_goal_timing_insight
 from src.api.query_services.matches import get_match, list_matches
 from src.api.query_services.officials import list_officials
+from src.api.query_services.players import get_player, list_players
 from src.api.query_services.seasons import _event_type_label, get_season_overview, list_seasons
 from src.api.query_services.teams import list_teams

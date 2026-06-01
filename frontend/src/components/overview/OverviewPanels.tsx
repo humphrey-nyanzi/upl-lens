@@ -148,6 +148,9 @@ export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey)
           type="button"
           onClick={() => onPageChange("insights")}
         >
+          <div className="trends-card-icon featured" aria-hidden="true">
+            <TrendingUp size={24} />
+          </div>
           <div className="trends-card-featured-content">
             <strong>Dive deeper into the data</strong>
             <p>Move from this overview into dedicated pages for evidence, context, and analysis.</p>
@@ -215,9 +218,6 @@ export function RecentMatchPanel({
           <p className="eyebrow">Recent matches</p>
           <h2>Recent matches</h2>
         </div>
-        <button className="text-button compact-result-link" type="button" onClick={() => onPageChange("matches")}>
-          View all
-        </button>
       </div>
       <div className="overview-list">
         {matches.length > 0 ? (

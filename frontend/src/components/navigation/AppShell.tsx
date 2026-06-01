@@ -2,12 +2,13 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { pages } from "../../app/pages";
 import type { LoadState } from "../../app/types";
-import type { HealthResponse, MatchSummary, SeasonResponse, TeamResponse } from "../../api/types";
+import type { HealthResponse, MatchSummary, PlayerSummary, SeasonResponse, TeamResponse } from "../../api/types";
 import { SeasonControls } from "../season/SeasonControls";
 import { BrandLockup } from "./BrandLockup";
-import { Home, List, Users, BarChart2, TrendingUp, Info, Search } from "lucide-react";
+import { Home, List, Users, BarChart2, TrendingUp, Info, Search, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { formatDate } from "../../utils/format";
+import { slugify } from "../../utils/slugs";
 
 type AppShellProps = {
   apiOnline: boolean;
@@ -20,16 +21,19 @@ type AppShellProps = {
   selectedSeason: string;
   matches: MatchSummary[];
   teams: TeamResponse[];
+  players: PlayerSummary[];
 };
 
 type SearchResult =
   | { id: string; type: "team"; teamName: string }
+  | { id: string; type: "player"; playerSlug: string; playerName: string }
   | { id: string; type: "match"; matchId: number };
 
 const navIcons: Record<string, ReactNode> = {
   overview: <Home size={16} />,
   matches: <List size={16} />,
   teams: <Users size={16} />,
+  players: <User size={16} />,
   insights: <BarChart2 size={16} />,
   trends: <TrendingUp size={16} />,
   about: <Info size={16} />,
@@ -46,10 +50,6 @@ function formatFreshness(health: HealthResponse | null, apiOnline: boolean) {
   return `Updated ${new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(date)}`;
 }
 
-function slugify(value: string) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
 export function AppShell({
   apiOnline,
   children,
@@ -61,6 +61,7 @@ export function AppShell({
   selectedSeason,
   matches,
   teams,
+  players,
 }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,12 +95,30 @@ export function AppShell({
       .slice(0, 5);
   }, [hasSearchQuery, matches, normalizedSearch]);
 
+  const playerResults = useMemo(() => {
+    if (!hasSearchQuery) return [];
+
+    return players
+      .filter((player) => {
+        const teamNames = player.teams.join(" ").toLowerCase();
+        return player.player_name.toLowerCase().includes(normalizedSearch) || teamNames.includes(normalizedSearch);
+      })
+      .sort((left, right) => right.goals - left.goals || right.appearances - left.appearances || left.player_name.localeCompare(right.player_name))
+      .slice(0, 5);
+  }, [hasSearchQuery, normalizedSearch, players]);
+
   const combinedSearchResults = useMemo<SearchResult[]>(
     () => [
       ...teamResults.map((team) => ({ id: `team-${slugify(team.team_name)}`, type: "team" as const, teamName: team.team_name })),
+      ...playerResults.map((player) => ({
+        id: `player-${player.player_slug}`,
+        type: "player" as const,
+        playerSlug: player.player_slug,
+        playerName: player.player_name,
+      })),
       ...matchResults.map((match) => ({ id: `match-${match.match_id}`, type: "match" as const, matchId: match.match_id })),
     ],
-    [matchResults, teamResults],
+    [matchResults, playerResults, teamResults],
   );
 
   const showSearchResults = searchOpen && hasSearchQuery;
@@ -127,9 +146,20 @@ export function AppShell({
     navigate(`/matches/${matchId}`);
   }
 
+  function handlePlayerSelect(playerSlug: string) {
+    setSearchOpen(false);
+    setSearchQuery("");
+    navigate(`/players/${playerSlug}`);
+  }
+
   function handleSearchResultSelect(result: SearchResult) {
     if (result.type === "team") {
       handleTeamSelect(result.teamName);
+      return;
+    }
+
+    if (result.type === "player") {
+      handlePlayerSelect(result.playerSlug);
       return;
     }
 
@@ -251,7 +281,7 @@ export function AppShell({
                 <Search size={14} className="search-icon" aria-hidden />
                 <input
                   aria-activedescendant={activeSearchOptionId}
-                  aria-label="Search teams and matches"
+                  aria-label="Search teams, players, and matches"
                   aria-controls="global-search-results"
                   aria-expanded={showSearchResults}
                   aria-haspopup="listbox"
@@ -263,7 +293,7 @@ export function AppShell({
                   }}
                   onFocus={() => setSearchOpen(true)}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="Search teams, matches..."
+                  placeholder="Search teams, players..."
                   role="combobox"
                   type="text"
                   value={searchQuery}
@@ -304,11 +334,50 @@ export function AppShell({
                       })}
                     </div>
                   ) : null}
+                  {playerResults.length > 0 ? (
+                    <div className="search-results-group">
+                      <span>Players</span>
+                      {playerResults.map((player, index) => {
+                        const resultIndex = teamResults.length + index;
+                        const result: SearchResult = {
+                          id: `player-${player.player_slug}`,
+                          type: "player",
+                          playerSlug: player.player_slug,
+                          playerName: player.player_name,
+                        };
+                        const isActive = activeSearchIndex === resultIndex;
+
+                        return (
+                        <button
+                          aria-selected={isActive}
+                          className={isActive ? "active" : undefined}
+                          id={`search-result-${result.id}`}
+                          key={player.player_slug}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            handleSearchResultSelect(result);
+                          }}
+                          onMouseEnter={() => setActiveSearchIndex(resultIndex)}
+                          role="option"
+                          type="button"
+                        >
+                          <span className="search-result-topline">
+                            <strong>{player.player_name}</strong>
+                            <span className="search-result-chip">Player</span>
+                          </span>
+                          <small>
+                            {player.primary_team ?? "Team TBC"} · {player.goals} G · {player.assists} A · {player.appearances} apps
+                          </small>
+                        </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                   {matchResults.length > 0 ? (
                     <div className="search-results-group">
                       <span>Matches</span>
                       {matchResults.map((match, index) => {
-                        const resultIndex = teamResults.length + index;
+                        const resultIndex = teamResults.length + playerResults.length + index;
                         const result: SearchResult = { id: `match-${match.match_id}`, type: "match", matchId: match.match_id };
                         const isActive = activeSearchIndex === resultIndex;
 
@@ -340,8 +409,8 @@ export function AppShell({
                       })}
                     </div>
                   ) : null}
-                  {teamResults.length === 0 && matchResults.length === 0 ? (
-                    <div className="search-results-empty">No teams or matches found.</div>
+                  {teamResults.length === 0 && playerResults.length === 0 && matchResults.length === 0 ? (
+                    <div className="search-results-empty">No teams, players, or matches found.</div>
                   ) : null}
                 </div>
               ) : null}
@@ -356,6 +425,7 @@ export function AppShell({
         {moreOpen ? (
           <div id="mobile-more-menu" className="mobile-more-menu">
             <nav>
+              <Link to="/insights" onClick={() => setMoreOpen(false)}>Insights</Link>
               <Link to="/trends" onClick={() => setMoreOpen(false)}>Trends</Link>
               <Link to="/about" onClick={() => setMoreOpen(false)}>About</Link>
             </nav>

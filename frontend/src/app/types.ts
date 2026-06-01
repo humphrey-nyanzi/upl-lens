@@ -2,13 +2,14 @@ import type {
   GoalTimingInsightResponse,
   HealthResponse,
   MatchSummary,
+  PlayerSummary,
   SeasonOverviewResponse,
   SeasonResponse,
   TeamResponse,
 } from "../api/types";
 
 export type LoadState = "idle" | "loading" | "success" | "error";
-export type PageKey = "overview" | "matches" | "teams" | "insights" | "trends" | "about";
+export type PageKey = "overview" | "matches" | "teams" | "players" | "insights" | "trends" | "about";
 
 export type DashboardData = {
   health: HealthResponse | null;
@@ -17,6 +18,7 @@ export type DashboardData = {
   goalTiming: GoalTimingInsightResponse | null;
   matches: MatchSummary[];
   teams: TeamResponse[];
+  players: PlayerSummary[];
 };
 
 export type PageDefinition = {
