@@ -1,6 +1,7 @@
 import type { MatchSummary, SeasonOverviewResponse, SeasonResponse, TeamResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
-import { formatDate, matchStatus } from "../../utils/format";
+import { formatDate, formatScoreline, matchStatus } from "../../utils/format";
+import { getTeamPoints } from "../../utils/teams";
 import { EmptyState } from "../common/EmptyState";
 import { TeamMarker } from "../common/TeamMarker";
 import { Target, Home, TrendingUp, ArrowRight } from "lucide-react";
@@ -15,8 +16,8 @@ export function TeamSignalPanel({
   teams: TeamResponse[];
 }) {
   const rankingItems = teams.map((team) => {
-    const points = team.wins * 3 + team.draws;
-    const winRate = team.matches_played > 0 ? Math.round((team.wins / team.matches_played) * 100) : 0;
+    const points = getTeamPoints(team);
+    const winRate = team.played_matches > 0 ? Math.round((team.wins / team.played_matches) * 100) : 0;
     const strength = Math.max(0, Math.min(5, Math.round((winRate / 100) * 5)));
     const dots = Array.from({ length: 5 }, (_, index) => index < strength);
 
@@ -178,9 +179,6 @@ export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey)
 }
 
 function CompactResultRow({ match }: { match: MatchSummary }) {
-  const homeScore = match.home_score ?? "-";
-  const awayScore = match.away_score ?? "-";
-
   return (
     <article className="overview-list-row match">
       <span className="overview-date">{formatDate(match.match_date)}</span>
@@ -190,11 +188,11 @@ function CompactResultRow({ match }: { match: MatchSummary }) {
           <span>{match.home_team ?? "Home team TBC"}</span>
         </span>
         <span className="overview-inline-score">
-          {homeScore} - {awayScore}
+          {formatScoreline(match.home_score, match.away_score)}
         </span>
-        <span className="overview-team-inline">
-          <TeamMarker className="overview-row-marker" label={match.away_team} size="small" />
+        <span className="overview-team-inline away">
           <span>{match.away_team ?? "Away team TBC"}</span>
+          <TeamMarker className="overview-row-marker" label={match.away_team} size="small" />
         </span>
       </div>
       <span className="overview-result">{matchStatus(match)}</span>

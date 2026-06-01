@@ -49,6 +49,7 @@ from src.db.staging.validation import (
     _has_error_level_issues,
     _issue,
     _validate_duplicates,
+    _validate_fixture_completeness,
     _validate_key_fields,
     _validate_man_of_match_quality,
     _validate_missing_team_player_values,

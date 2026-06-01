@@ -7,7 +7,7 @@ import { SeasonControls } from "../season/SeasonControls";
 import { BrandLockup } from "./BrandLockup";
 import { Home, List, Users, BarChart2, TrendingUp, Info, Search, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { formatDate } from "../../utils/format";
+import { formatDate, formatScoreline } from "../../utils/format";
 import { slugify } from "../../utils/slugs";
 
 type AppShellProps = {
@@ -397,13 +397,11 @@ export function AppShell({
                         >
                           <span className="search-result-topline">
                             <strong>
-                              {match.home_team ?? "Home"} vs {match.away_team ?? "Away"}
+                              {match.home_team ?? "Home"} {formatScoreline(match.home_score, match.away_score)} {match.away_team ?? "Away"}
                             </strong>
                             <span className="search-result-chip">Match</span>
                           </span>
-                          <small>
-                            {formatDate(match.match_date)} · {match.home_score ?? "-"}:{match.away_score ?? "-"}
-                          </small>
+                          <small>{formatDate(match.match_date)}</small>
                         </button>
                         );
                       })}

@@ -62,8 +62,8 @@ export function useDashboardData() {
         const [overview, goalTiming, matches, teams, players] = await Promise.all([
           apiClient.getSeasonOverview(selectedSeason),
           apiClient.getGoalTimingInsight(selectedSeason),
-          apiClient.getMatches(selectedSeason, 200),
-          apiClient.getTeams(selectedSeason, 200),
+          apiClient.getMatches(selectedSeason, 500),
+          apiClient.getTeams(selectedSeason, 500),
           apiClient.getPlayers(selectedSeason, 200),
         ]);
 
@@ -98,8 +98,8 @@ export function useDashboardData() {
       apiClient
         .getGoalTimingInsight(selectedSeason)
         .then((seasonGoalTiming) => setData((current) => ({ ...current, goalTiming: seasonGoalTiming }))),
-      apiClient.getMatches(selectedSeason, 200).then((matches) => setData((current) => ({ ...current, matches }))),
-      apiClient.getTeams(selectedSeason, 200).then((teams) => setData((current) => ({ ...current, teams }))),
+      apiClient.getMatches(selectedSeason, 500).then((matches) => setData((current) => ({ ...current, matches }))),
+      apiClient.getTeams(selectedSeason, 500).then((teams) => setData((current) => ({ ...current, teams }))),
       apiClient.getPlayers(selectedSeason, 200).then((players) => setData((current) => ({ ...current, players }))),
     ])
       .then(() => setLoadState("success"))

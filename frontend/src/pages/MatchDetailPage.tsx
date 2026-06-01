@@ -5,7 +5,7 @@ import { ApiRequestError, apiClient } from "../api/client";
 import type { PageProps } from "../app/types";
 import type { EventResponse, MatchDetailResponse, MatchStatResponse, OfficialResponse } from "../api/types";
 import { TeamMarker } from "../components/common/TeamMarker";
-import { formatDate, formatResult, formatSeason, matchStatus } from "../utils/format";
+import { formatDate, formatResult, formatScoreline, formatSeason, matchStatus } from "../utils/format";
 import { slugify } from "../utils/slugs";
 
 type MatchDetailState = "loading" | "success" | "not_found" | "error" | "offline";
@@ -25,10 +25,6 @@ function formatValue(value: string | number | null | undefined) {
 
 function formatTime(value: string | null) {
   return value ? value.slice(0, 5) : null;
-}
-
-function scoreValue(value: number | null) {
-  return value === null ? "-" : String(value);
 }
 
 function toTitleCase(value: string) {
@@ -109,6 +105,15 @@ function metadataRows(match: MatchDetailResponse) {
     { label: "Kickoff", value: formatTime(match.match_time) },
     { label: "Venue", value: formatValue(match.ground_name) },
     { label: "Ground address", value: formatValue(match.ground_address) },
+    { label: "Result type", value: match.is_administrative_result ? "Administrative result" : "Played result" },
+    { label: "Administrative note", value: formatValue(match.administrative_note) },
+    {
+      label: "Awarded points",
+      value:
+        match.home_awarded_points !== null && match.away_awarded_points !== null
+          ? `${match.home_team ?? "Home"} ${match.home_awarded_points}, ${match.away_team ?? "Away"} ${match.away_awarded_points}`
+          : null,
+    },
     { label: "Man of the match", value: formatValue(match.man_of_the_match) },
   ].filter((row) => row.value);
 }
@@ -190,13 +195,15 @@ function MatchDetailError({
   );
 }
 
-function MatchTeamLink({ name }: { name: string | null }) {
+function MatchTeamLink({ markerPosition = "before", name }: { markerPosition?: "before" | "after"; name: string | null }) {
   const safeName = getSafeTeamName(name);
+  const marker = <TeamMarker label={safeName} />;
 
   return (
     <Link className="match-detail-team-link" to={`/teams/${slugify(safeName)}`}>
-      <TeamMarker label={safeName} />
+      {markerPosition === "before" ? marker : null}
       <span>{safeName}</span>
+      {markerPosition === "after" ? marker : null}
     </Link>
   );
 }
@@ -267,12 +274,14 @@ function OfficialsPanel({ officials }: { officials: OfficialResponse[] }) {
 }
 
 function DataCompletenessNote({ match }: { match: MatchDetailResponse }) {
-  const sourceCopy = match.is_source_anomaly
+  const sourceCopy = match.is_administrative_result
+    ? match.administrative_note ?? "This result includes a forfeit, walkover, or other administrative decision."
+    : match.is_source_anomaly
     ? match.source_anomaly_reason ?? "This match has a source-data anomaly."
     : "Timeline, stats, and officials are shown where available from the source match page.";
 
   return (
-    <section className={match.is_source_anomaly ? "match-data-note anomaly" : "match-data-note"}>
+    <section className={match.is_source_anomaly || match.is_administrative_result ? "match-data-note anomaly" : "match-data-note"}>
       <div>
         <span className="eyebrow">Data note</span>
         <p>{sourceCopy}</p>
@@ -367,20 +376,20 @@ export default function MatchDetailPage(_props: PageProps) {
           <div className="scoreline-team">
             <MatchTeamLink name={match.home_team} />
           </div>
-          <div className="scoreline-centre" aria-label={`${homeTeam} ${scoreValue(match.home_score)} to ${scoreValue(match.away_score)} ${awayTeam}`}>
+          <div className="scoreline-centre" aria-label={`${homeTeam} ${formatScoreline(match.home_score, match.away_score)} ${awayTeam}`}>
             <strong>
-              {scoreValue(match.home_score)}:{scoreValue(match.away_score)}
+              {formatScoreline(match.home_score, match.away_score)}
             </strong>
             <span>{matchStatus(match)}</span>
           </div>
           <div className="scoreline-team away">
-            <MatchTeamLink name={match.away_team} />
+            <MatchTeamLink markerPosition="after" name={match.away_team} />
           </div>
         </div>
 
         <div className="match-detail-summary">
           <strong>
-            {homeTeam} vs {awayTeam}
+            {homeTeam} {formatScoreline(match.home_score, match.away_score)} {awayTeam}
           </strong>
           <span>{match.result ? formatResult(match.result) : "Result pending"}</span>
         </div>
@@ -427,7 +436,7 @@ export default function MatchDetailPage(_props: PageProps) {
           <div className="section-heading compact">
             <div>
               <span className="eyebrow">Stats</span>
-              <h2>Home vs away</h2>
+              <h2>Match stats</h2>
             </div>
           </div>
           <MatchStatsPanel stats={match.stats} />

@@ -60,6 +60,17 @@ def _clean_match_rows(raw_matches: pd.DataFrame) -> pd.DataFrame:
     df["winner_team"] = None
     df.loc[df["result"] == "home_win", "winner_team"] = df["home_team"]
     df.loc[df["result"] == "away_win", "winner_team"] = df["away_team"]
+    df["is_administrative_result"] = df["is_forfeit"]
+    df["administrative_result_type"] = None
+    df.loc[df["is_forfeit"], "administrative_result_type"] = "forfeit"
+    df["administrative_note"] = None
+    df.loc[df["is_forfeit"], "administrative_note"] = raw_man_of_the_match.map(_clean_text)
+    df["played_on_pitch"] = ~df["is_administrative_result"]
+    df["home_awarded_points"] = 0
+    df["away_awarded_points"] = 0
+    df.loc[df["result"] == "home_win", "home_awarded_points"] = 3
+    df.loc[df["result"] == "away_win", "away_awarded_points"] = 3
+    df.loc[df["result"] == "draw", ["home_awarded_points", "away_awarded_points"]] = 1
     df["raw_ingested_at"] = df["ingested_at"]
 
     return df[list(STAGING_COLUMNS["matches"])]

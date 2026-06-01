@@ -60,6 +60,7 @@ TO upl_actions_loader;
 -- Supabase may enable RLS on new tables; disable it here so SQL grants control
 -- this internal summary table consistently.
 ALTER TABLE IF EXISTS analytics.team_season_summary DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS analytics.team_season_point_adjustments DISABLE ROW LEVEL SECURITY;
 
 GRANT USAGE, SELECT
 ON ALL SEQUENCES IN SCHEMA staging

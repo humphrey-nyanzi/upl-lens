@@ -9,6 +9,8 @@ import pandas as pd
 from src import config
 from src.db.staging_loader import (
     _has_error_level_issues,
+    _clean_match_rows,
+    _validate_fixture_completeness,
     _is_forfeit_text,
     _normalize_goal_type,
     _normalize_team,
@@ -137,6 +139,81 @@ def test_forfeit_text_detection_uses_source_notice_language() -> None:
     assert _is_forfeit_text("The club failed to turn up for the match.") is True
     assert _is_forfeit_text("Failure to honour Match pending FUFA Disciplinary Panel Verdict.") is True
     assert _is_forfeit_text("Pilsner Man of the Match: Jane Doe") is False
+
+
+def test_forfeit_match_rows_get_admin_result_fields() -> None:
+    """Forfeits should carry explicit administrative-result and awarded-points fields."""
+
+    raw_matches = pd.DataFrame(
+        [
+            {
+                "match_id": 1,
+                "match_url": "https://upl.co.ug/event/test/",
+                "season": "2025-26",
+                "date": "04/10/2025",
+                "time": "15:00",
+                "league": "Uganda Premier League",
+                "match_day": 1,
+                "home_team": "Kitara FC",
+                "home_team_url": None,
+                "away_team": "Vipers SC",
+                "away_team_url": None,
+                "ground_name": None,
+                "ground_address": None,
+                "man_of_the_match": "Vipers SC failed to turn up for the match.",
+                "man_of_the_match_team": None,
+                "home_score": 3,
+                "away_score": 0,
+                "home_first_half_goals": None,
+                "away_first_half_goals": None,
+                "home_second_half_goals": None,
+                "away_second_half_goals": None,
+                "has_timeline": False,
+                "has_lineups": False,
+                "has_officials": False,
+                "has_stats": False,
+                "ingested_at": pd.Timestamp("2026-01-01T00:00:00Z"),
+            }
+        ]
+    )
+
+    cleaned = _clean_match_rows(raw_matches)
+    row = cleaned.iloc[0]
+
+    assert bool(row["is_forfeit"]) is True
+    assert bool(row["is_administrative_result"]) is True
+    assert row["administrative_result_type"] == "forfeit"
+    assert bool(row["played_on_pitch"]) is False
+    assert row["home_awarded_points"] == 3
+    assert row["away_awarded_points"] == 0
+
+
+def test_fixture_completeness_warns_for_near_complete_missing_team_match() -> None:
+    """Near-complete seasons should flag teams below expected fixture counts."""
+
+    rows = []
+    teams = ["A", "B", "C", "D"]
+    match_id = 1
+    for home in teams:
+        for away in teams:
+            if home == away or (home == "A" and away == "B"):
+                continue
+            rows.append(
+                {
+                    "match_id": match_id,
+                    "season": "2025_26",
+                    "home_team": home,
+                    "away_team": away,
+                    "is_source_anomaly": False,
+                }
+            )
+            match_id += 1
+
+    issues = _validate_fixture_completeness({"matches": pd.DataFrame(rows)}, "test-run")
+
+    issue_values = [issue["issue_value"] for issue in issues]
+    assert any("team=A; recorded=5; expected=6" in value for value in issue_values)
+    assert any("team=B; recorded=5; expected=6" in value for value in issue_values)
 
 
 def test_season_date_anomaly_flags_cross_season_source_rows() -> None:

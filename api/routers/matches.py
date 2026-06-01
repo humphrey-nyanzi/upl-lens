@@ -16,7 +16,7 @@ def get_matches(
     season: str | None = None,
     team: str | None = None,
     match_day: int | None = None,
-    limit: int = Query(DEFAULT_LIMIT, ge=1, le=200),
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> list[MatchSummary]:
     """Return matches from `staging.matches` with simple filters."""
@@ -33,4 +33,3 @@ def get_match_by_id(match_id: int) -> MatchDetail:
     if row is None:
         raise HTTPException(status_code=404, detail=f"Match {match_id} was not found.")
     return MatchDetail(**row)
-

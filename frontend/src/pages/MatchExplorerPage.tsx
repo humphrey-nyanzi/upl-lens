@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { apiClient } from "../api/client";
+import type { MatchSummary } from "../api/types";
 import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
@@ -8,17 +10,18 @@ import { PageIntro } from "../components/common/PageIntro";
 import { MatchRow } from "../components/matches/MatchRow";
 
 const resultOptions = [
-  { label: "All results", value: "all" },
-  { label: "Home wins", value: "home_win" },
-  { label: "Away wins", value: "away_win" },
+  { label: "All matches", value: "all" },
+  { label: "Completed matches", value: "completed" },
   { label: "Draws", value: "draw" },
 ];
 
-export function MatchExplorerPage({ data, loadState, onPageChange }: PageProps) {
+export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeason }: PageProps) {
   const [searchParams] = useSearchParams();
   const initialTeamFilter = searchParams.get("team") ?? "all";
   const [teamFilter, setTeamFilter] = useState(initialTeamFilter);
   const [resultFilter, setResultFilter] = useState("all");
+  const [serverFilteredMatches, setServerFilteredMatches] = useState<MatchSummary[] | null>(null);
+  const [serverFilterState, setServerFilterState] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const teamOptions = useMemo(() => {
     const names = new Set<string>();
@@ -29,22 +32,62 @@ export function MatchExplorerPage({ data, loadState, onPageChange }: PageProps) 
     return [...names].sort((left, right) => left.localeCompare(right));
   }, [data.matches]);
 
+  useEffect(() => {
+    if (!selectedSeason || teamFilter === "all") {
+      setServerFilteredMatches(null);
+      setServerFilterState("idle");
+      return;
+    }
+
+    let ignore = false;
+    setServerFilterState("loading");
+
+    apiClient
+      .getTeamMatches(selectedSeason, teamFilter, 500)
+      .then((matches) => {
+        if (!ignore) {
+          setServerFilteredMatches(matches);
+          setServerFilterState("success");
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setServerFilteredMatches(null);
+          setServerFilterState("error");
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [selectedSeason, teamFilter]);
+
   const filteredMatches = useMemo(() => {
-    return [...data.matches]
+    const sourceMatches = serverFilteredMatches ?? data.matches;
+    return [...sourceMatches]
       .filter((match) => {
-        const matchesTeam = teamFilter === "all" || match.home_team === teamFilter || match.away_team === teamFilter;
-        const matchesResult = resultFilter === "all" || match.result === resultFilter;
-        return matchesTeam && matchesResult;
+        const matchesResult =
+          resultFilter === "all" ||
+          (resultFilter === "completed" ? match.result !== null : match.result === resultFilter);
+        return matchesResult;
       })
       .sort((left, right) => (right.match_date ?? "").localeCompare(left.match_date ?? "") || right.match_id - left.match_id);
-  }, [data.matches, resultFilter, teamFilter]);
+  }, [data.matches, resultFilter, serverFilteredMatches]);
 
   const visibleMatches = filteredMatches.slice(0, 12);
   const completedMatches = filteredMatches.filter((match) => match.result !== null).length;
+  const administrativeMatches = filteredMatches.filter((match) => match.is_administrative_result).length;
   const averageGoals =
     completedMatches > 0
       ? filteredMatches.reduce((total, match) => total + (match.total_goals ?? 0), 0) / completedMatches
       : 0;
+  const isTeamFilterLoading = teamFilter !== "all" && serverFilterState === "loading";
+  const matchCountContext =
+    teamFilter === "all"
+      ? "Season fixtures matching the current filters."
+      : serverFilterState === "error"
+        ? "Using loaded season data because the team-specific request failed."
+        : "Team fixtures loaded directly from the API before filtering.";
 
   return (
     <>
@@ -54,7 +97,7 @@ export function MatchExplorerPage({ data, loadState, onPageChange }: PageProps) 
         text="Browse scorelines, teams, venues, and result patterns without turning the page into a raw database table."
       />
 
-      <section className="panel">
+      <section className="panel match-explorer-results">
         <div className="section-heading compact">
           <div>
             <h2>Find a match pattern</h2>
@@ -87,8 +130,20 @@ export function MatchExplorerPage({ data, loadState, onPageChange }: PageProps) 
       </section>
 
       <section className="metric-grid compact-metrics" aria-label="Match explorer summary">
-        <KpiCard label="Matches found" value={filteredMatches.length} context="Matches matching the current filters." variant="compact" />
+        <KpiCard
+          label="Matches found"
+          value={isTeamFilterLoading ? "..." : filteredMatches.length}
+          context={matchCountContext}
+          variant="compact"
+        />
         <KpiCard accent="green" label="Completed" value={completedMatches} context="Rows with a recorded result." variant="compact" />
+        <KpiCard
+          accent="risk"
+          label="Admin results"
+          value={administrativeMatches}
+          context="Forfeits, walkovers, or awarded results in this set."
+          variant="compact"
+        />
         <KpiCard
           accent="gold"
           label="Average goals"
@@ -108,7 +163,7 @@ export function MatchExplorerPage({ data, loadState, onPageChange }: PageProps) 
             View data notes
           </button>
         </div>
-        <div className="match-list">
+        <div className="match-list match-explorer-list">
           {visibleMatches.length > 0 ? (
             visibleMatches.map((match) => <MatchRow key={match.match_id} match={match} />)
           ) : (

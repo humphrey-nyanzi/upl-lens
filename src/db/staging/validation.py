@@ -537,6 +537,70 @@ def _validate_scoreline_timeline_goal_consistency(
     return issues
 
 
+def _validate_fixture_completeness(
+    staging_tables: dict[str, pd.DataFrame],
+    run_id: str,
+) -> list[dict[str, Any]]:
+    """Warn when a near-complete season is missing team fixture rows."""
+
+    issues: list[dict[str, Any]] = []
+    matches = staging_tables["matches"]
+    if matches.empty:
+        return issues
+
+    app_safe_matches = matches.loc[~matches["is_source_anomaly"].fillna(False)].copy()
+    if app_safe_matches.empty:
+        return issues
+
+    team_rows = pd.concat(
+        [
+            app_safe_matches.loc[:, ["season", "home_team", "match_id"]].rename(columns={"home_team": "team_name"}),
+            app_safe_matches.loc[:, ["season", "away_team", "match_id"]].rename(columns={"away_team": "team_name"}),
+        ],
+        ignore_index=True,
+    ).dropna(subset=["season", "team_name"])
+
+    if team_rows.empty:
+        return issues
+
+    for season, season_team_rows in team_rows.groupby("season"):
+        team_count = int(season_team_rows["team_name"].nunique())
+        if team_count < 2:
+            continue
+
+        expected_matches = (team_count - 1) * 2
+        expected_season_fixtures = team_count * (team_count - 1)
+        recorded_season_fixtures = int(app_safe_matches.loc[app_safe_matches["season"] == season, "match_id"].nunique())
+
+        # Early in an active season, every club is below its final fixture total.
+        # Warn only once coverage looks close enough that missing rows are likely
+        # scraper/source completeness issues rather than normal season progress.
+        if recorded_season_fixtures < int(expected_season_fixtures * 0.9):
+            continue
+
+        team_counts = season_team_rows.groupby("team_name")["match_id"].nunique()
+        incomplete_teams = team_counts.loc[team_counts < expected_matches]
+        for team_name, recorded_matches in incomplete_teams.head(200).items():
+            issues.append(
+                _issue(
+                    run_id,
+                    "warning",
+                    "fixture_completeness",
+                    "staging",
+                    "matches",
+                    "Team has fewer recorded app-safe fixtures than expected for a double round-robin season.",
+                    season=season,
+                    column_name="team_name",
+                    issue_value=(
+                        f"team={team_name}; recorded={int(recorded_matches)}; "
+                        f"expected={expected_matches}; season_fixtures={recorded_season_fixtures}/{expected_season_fixtures}"
+                    ),
+                )
+            )
+
+    return issues
+
+
 def _validate_staging_tables(
     raw_tables: dict[str, pd.DataFrame],
     staging_tables: dict[str, pd.DataFrame],
@@ -553,6 +617,7 @@ def _validate_staging_tables(
     issues.extend(_validate_missing_team_player_values(staging_tables, run_id))
     issues.extend(_validate_man_of_match_quality(raw_tables, staging_tables, run_id))
     issues.extend(_validate_scoreline_timeline_goal_consistency(staging_tables, run_id))
+    issues.extend(_validate_fixture_completeness(staging_tables, run_id))
     return pd.DataFrame(issues)
 
 

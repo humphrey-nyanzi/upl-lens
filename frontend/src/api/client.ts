@@ -56,12 +56,12 @@ export const apiClient = {
     getJson<SeasonOverviewResponse>(`/seasons/${season}/overview`),
   getGoalTimingInsight: (season: string) =>
     getJson<GoalTimingInsightResponse>("/insights/goal-timing", { season }),
-  getMatches: (season: string, limit = 200) =>
+  getMatches: (season: string, limit = 500) =>
     getJson<MatchSummary[]>("/matches", { season, limit }),
-  getTeamMatches: (season: string, team: string, limit = 200) =>
+  getTeamMatches: (season: string, team: string, limit = 500) =>
     getJson<MatchSummary[]>("/matches", { season, team, limit }),
   getMatchDetail: (matchId: number) => getJson<MatchDetailResponse>(`/matches/${matchId}`),
-  getTeams: (season: string, limit = 200) => getJson<TeamResponse[]>("/teams", { season, limit }),
+  getTeams: (season: string, limit = 500) => getJson<TeamResponse[]>("/teams", { season, limit }),
   getPlayers: (season: string, limit = 200, sort = "goals") =>
     getJson<PlayerSummary[]>("/players", { season, limit, sort }),
   getPlayerDetail: (playerSlug: string, season?: string) =>

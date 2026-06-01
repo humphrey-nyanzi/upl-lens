@@ -13,10 +13,12 @@ export function formatDate(value: string | null) {
 }
 
 export function formatResult(result: string | null) {
-  if (result === "home_win") return "Home win";
-  if (result === "away_win") return "Away win";
-  if (result === "draw") return "Draw";
+  if (result === "home_win" || result === "away_win" || result === "draw") return "Full-time";
   return "Result pending";
+}
+
+export function formatScoreline(homeScore: number | null, awayScore: number | null) {
+  return `${homeScore ?? "-"} - ${awayScore ?? "-"}`;
 }
 
 export function formatPercent(value: number) {
@@ -24,6 +26,9 @@ export function formatPercent(value: number) {
 }
 
 export function matchStatus(match: MatchSummary) {
-  if (match.is_forfeit) return "Forfeit";
+  if (match.is_administrative_result) {
+    if (match.administrative_result_type === "forfeit") return "Forfeit";
+    return "Administrative result";
+  }
   return formatResult(match.result);
 }

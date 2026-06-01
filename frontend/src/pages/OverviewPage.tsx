@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Goal, Trophy, Home, BarChartBig, Grip } from "lucide-react";
+import { BarChartBig, CircleCheck, Goal, Trophy } from "lucide-react";
 
 import type { PageProps } from "../app/types";
 import { ErrorPanel } from "../components/common/ErrorPanel";
@@ -12,6 +12,7 @@ import {
   RecentMatchPanel,
   TeamSignalPanel,
 } from "../components/overview/OverviewPanels";
+import { getTeamPoints } from "../utils/teams";
 
 export function OverviewPage({
   data,
@@ -24,8 +25,6 @@ export function OverviewPage({
 }: PageProps) {
   const initialLoading = loadState === "loading" && overview === null;
   const completedMatches = data.matches.filter((match) => match.result !== null);
-  const homeWins = completedMatches.filter((match) => match.result === "home_win").length;
-  const homeWinRate = completedMatches.length > 0 ? Math.round((homeWins / completedMatches.length) * 100) : 0;
   const averageGoals =
     completedMatches.length > 0
       ? completedMatches.reduce((total, match) => total + (match.total_goals ?? 0), 0) / completedMatches.length
@@ -48,10 +47,10 @@ export function OverviewPage({
       accent: "green" as const,
     },
     {
-      label: "Home Win %",
-      value: `${homeWinRate}%`,
-      detail: "Home team victory rate this season.",
-      icon: <Home size={18} />,
+      label: "Completed",
+      value: completedMatches.length,
+      detail: "Matches with a recorded scoreline.",
+      icon: <CircleCheck size={18} />,
       accent: "green" as const,
     },
     {
@@ -66,8 +65,8 @@ export function OverviewPage({
   const topTeams = useMemo(() => {
     return [...data.teams]
       .sort((left, right) => {
-        const leftPoints = left.wins * 3 + left.draws;
-        const rightPoints = right.wins * 3 + right.draws;
+        const leftPoints = getTeamPoints(left);
+        const rightPoints = getTeamPoints(right);
 
         return rightPoints - leftPoints || right.goals_for - left.goals_for;
       })

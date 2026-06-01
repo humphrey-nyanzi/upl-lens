@@ -6,7 +6,7 @@ import type { PlayerDetailResponse } from "../api/types";
 import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
-import { formatDate } from "../utils/format";
+import { formatDate, formatScoreline } from "../utils/format";
 
 function formatRole(role: string | null) {
   if (!role) return "Listed";
@@ -137,7 +137,9 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
               {player.recent_matches.map((match) => (
                 <Link className="player-match-row" to={`/matches/${match.match_id}`} key={match.match_id}>
                   <div>
-                    <strong>{match.home_team ?? "Home"} vs {match.away_team ?? "Away"}</strong>
+                    <strong>
+                      {match.home_team ?? "Home"} {formatScoreline(match.home_score, match.away_score)} {match.away_team ?? "Away"}
+                    </strong>
                     <span>{formatDate(match.match_date)} · {formatRole(match.squad_role)}</span>
                   </div>
                   <small>{match.goals} G · {match.assists} A · {match.yellow_cards + match.red_cards} cards</small>

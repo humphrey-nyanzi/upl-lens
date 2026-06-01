@@ -43,6 +43,12 @@ def test_staging_matches_has_forfeit_flag() -> None:
     matches_sql = _table_block(sql, "matches")
 
     assert "is_forfeit BOOLEAN NOT NULL DEFAULT FALSE" in matches_sql
+    assert "is_administrative_result BOOLEAN NOT NULL DEFAULT FALSE" in matches_sql
+    assert "administrative_result_type TEXT" in matches_sql
+    assert "administrative_note TEXT" in matches_sql
+    assert "played_on_pitch BOOLEAN NOT NULL DEFAULT TRUE" in matches_sql
+    assert "home_awarded_points INTEGER" in matches_sql
+    assert "away_awarded_points INTEGER" in matches_sql
 
 
 def test_staging_matches_has_source_anomaly_flags() -> None:
@@ -85,6 +91,21 @@ def test_schema_sql_includes_team_season_summary_migration() -> None:
 
     assert r"\i migrations/006_create_analytics_team_season_summary.sql" in schema_sql
     assert r"\i migrations/007_repair_analytics_team_season_summary.sql" in schema_sql
+    assert r"\i migrations/008_add_admin_results_and_official_points.sql" in schema_sql
+
+
+def test_admin_result_migration_adds_official_points_contract() -> None:
+    """Official table points should support administrative results and adjustments."""
+
+    sql = (
+        PROJECT_ROOT / "database" / "migrations" / "008_add_admin_results_and_official_points.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "ADD COLUMN IF NOT EXISTS is_administrative_result" in sql
+    assert "CREATE TABLE IF NOT EXISTS analytics.team_season_point_adjustments" in sql
+    assert "official_points" in sql
+    assert "points_note" in sql
+    assert "administrative_matches" in sql
 
 
 def test_actions_loader_can_refresh_analytics_tables() -> None:

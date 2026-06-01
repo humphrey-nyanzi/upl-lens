@@ -1,12 +1,23 @@
 import type { TeamResponse } from "../../api/types";
 import { Link } from "react-router-dom";
 import { TeamMarker } from "../common/TeamMarker";
-import { formatGoalDifference, getTeamGoalDifference, getTeamPoints, getTeamSlug, getTeamWinRate } from "../../utils/teams";
+import {
+  formatGoalDifference,
+  getTeamFixtureNote,
+  getTeamGoalDifference,
+  getTeamPoints,
+  getTeamPointsNote,
+  getTeamSlug,
+  getTeamWinRate,
+} from "../../utils/teams";
 
 export function TeamCard({ rank, team }: { rank?: number; team: TeamResponse }) {
   const goalDifference = getTeamGoalDifference(team);
   const points = getTeamPoints(team);
   const winRate = Math.round(getTeamWinRate(team) * 100);
+  const fixtureNote = getTeamFixtureNote(team);
+  const pointsNote = getTeamPointsNote(team);
+  const hasPointsCaveat = pointsNote.length > 0;
 
   return (
     <article className="team-card team-index-card">
@@ -17,7 +28,7 @@ export function TeamCard({ rank, team }: { rank?: number; team: TeamResponse }) 
           <div>
             <strong>{team.team_name}</strong>
             <span>
-              {points} pts · {winRate}% wins
+              {points} pts{hasPointsCaveat ? "*" : ""} · {winRate}% wins
             </span>
           </div>
         </div>
@@ -39,10 +50,18 @@ export function TeamCard({ rank, team }: { rank?: number; team: TeamResponse }) 
           <strong>{formatGoalDifference(goalDifference)}</strong>
         </div>
         <div>
-          <span>Matches</span>
-          <strong>{team.matches_played}</strong>
+          <span>Fixtures</span>
+          <strong>
+            {team.matches_played}
+            {team.expected_matches !== null && team.matches_played !== team.expected_matches ? `/${team.expected_matches}` : ""}
+          </strong>
         </div>
       </div>
+      {fixtureNote || pointsNote ? (
+        <p className="team-card-note">
+          {[fixtureNote, pointsNote ? `* ${pointsNote}` : ""].filter(Boolean).join(" ")}
+        </p>
+      ) : null}
     </article>
   );
 }

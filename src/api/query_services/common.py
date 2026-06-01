@@ -11,7 +11,7 @@ from src.db.connection import get_api_psycopg_connection
 
 
 DEFAULT_LIMIT = 50
-MAX_LIMIT = 200
+MAX_LIMIT = 500
 
 
 def clamp_pagination(limit: int, offset: int) -> tuple[int, int]:

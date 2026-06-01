@@ -22,11 +22,20 @@ def list_teams(
             team_name,
             COUNT(DISTINCT season) AS seasons_played,
             SUM(matches_played)::integer AS matches_played,
+            SUM(played_matches)::integer AS played_matches,
+            SUM(administrative_matches)::integer AS administrative_matches,
+            SUM(expected_matches)::integer AS expected_matches,
+            SUM(missing_matches)::integer AS missing_matches,
             SUM(COALESCE(goals_for, 0))::integer AS goals_for,
             SUM(COALESCE(goals_against, 0))::integer AS goals_against,
             SUM(wins)::integer AS wins,
             SUM(draws)::integer AS draws,
-            SUM(losses)::integer AS losses
+            SUM(losses)::integer AS losses,
+            SUM(sporting_points)::integer AS sporting_points,
+            SUM(administrative_points)::integer AS administrative_points,
+            SUM(points_adjustment)::integer AS points_adjustment,
+            SUM(official_points)::integer AS official_points,
+            NULLIF(STRING_AGG(points_note, ' ' ORDER BY season) FILTER (WHERE points_note IS NOT NULL), '') AS points_note
         FROM analytics.team_season_summary
         WHERE (%(season)s::text IS NULL OR season = %(season)s::text)
             AND (%(team_like)s::text IS NULL OR team_name ILIKE %(team_like)s::text)

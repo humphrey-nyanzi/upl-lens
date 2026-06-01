@@ -83,6 +83,12 @@ class MatchSummary(ApiModel):
     result: str | None = None
     winner_team: str | None = None
     is_forfeit: bool = False
+    is_administrative_result: bool = False
+    administrative_result_type: str | None = None
+    administrative_note: str | None = None
+    played_on_pitch: bool = True
+    home_awarded_points: int | None = None
+    away_awarded_points: int | None = None
     is_source_anomaly: bool = False
     source_anomaly_reason: str | None = None
     ground_name: str | None = None
@@ -144,11 +150,20 @@ class TeamResponse(ApiModel):
     team_name: str
     seasons_played: int
     matches_played: int
+    played_matches: int
+    administrative_matches: int
+    expected_matches: int | None = None
+    missing_matches: int
     goals_for: int
     goals_against: int
     wins: int
     draws: int
     losses: int
+    sporting_points: int
+    administrative_points: int
+    points_adjustment: int
+    official_points: int
+    points_note: str | None = None
 
 
 class PlayerSummary(ApiModel):

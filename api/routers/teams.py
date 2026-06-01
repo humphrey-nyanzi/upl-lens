@@ -15,11 +15,10 @@ router = APIRouter(prefix="/teams", tags=["teams"])
 def get_teams(
     season: str | None = None,
     team: str | None = None,
-    limit: int = Query(DEFAULT_LIMIT, ge=1, le=200),
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> list[TeamResponse]:
     """Return teams with basic match-record summaries."""
 
     rows = list_teams(season=season, team=team, limit=limit, offset=offset)
     return [TeamResponse(**row) for row in rows]
-

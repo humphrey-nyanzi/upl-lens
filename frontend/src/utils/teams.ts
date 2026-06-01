@@ -15,7 +15,7 @@ export function getTeamSlug(teamName: string) {
 }
 
 export function getTeamPoints(team: TeamResponse) {
-  return team.wins * 3 + team.draws;
+  return team.official_points ?? team.wins * 3 + team.draws;
 }
 
 export function getTeamGoalDifference(team: TeamResponse) {
@@ -23,7 +23,38 @@ export function getTeamGoalDifference(team: TeamResponse) {
 }
 
 export function getTeamWinRate(team: TeamResponse) {
-  return team.matches_played > 0 ? team.wins / team.matches_played : 0;
+  return team.played_matches > 0 ? team.wins / team.played_matches : 0;
+}
+
+export function getTeamFixtureNote(team: TeamResponse) {
+  const parts: string[] = [];
+  if (team.expected_matches !== null && team.matches_played < team.expected_matches) {
+    parts.push(`${team.matches_played}/${team.expected_matches} fixtures recorded`);
+  }
+  if (team.administrative_matches > 0) {
+    parts.push(
+      `${team.played_matches} played on pitch, ${team.administrative_matches} administrative result${team.administrative_matches === 1 ? "" : "s"}`,
+    );
+  }
+  if (team.missing_matches > 0) {
+    parts.push(`${team.missing_matches} fixture${team.missing_matches === 1 ? "" : "s"} missing`);
+  }
+  return parts.join(" · ");
+}
+
+export function getTeamPointsNote(team: TeamResponse) {
+  const parts: string[] = [];
+  if (team.administrative_points > 0) {
+    parts.push(`${team.administrative_points} point${team.administrative_points === 1 ? "" : "s"} from administrative result${team.administrative_matches === 1 ? "" : "s"}`);
+  }
+  if (team.points_adjustment !== 0) {
+    const prefix = team.points_adjustment > 0 ? "+" : "";
+    parts.push(`${prefix}${team.points_adjustment} official table adjustment`);
+  }
+  if (team.points_note) {
+    parts.push(team.points_note);
+  }
+  return parts.join(" · ");
 }
 
 export function formatGoalDifference(value: number) {

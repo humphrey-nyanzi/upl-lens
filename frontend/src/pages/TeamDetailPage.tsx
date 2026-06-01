@@ -7,13 +7,15 @@ import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { TeamMarker } from "../components/common/TeamMarker";
-import { formatDate, formatSeason } from "../utils/format";
+import { formatDate, formatScoreline, formatSeason } from "../utils/format";
 import {
   formatGoalDifference,
+  getTeamFixtureNote,
   getOpponent,
   getTeamGoalDifference,
   getTeamMatchResult,
   getTeamPoints,
+  getTeamPointsNote,
   getTeamSlug,
   getTeamWinRate,
   summarizeTeamEvents,
@@ -22,7 +24,7 @@ import {
 type TeamProfileState = "idle" | "loading" | "success" | "error";
 
 function scoreline(match: MatchSummary) {
-  return `${match.home_score ?? "-"}:${match.away_score ?? "-"}`;
+  return formatScoreline(match.home_score, match.away_score);
 }
 
 function TeamProfileSkeleton() {
@@ -178,9 +180,11 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
   const points = getTeamPoints(team);
   const goalDifference = getTeamGoalDifference(team);
   const winRate = Math.round(getTeamWinRate(team) * 100);
-  const goalsPerMatch = team.matches_played > 0 ? team.goals_for / team.matches_played : 0;
-  const concededPerMatch = team.matches_played > 0 ? team.goals_against / team.matches_played : 0;
+  const goalsPerMatch = team.played_matches > 0 ? team.goals_for / team.played_matches : 0;
+  const concededPerMatch = team.played_matches > 0 ? team.goals_against / team.played_matches : 0;
   const recentMatches = profileState === "success" ? teamMatches : fallbackMatches;
+  const fixtureNote = getTeamFixtureNote(team);
+  const pointsNote = getTeamPointsNote(team);
 
   return (
     <article className="team-profile-page">
@@ -196,6 +200,7 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
           <p>
             {formatSeason(selectedSeason)} · {team.matches_played} matches · {team.wins}W {team.draws}D {team.losses}L ·{" "}
             {formatGoalDifference(goalDifference)} GD
+            {fixtureNote ? ` · ${fixtureNote}` : ""}
           </p>
         </div>
       </header>
@@ -212,8 +217,13 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
       ) : null}
 
       <section className="metric-grid compact-metrics" aria-label="Record summary">
-        <KpiCard label="Matches" value={team.matches_played} context="Season matches in the team summary." variant="compact" />
-        <KpiCard accent="green" label="Wins" value={team.wins} context={`${points} points safely derived from W/D/L.`} variant="compact" />
+        <KpiCard
+          label="Fixtures"
+          value={team.matches_played}
+          context={fixtureNote || "Recorded season fixtures in the team summary."}
+          variant="compact"
+        />
+        <KpiCard accent="green" label="Wins" value={team.wins} context={`${points} official points.`} variant="compact" />
         <KpiCard label="Draws" value={team.draws} context={`${winRate}% win rate.`} variant="compact" />
         <KpiCard accent="risk" label="Losses" value={team.losses} context="Recorded losses in available results." variant="compact" />
       </section>
@@ -243,8 +253,8 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
           </div>
           <div>
             <span>Points</span>
-            <strong>{points}</strong>
-            <small>3 for a win, 1 for a draw</small>
+            <strong>{points}{pointsNote ? "*" : ""}</strong>
+            <small>{pointsNote || "Official points from available result data"}</small>
           </div>
         </div>
       </section>

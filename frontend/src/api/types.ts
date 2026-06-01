@@ -68,6 +68,12 @@ export type MatchSummary = {
   result: string | null;
   winner_team: string | null;
   is_forfeit: boolean;
+  is_administrative_result: boolean;
+  administrative_result_type: string | null;
+  administrative_note: string | null;
+  played_on_pitch: boolean;
+  home_awarded_points: number | null;
+  away_awarded_points: number | null;
   is_source_anomaly: boolean;
   source_anomaly_reason: string | null;
   ground_name: string | null;
@@ -78,11 +84,20 @@ export type TeamResponse = {
   team_name: string;
   seasons_played: number;
   matches_played: number;
+  played_matches: number;
+  administrative_matches: number;
+  expected_matches: number | null;
+  missing_matches: number;
   goals_for: number;
   goals_against: number;
   wins: number;
   draws: number;
   losses: number;
+  sporting_points: number;
+  administrative_points: number;
+  points_adjustment: number;
+  official_points: number;
+  points_note: string | null;
 };
 
 export type PlayerSummary = {
