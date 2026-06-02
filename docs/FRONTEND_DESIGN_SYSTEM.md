@@ -290,21 +290,24 @@ Approved principles:
 
 ## Color System
 
-The color system should feel football-native, premium, and analytical.
+The color system should feel public, clean, editorial, trustworthy, warm, and analytical.
 
 
 ### Light Mode Tokens (default)
 
 | Token | Purpose | Value |
 |------|---------|-------|
-| `--color-bg-app-light` | Main background | `#F5F7F1` |
-| `--color-bg-shell-light` | Sidebar and top bar | `#FFFFFF` |
-| `--color-bg-panel-light` | Primary card | `#FFFFFF` |
-| `--color-bg-panel-soft-light` | Secondary card | `#EEF3EA` |
-| `--color-border-light` | Default border | `#D9DFD2` |
-| `--color-text-primary-light` | Main text | `#17211B` |
-| `--color-text-secondary-light` | Supporting text | `#59665B` |
-| `--color-text-muted-light` | Quiet labels | `#7B867C` |
+| `--color-bg` | Main editorial background | `#F5F3EE` |
+| `--color-surface` | Primary card and shell surface | `#FFFDFC` |
+| `--color-surface-soft` | Secondary surface | `#F3F0E9` |
+| `--color-text` | Main text / Deep Navy | `#0F1720` |
+| `--color-text-secondary` | Supporting text / Charcoal | `#1E2933` |
+| `--color-text-muted` | Quiet labels | `#667064` |
+| `--color-green` | Primary action, selection, and data emphasis | `#1F7A3A` |
+| `--color-gold` | Peak insight and warm attention accent | `#D4A017` |
+| `--color-gold-deep` | Accessible gold text | `#6F5208` |
+| `--color-border` | Base border, softened through surface tokens | `#E6E6EB` |
+| `--surface-border` | Default subtle card border | `rgba(15, 23, 32, 0.045)` |
 
 ### Dark Mode Tokens (optional / future variant)
 
@@ -324,21 +327,22 @@ alternate theme. Use the light tokens as the default implementation target.
 | `--color-text-primary` | Main text | `#F3F7F2` |
 | `--color-text-secondary` | Supporting text | `#A9B6BF` |
 | `--color-text-muted` | Quiet labels | `#7F8D99` |
-| `--color-accent-green` | Primary accent | `#16A34A` |
-| `--color-accent-lime` | Data highlight | `#9BD44A` |
-| `--color-accent-gold` | Peak insight | `#F5B82E` |
+| `--color-accent-green` | Primary accent | `#1F7A3A` |
+| `--color-accent-gold` | Peak insight | `#D4A017` |
 | `--color-risk` | Error and discipline | `#EF4444` |
 | `--color-success` | Healthy status | `#22C55E` |
 
 ### Color Rules
 
 - Football green is the main action and selected-state accent.
-- Lime is for active data highlights, not for default body text or borders.
 - Warm gold is reserved for peak insight moments and chart emphasis.
+- Use `--color-gold-deep` or `--color-accent-gold-text` when gold carries text.
 - Red is for errors, risk, discipline, or negative states.
 - Purple and cyan gradients should not become the dominant treatment.
 - Default surfaces should use neutral borders unless they are selected or
   carrying a meaningful signal.
+- Green and gold interaction states should use `--state-green-*` and
+  `--state-gold-*` tokens instead of one-off alpha values.
 
 ## Typography And Number Hierarchy
 
@@ -346,7 +350,7 @@ Approved decisions:
 
 - Global font rule:
   - Headings (`h1`-`h6`) must use **Manrope Semibold** (`font-weight: 600`).
-  - Body text must use **Inter Regular** (`font-weight: 400`).
+  - Body and UI text must use **Source Sans 3 Regular** (`font-weight: 400`), with Semibold for labels and controls.
   - This is a cross-app requirement and should be enforced in shared global
     styles, not per-page overrides.
 - Headline numbers should be visually dominant.
@@ -367,6 +371,11 @@ Approved decisions:
   cards, `12px` panels, and `14px` large featured surfaces.
 - Shared surface variants are `surface-flat`, `surface-card`,
   `surface-panel`, `surface-featured`, `surface-muted`, and `surface-active`.
+- Use `--surface-editorial-translucent` and `--surface-editorial-quiet` for
+  overview cards that sit over atmospheric imagery. Data-heavy pages should
+  continue using mostly solid surfaces.
+- Common control and card motion should use `--transition-control` and
+  `--transition-surface`.
 - Use subtle depth instead of heavy shadows.
 - Panels should not all look identical; hierarchy should come from surface tone,
   size, and information density.
@@ -429,6 +438,8 @@ It should lead with:
 - analytical summary cards
 - the current featured insight
 - visible trust and caveat context
+- atmospheric football imagery behind the overview composition, not enclosed as
+  a separate banner image
 
 ### Featured Insight Pages
 
@@ -537,6 +548,8 @@ mockup direction. The goal is close product feel, not pixel-perfect copying.
   sports-native, and fan-facing, not a generic dashboard or marketing page.
 - The hero/header is compact and supports the dashboard instead of becoming the
   main content.
+- The overview photograph should live behind the header and summary cards as a
+  softened page-level layer. Cards remain readable and should not become glassy.
 - KPI cards feel like a scoreboard summary: short labels, dominant numbers,
   one-line context, and restrained visual treatment.
 - Goal Timing on the overview is a compact visual preview, not the full explorer

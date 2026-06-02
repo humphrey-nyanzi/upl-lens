@@ -83,9 +83,9 @@ const chartColors = {
   axis: "var(--color-text-muted)",
   gold: "var(--color-accent-gold)",
   green: "var(--color-accent-green)",
-  grid: "rgba(169, 182, 191, 0.13)",
-  line: "var(--color-accent-lime)",
-  tooltipCursor: "rgba(169, 182, 191, 0.075)",
+  grid: "var(--color-chart-grid)",
+  line: "var(--color-green)",
+  tooltipCursor: "var(--color-chart-cursor)",
 };
 
 export function InsightChartCard({
@@ -237,7 +237,7 @@ export function TrendLineChart({ data, height, valueLabel = "Value" }: TrendLine
         <YAxis axisLine={false} tick={{ fill: chartColors.axis, fontSize: 11 }} tickLine={false} />
         <Tooltip content={<ChartTooltip />} cursor={{ stroke: chartColors.grid }} />
         <Line
-          activeDot={{ fill: chartColors.gold, r: 5, stroke: "rgba(245, 184, 46, 0.36)" }}
+          activeDot={{ fill: chartColors.gold, r: 5, stroke: "var(--color-gold-soft)" }}
           dataKey="value"
           dot={{ fill: chartColors.line, r: 3 }}
           name={valueLabel}
