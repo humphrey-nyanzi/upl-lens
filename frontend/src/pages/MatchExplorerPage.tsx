@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { apiClient } from "../api/client";
 import type { MatchSummary } from "../api/types";
 import type { PageProps } from "../app/types";
+import { EditorialTable, EditorialTableHeader } from "../components/common/EditorialTable";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
@@ -94,7 +95,7 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
       <PageIntro
         eyebrow="Explore matches"
         title="Match Explorer"
-        text="Browse scorelines, teams, venues, and result patterns without turning the page into a raw database table."
+        text="Browse scorelines, teams, venues, and match context in a cleaner public-facing match report list."
       />
 
       <section className="panel match-explorer-results">
@@ -156,20 +157,30 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
       <section className="panel">
         <div className="section-heading">
           <div>
-            <h2>Match cards</h2>
-            <p>Showing the latest 12 matches from the current filter set.</p>
+            <h2>Match report list</h2>
+            <p>Showing the latest 12 matches from the current filter set with scoreline, status, and route into the full report.</p>
           </div>
           <button className="text-button" type="button" onClick={() => onPageChange("about")}>
             View data notes
           </button>
         </div>
-        <div className="match-list match-explorer-list">
-          {visibleMatches.length > 0 ? (
-            visibleMatches.map((match) => <MatchRow key={match.match_id} match={match} />)
-          ) : (
-            <EmptyState message={loadState === "loading" ? "Loading matches." : "No matches fit the current filters."} />
-          )}
-        </div>
+        <EditorialTable className="match-table-shell">
+          <EditorialTableHeader
+            className="match-table-header"
+            columns={[
+              { label: "Date & fixture" },
+              { align: "center", label: "Status" },
+              { align: "right", label: "Action" },
+            ]}
+          />
+          <div className="match-list match-explorer-list">
+            {visibleMatches.length > 0 ? (
+              visibleMatches.map((match) => <MatchRow key={match.match_id} match={match} />)
+            ) : (
+              <EmptyState message={loadState === "loading" ? "Loading matches." : "No matches fit the current filters."} />
+            )}
+          </div>
+        </EditorialTable>
       </section>
     </>
   );

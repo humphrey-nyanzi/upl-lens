@@ -8,6 +8,7 @@ import { BrandLockup } from "./BrandLockup";
 import { Home, List, Users, BarChart2, TrendingUp, Info, Search, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatScoreline } from "../../utils/format";
+import { MatchStatusPill, TeamName } from "../common/EditorialRows";
 import { slugify } from "../../utils/slugs";
 
 type AppShellProps = {
@@ -323,7 +324,7 @@ export function AppShell({
                           type="button"
                         >
                           <span className="search-result-topline">
-                            <strong>{team.team_name}</strong>
+                            <TeamName className="search-team-name" label={team.team_name} size="small" />
                             <span className="search-result-chip">Team</span>
                           </span>
                           <small>
@@ -366,7 +367,7 @@ export function AppShell({
                             <span className="search-result-chip">Player</span>
                           </span>
                           <small>
-                            {player.primary_team ?? "Team TBC"} · {player.goals} G · {player.assists} A · {player.appearances} apps
+                            <TeamName className="search-team-name" label={player.primary_team ?? "Team TBC"} size="small" /> · {player.goals} G · {player.assists} A · {player.appearances} apps
                           </small>
                         </button>
                         );
@@ -399,9 +400,9 @@ export function AppShell({
                             <strong>
                               {match.home_team ?? "Home"} {formatScoreline(match.home_score, match.away_score)} {match.away_team ?? "Away"}
                             </strong>
-                            <span className="search-result-chip">Match</span>
+                            <MatchStatusPill match={match} />
                           </span>
-                          <small>{formatDate(match.match_date)}</small>
+                          <small>{formatDate(match.match_date)} · Match</small>
                         </button>
                         );
                       })}

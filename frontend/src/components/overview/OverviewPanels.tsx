@@ -1,7 +1,8 @@
 import type { MatchSummary, SeasonOverviewResponse, SeasonResponse, TeamResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
-import { formatDate, formatScoreline, matchStatus } from "../../utils/format";
+import { formatDate } from "../../utils/format";
 import { getTeamPoints } from "../../utils/teams";
+import { MatchFixtureLine, MatchStatusPill } from "../common/EditorialRows";
 import { EmptyState } from "../common/EmptyState";
 import { TeamMarker } from "../common/TeamMarker";
 import { Target, Home, TrendingUp, ArrowRight } from "lucide-react";
@@ -35,8 +36,8 @@ export function TeamSignalPanel({
       <div className="section-heading compact overview-list-heading">
         <div>
           <p className="eyebrow">Team signals</p>
-          <h2>Form guide</h2>
-          <p>Season form signal.</p>
+          <h2>Signal board</h2>
+          <p>Quick ranking context from wins, draws, losses, and points.</p>
         </div>
       </div>
       <div className="overview-list">
@@ -45,7 +46,7 @@ export function TeamSignalPanel({
             <article className="overview-list-row signal" key={item.id}>
               <span className="overview-rank">{index + 1}</span>
               <TeamMarker className="overview-row-marker" label={item.label} size="small" />
-              <strong>{item.label}</strong>
+              <strong className="overview-team-label">{item.label}</strong>
               <div className="overview-form-dots" aria-hidden="true">
                 {item.dots.map((isActive, dotIndex) => (
                   <span className={isActive ? "active" : ""} key={dotIndex} />
@@ -182,20 +183,16 @@ function CompactResultRow({ match }: { match: MatchSummary }) {
   return (
     <article className="overview-list-row match">
       <span className="overview-date">{formatDate(match.match_date)}</span>
-      <div className="overview-fixture-inline">
-        <span className="overview-team-inline">
-          <TeamMarker className="overview-row-marker" label={match.home_team} size="small" />
-          <span>{match.home_team ?? "Home team TBC"}</span>
-        </span>
-        <span className="overview-inline-score">
-          {formatScoreline(match.home_score, match.away_score)}
-        </span>
-        <span className="overview-team-inline away">
-          <span>{match.away_team ?? "Away team TBC"}</span>
-          <TeamMarker className="overview-row-marker" label={match.away_team} size="small" />
-        </span>
-      </div>
-      <span className="overview-result">{matchStatus(match)}</span>
+      <MatchFixtureLine
+        awayScore={match.away_score}
+        awayTeam={match.away_team}
+        className="overview-fixture-inline"
+        homeScore={match.home_score}
+        homeTeam={match.home_team}
+        markerSize="small"
+        scoreClassName="overview-inline-score"
+      />
+      <MatchStatusPill match={match} />
     </article>
   );
 }
@@ -214,7 +211,8 @@ export function RecentMatchPanel({
       <div className="section-heading compact overview-list-heading">
         <div>
           <p className="eyebrow">Recent matches</p>
-          <h2>Recent matches</h2>
+          <h2>Recent scorelines</h2>
+          <p>Latest public results in a tighter football-native scan line.</p>
         </div>
       </div>
       <div className="overview-list">

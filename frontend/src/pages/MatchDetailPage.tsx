@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { ApiRequestError, apiClient } from "../api/client";
 import type { PageProps } from "../app/types";
 import type { EventResponse, MatchDetailResponse, MatchStatResponse, OfficialResponse } from "../api/types";
+import { MatchStatusPill, StatComparisonRow, StatusPill } from "../components/common/EditorialRows";
 import { TeamMarker } from "../components/common/TeamMarker";
 import { formatDate, formatResult, formatScoreline, formatSeason, matchStatus } from "../utils/format";
 import { slugify } from "../utils/slugs";
@@ -246,11 +247,12 @@ function MatchStatsPanel({ stats }: { stats: MatchStatResponse[] }) {
   return (
     <div className="match-stats-list">
       {stats.map((stat) => (
-        <div className="match-stat-row" key={stat.stat_row_key}>
-          <strong>{stat.home_value ?? "-"}</strong>
-          <span>{stat.statistic_name ? toTitleCase(stat.statistic_name) : "Statistic"}</span>
-          <strong>{stat.away_value ?? "-"}</strong>
-        </div>
+        <StatComparisonRow
+          awayValue={stat.away_value ?? "-"}
+          homeValue={stat.home_value ?? "-"}
+          key={stat.stat_row_key}
+          label={stat.statistic_name ? toTitleCase(stat.statistic_name) : "Statistic"}
+        />
       ))}
     </div>
   );
@@ -287,9 +289,10 @@ function DataCompletenessNote({ match }: { match: MatchDetailResponse }) {
         <p>{sourceCopy}</p>
       </div>
       <div className="match-data-chips" aria-label="Match data completeness">
-        <span>{match.has_timeline || match.events.length > 0 ? "Timeline available" : "Timeline unavailable"}</span>
-        <span>{match.has_stats || match.stats.length > 0 ? "Stats available" : "Stats unavailable"}</span>
-        <span>{match.has_officials || match.officials.length > 0 ? "Officials listed" : "Officials unavailable"}</span>
+        <StatusPill tone={match.has_timeline || match.events.length > 0 ? "success" : "muted"} value={match.has_timeline || match.events.length > 0 ? "Timeline available" : "Timeline unavailable"} />
+        <StatusPill tone={match.has_stats || match.stats.length > 0 ? "success" : "muted"} value={match.has_stats || match.stats.length > 0 ? "Stats available" : "Stats unavailable"} />
+        <StatusPill tone={match.has_officials || match.officials.length > 0 ? "success" : "muted"} value={match.has_officials || match.officials.length > 0 ? "Officials listed" : "Officials unavailable"} />
+        {match.is_source_anomaly || match.is_administrative_result ? <StatusPill tone="warning" value="Result note" /> : null}
         {match.match_url ? (
           <a href={match.match_url} target="_blank" rel="noreferrer">
             Source page
@@ -380,7 +383,7 @@ export default function MatchDetailPage(_props: PageProps) {
             <strong>
               {formatScoreline(match.home_score, match.away_score)}
             </strong>
-            <span>{matchStatus(match)}</span>
+            <MatchStatusPill match={match} />
           </div>
           <div className="scoreline-team away">
             <MatchTeamLink markerPosition="after" name={match.away_team} />
@@ -391,7 +394,7 @@ export default function MatchDetailPage(_props: PageProps) {
           <strong>
             {homeTeam} {formatScoreline(match.home_score, match.away_score)} {awayTeam}
           </strong>
-          <span>{match.result ? formatResult(match.result) : "Result pending"}</span>
+          <StatusPill tone={match.result ? "success" : "muted"} value={match.result ? formatResult(match.result) : "Result pending"} />
         </div>
       </header>
 

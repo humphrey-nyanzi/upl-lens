@@ -1,10 +1,13 @@
 import { Link } from "react-router-dom";
 
 import type { PageProps } from "../app/types";
+import { EditorialTable, EditorialTableHeader } from "../components/common/EditorialTable";
 import type { PlayerSummary } from "../api/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
+import { TeamName } from "../components/common/EditorialRows";
+import { PlayerRow } from "../components/players/PlayerRow";
 
 function sortPlayers(players: PlayerSummary[], metric: keyof Pick<PlayerSummary, "goals" | "assists" | "appearances" | "starts">) {
   return [...players].sort((left, right) => right[metric] - left[metric] || left.player_name.localeCompare(right.player_name));
@@ -18,7 +21,7 @@ function PlayerRankCard({ label, player, value }: { label: string; player: Playe
         <>
           <Link to={`/players/${player.player_slug}`}>{player.player_name}</Link>
           <strong>{value.toLocaleString()}</strong>
-          <small>{player.primary_team ?? "Team TBC"}</small>
+          <TeamName className="player-rank-team" label={player.primary_team ?? "Team TBC"} size="small" />
         </>
       ) : (
         <p>No player data yet.</p>
@@ -40,7 +43,7 @@ export function PlayersPage({ data, loadState, selectedSeason }: PageProps) {
       <PageIntro
         eyebrow="Player profiles"
         title="Players"
-        text="Browse the available UPL player records by goals, assists, appearances, starts, and cards from the cleaned API data."
+        text="Browse the available UPL player records with a clearer hierarchy for production, contribution, and team context."
       />
 
       <section className="metric-grid compact-metrics" aria-label="Player summary">
@@ -60,38 +63,27 @@ export function PlayersPage({ data, loadState, selectedSeason }: PageProps) {
         <div className="section-heading">
           <div>
             <h2>Player list</h2>
-            <p>Sorted by goals, then appearances. Click a player name to open their profile.</p>
+            <p>Sorted by goals, then appearances. Desktop reads like a compact table; mobile collapses into player cards.</p>
           </div>
         </div>
         {topPlayers.length > 0 ? (
-          <div className="player-list" role="list">
-            {topPlayers.map((player) => (
-              <Link className="player-list-row" to={`/players/${player.player_slug}`} key={player.player_slug} role="listitem">
-                <div>
-                  <strong>{player.player_name}</strong>
-                  <span>{player.primary_team ?? player.teams[0] ?? "Team TBC"}</span>
-                </div>
-                <dl>
-                  <div>
-                    <dt>G</dt>
-                    <dd>{player.goals}</dd>
-                  </div>
-                  <div>
-                    <dt>A</dt>
-                    <dd>{player.assists}</dd>
-                  </div>
-                  <div>
-                    <dt>Apps</dt>
-                    <dd>{player.appearances}</dd>
-                  </div>
-                  <div>
-                    <dt>Starts</dt>
-                    <dd>{player.starts}</dd>
-                  </div>
-                </dl>
-              </Link>
-            ))}
-          </div>
+          <EditorialTable className="player-table-shell">
+            <EditorialTableHeader
+              className="player-table-header"
+              columns={[
+                { label: "Player" },
+                { align: "right", label: "Goals" },
+                { align: "right", label: "Assists" },
+                { align: "right", label: "Apps" },
+                { align: "right", label: "Starts" },
+              ]}
+            />
+            <div className="player-list player-table-list" role="list">
+              {topPlayers.map((player) => (
+                <PlayerRow key={player.player_slug} player={player} />
+              ))}
+            </div>
+          </EditorialTable>
         ) : (
           <EmptyState message={loadState === "loading" ? "Loading player summaries." : "No player summaries returned yet."} />
         )}

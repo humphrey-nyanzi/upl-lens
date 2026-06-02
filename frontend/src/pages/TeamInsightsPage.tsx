@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { TeamResponse } from "../api/types";
 import type { PageProps } from "../app/types";
+import { EditorialTable, EditorialTableHeader } from "../components/common/EditorialTable";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
@@ -137,15 +138,27 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason }:
         <div className="section-heading">
           <div>
             <h2>Team ranking</h2>
-            <p>Each card links to a team profile and uses only available season summary data.</p>
+            <p>Each row links to a team profile and keeps the key season signals visible without feeling like a raw standings dump.</p>
           </div>
         </div>
         {loadState === "loading" && data.teams.length === 0 ? (
           <TeamIndexSkeleton />
         ) : filteredTeams.length > 0 ? (
-          <div className="team-grid">
-            {filteredTeams.map((team, index) => <TeamCard key={team.team_name} rank={index + 1} team={team} />)}
-          </div>
+          <EditorialTable className="team-table-shell">
+            <EditorialTableHeader
+              className="team-table-header"
+              columns={[
+                { label: "Team" },
+                { align: "right", label: "Record" },
+                { align: "right", label: "Goals" },
+                { align: "right", label: "GD" },
+                { align: "right", label: "Fixtures" },
+              ]}
+            />
+            <div className="team-grid team-table-list">
+              {filteredTeams.map((team, index) => <TeamCard key={team.team_name} rank={index + 1} team={team} />)}
+            </div>
+          </EditorialTable>
         ) : (
           <EmptyState message={data.teams.length === 0 ? "No team summaries are available for this season yet." : "No teams match the current search."} />
         )}
