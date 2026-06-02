@@ -1,7 +1,7 @@
 import type { MatchSummary, SeasonOverviewResponse, SeasonResponse, TeamResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
 import { formatDate } from "../../utils/format";
-import { getTeamPoints } from "../../utils/teams";
+import { getTeamPoints, getTeamWinRate } from "../../utils/teams";
 import { MatchFixtureLine, MatchStatusPill } from "../common/EditorialRows";
 import { EmptyState } from "../common/EmptyState";
 import { TeamMarker } from "../common/TeamMarker";
@@ -18,7 +18,7 @@ export function TeamSignalPanel({
 }) {
   const rankingItems = teams.map((team) => {
     const points = getTeamPoints(team);
-    const winRate = team.played_matches > 0 ? Math.round((team.wins / team.played_matches) * 100) : 0;
+    const winRate = Math.round(getTeamWinRate(team) * 100);
     const strength = Math.max(0, Math.min(5, Math.round((winRate / 100) * 5)));
     const dots = Array.from({ length: 5 }, (_, index) => index < strength);
 

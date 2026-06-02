@@ -22,7 +22,13 @@ def list_teams(
             team_name,
             COUNT(DISTINCT season) AS seasons_played,
             SUM(matches_played)::integer AS matches_played,
-            SUM(played_matches)::integer AS played_matches,
+            SUM(
+                CASE
+                    WHEN COALESCE(played_matches, 0) = 0 AND matches_played > 0
+                    THEN matches_played
+                    ELSE COALESCE(played_matches, 0)
+                END
+            )::integer AS played_matches,
             SUM(administrative_matches)::integer AS administrative_matches,
             SUM(expected_matches)::integer AS expected_matches,
             SUM(missing_matches)::integer AS missing_matches,
@@ -31,10 +37,22 @@ def list_teams(
             SUM(wins)::integer AS wins,
             SUM(draws)::integer AS draws,
             SUM(losses)::integer AS losses,
-            SUM(sporting_points)::integer AS sporting_points,
+            SUM(
+                CASE
+                    WHEN COALESCE(sporting_points, 0) = 0 AND (wins > 0 OR draws > 0)
+                    THEN wins * 3 + draws
+                    ELSE COALESCE(sporting_points, 0)
+                END
+            )::integer AS sporting_points,
             SUM(administrative_points)::integer AS administrative_points,
             SUM(points_adjustment)::integer AS points_adjustment,
-            SUM(official_points)::integer AS official_points,
+            SUM(
+                CASE
+                    WHEN COALESCE(official_points, 0) = 0 AND (wins > 0 OR draws > 0)
+                    THEN wins * 3 + draws + COALESCE(points_adjustment, 0)
+                    ELSE COALESCE(official_points, 0)
+                END
+            )::integer AS official_points,
             NULLIF(STRING_AGG(points_note, ' ' ORDER BY season) FILTER (WHERE points_note IS NOT NULL), '') AS points_note
         FROM analytics.team_season_summary
         WHERE (%(season)s::text IS NULL OR season = %(season)s::text)

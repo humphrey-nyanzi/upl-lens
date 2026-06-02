@@ -15,7 +15,9 @@ export function getTeamSlug(teamName: string) {
 }
 
 export function getTeamPoints(team: TeamResponse) {
-  return team.official_points ?? team.wins * 3 + team.draws;
+  const fallbackPoints = team.wins * 3 + team.draws + (team.points_adjustment ?? 0);
+  if ((team.official_points ?? 0) === 0 && fallbackPoints > 0) return fallbackPoints;
+  return team.official_points ?? fallbackPoints;
 }
 
 export function getTeamGoalDifference(team: TeamResponse) {
@@ -23,7 +25,8 @@ export function getTeamGoalDifference(team: TeamResponse) {
 }
 
 export function getTeamWinRate(team: TeamResponse) {
-  return team.played_matches > 0 ? team.wins / team.played_matches : 0;
+  const playedMatches = team.played_matches > 0 ? team.played_matches : team.matches_played;
+  return playedMatches > 0 ? team.wins / playedMatches : 0;
 }
 
 export function getTeamFixtureNote(team: TeamResponse) {
