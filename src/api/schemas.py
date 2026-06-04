@@ -48,6 +48,10 @@ class GoalTimingInterval(ApiModel):
 
 class GoalTimingInsightResponse(ApiModel):
     season: str
+    scope_key: str
+    season_count: int
+    first_match_date: date | None = None
+    last_match_date: date | None = None
     total_regular_time_goals: int
     peak_interval: str | None = None
     intervals: list[GoalTimingInterval]
@@ -55,6 +59,8 @@ class GoalTimingInsightResponse(ApiModel):
 
 class SeasonOverviewResponse(ApiModel):
     season: str
+    scope_key: str
+    season_count: int
     match_count: int
     team_count: int
     goal_count: int
@@ -91,6 +97,17 @@ class MatchSummary(ApiModel):
     away_awarded_points: int | None = None
     is_source_anomaly: bool = False
     source_anomaly_reason: str | None = None
+    timeline_status: str | None = None
+    timeline_issue_count: int = 0
+    timeline_note: str | None = None
+    scoreline_goal_count: int | None = None
+    timeline_goal_count: int | None = None
+    stats_assist_count: int | None = None
+    timeline_assist_count: int | None = None
+    stats_yellow_card_count: int | None = None
+    timeline_yellow_card_count: int | None = None
+    stats_red_card_count: int | None = None
+    timeline_red_card_count: int | None = None
     ground_name: str | None = None
     match_url: str
 

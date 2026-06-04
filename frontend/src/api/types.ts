@@ -24,6 +24,8 @@ export type EventBreakdownItem = {
 
 export type SeasonOverviewResponse = {
   season: string;
+  scope_key: string;
+  season_count: number;
   match_count: number;
   team_count: number;
   goal_count: number;
@@ -48,6 +50,10 @@ export type GoalTimingInterval = {
 
 export type GoalTimingInsightResponse = {
   season: string;
+  scope_key: string;
+  season_count: number;
+  first_match_date: string | null;
+  last_match_date: string | null;
   total_regular_time_goals: number;
   peak_interval: string | null;
   intervals: GoalTimingInterval[];
@@ -76,6 +82,17 @@ export type MatchSummary = {
   away_awarded_points: number | null;
   is_source_anomaly: boolean;
   source_anomaly_reason: string | null;
+  timeline_status: string | null;
+  timeline_issue_count: number;
+  timeline_note: string | null;
+  scoreline_goal_count: number | null;
+  timeline_goal_count: number | null;
+  stats_assist_count: number | null;
+  timeline_assist_count: number | null;
+  stats_yellow_card_count: number | null;
+  timeline_yellow_card_count: number | null;
+  stats_red_card_count: number | null;
+  timeline_red_card_count: number | null;
   ground_name: string | null;
   match_url: string;
 };

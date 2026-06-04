@@ -1,8 +1,18 @@
 import type { PageProps } from "../app/types";
 import { GoalTimingChart } from "../components/charts/GoalTimingChart";
 import { PageIntro } from "../components/common/PageIntro";
-import { GoalTimingSkeleton } from "../components/common/Skeletons";
-import { formatPercent } from "../utils/format";
+import { formatPercent, formatSeasonScope } from "../utils/format";
+
+function GoalTimingSkeleton() {
+  return (
+    <section className="featured-insight skeleton-card" aria-busy="true" aria-label="Loading goal timing">
+      <div className="skeleton-line short" />
+      <div className="skeleton-line title" />
+      <div className="skeleton-line" />
+      <div className="skeleton-line medium" />
+    </section>
+  );
+}
 
 export function GoalTimingPage({
   goalTiming,
@@ -14,6 +24,7 @@ export function GoalTimingPage({
       .filter((interval) => interval.start_minute >= 46)
       .reduce((total, interval) => total + interval.goals, 0) ?? 0;
   const secondHalfShare = goalTiming && goalTiming.total_regular_time_goals > 0 ? secondHalfGoals / goalTiming.total_regular_time_goals : 0;
+  const scopeLabel = goalTiming ? formatSeasonScope(goalTiming.scope_key, goalTiming.season_count) : "the selected scope";
 
   return (
     <>
@@ -32,8 +43,8 @@ export function GoalTimingPage({
               <p className="eyebrow">Main finding</p>
               <h2>Goals cluster most in the {goalTiming.peak_interval ?? "available"} window.</h2>
               <p>
-                The available regular-time event data shows {goalTiming.total_regular_time_goals.toLocaleString()} goals for
-                this season. The strongest period accounts for{" "}
+                The available regular-time event data shows {goalTiming.total_regular_time_goals.toLocaleString()} goals for{" "}
+                {scopeLabel.toLowerCase()}. The strongest period accounts for{" "}
                 {peakInterval ? `${peakInterval.goals.toLocaleString()} goals (${formatPercent(peakInterval.share)})` : "the clearest share"}.
               </p>
             </div>

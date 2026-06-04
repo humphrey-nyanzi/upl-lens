@@ -1,6 +1,6 @@
 import type { GoalTimingInsightResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
-import { formatPercent } from "../../utils/format";
+import { formatPercent, formatSeasonScope } from "../../utils/format";
 import { useNavigate } from "react-router-dom";
 import { ChartLegend, DistributionBarChart, InsightChartCard } from "../charts/ChartPrimitives";
 
@@ -21,6 +21,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
       value: interval.goals,
     })) ?? [];
   const peakInterval = goalTiming?.intervals.find((interval) => interval.rank === 1);
+  const seasonLabel = goalTiming ? formatSeasonScope(goalTiming.scope_key, goalTiming.season_count) : "Current insight window";
 
   return (
     <InsightChartCard
@@ -32,7 +33,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
       caveat={
         goalTiming ? (
           <p className="caveat compact">
-            Preview only: added-time goals and full interval values live on the Goal Timing page.
+            {seasonLabel}. Added-time goals and full interval values live on the Goal Timing page.
           </p>
         ) : null
       }
@@ -45,6 +46,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
                 of all goals scored in{" "}
                 <span>{goalTiming.peak_interval ?? "the peak interval"}</span>
               </p>
+              <small>{seasonLabel}</small>
             </div>
             <DistributionBarChart data={chartData} height={122} valueLabel="Goals" />
           </div>
@@ -65,7 +67,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
           />
         ) : null
       }
-      text="Most goals are scored between 61-75 minutes. Late goals continue to decide matches."
+      text="A quick read on where the season's goals cluster most, with the strongest regular-time window highlighted for fast comparison."
       title="Goal Timing: The Decisive Minutes"
       largeMetric={null}
     />

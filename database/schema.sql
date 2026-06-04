@@ -14,3 +14,4 @@
 \i migrations/007_repair_analytics_team_season_summary.sql
 \i migrations/008_add_admin_results_and_official_points.sql
 \i migrations/009_backfill_team_summary_admin_fields.sql
+\i migrations/010_add_timeline_coverage_fields.sql

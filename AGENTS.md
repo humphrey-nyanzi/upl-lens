@@ -229,6 +229,19 @@ independent UPL football intelligence platform: curated insight first, deeper
 analytical exploration second, and technical portfolio value quietly supporting
 the product rather than leading the user experience.
 
+Use the source-record boundary consistently:
+
+```text
+Official UPL site = source record.
+UPL Lens = analytical meaning.
+```
+
+Do not rebuild official match pages, fixtures, lineups, officials lists, or raw
+timelines unless the product adds a clear analytical layer. For raw source
+details that are not yet transformed, prefer compact summaries and links back
+to the official UPL source. Match-detail surfaces should be Match Intelligence
+Briefs, not official match-report clones.
+
 Prioritize questions like:
 
 - Which teams concede most after halftime?

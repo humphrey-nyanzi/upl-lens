@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 
 import { apiClient } from "../api/client";
 import type { DashboardData, LoadState } from "../app/types";
+import { ALL_SEASONS_KEY, isAllSeasonsSelection, toApiSeason } from "../utils/seasonScope";
 
 const initialData: DashboardData = {
   health: null,
   seasons: [],
   overview: null,
   goalTiming: null,
+  featuredGoalTiming: null,
   matches: [],
   teams: [],
   players: [],
@@ -27,11 +29,15 @@ export function useDashboardData() {
       setErrorMessage("");
 
       try {
-        const [health, seasons] = await Promise.all([apiClient.getHealth(), apiClient.getSeasons()]);
+        const [health, seasons, featuredGoalTiming] = await Promise.all([
+          apiClient.getHealth(),
+          apiClient.getSeasons(),
+          apiClient.getGoalTimingInsight(),
+        ]);
         const defaultSeason = seasons.at(-1)?.season ?? "";
 
         if (!ignore) {
-          setData((current) => ({ ...current, health, seasons }));
+          setData((current) => ({ ...current, health, seasons, featuredGoalTiming }));
           setSelectedSeason(defaultSeason);
         }
       } catch (error) {
@@ -57,14 +63,15 @@ export function useDashboardData() {
     async function loadSeasonData() {
       setLoadState("loading");
       setErrorMessage("");
+      const apiSeason = toApiSeason(selectedSeason);
 
       try {
         const [overview, goalTiming, matches, teams, players] = await Promise.all([
-          apiClient.getSeasonOverview(selectedSeason),
-          apiClient.getGoalTimingInsight(selectedSeason),
-          apiClient.getMatches(selectedSeason, 500),
-          apiClient.getTeams(selectedSeason, 500),
-          apiClient.getPlayers(selectedSeason, 200),
+          apiClient.getSeasonOverview(apiSeason),
+          apiClient.getGoalTimingInsight(apiSeason),
+          apiClient.getMatches(apiSeason, 500),
+          apiClient.getTeams(apiSeason, 500),
+          apiClient.getPlayers(apiSeason, 200),
         ]);
 
         if (!ignore) {
@@ -90,17 +97,21 @@ export function useDashboardData() {
     if (!selectedSeason) return;
 
     setLoadState("loading");
+    const apiSeason = toApiSeason(selectedSeason);
     void Promise.all([
       apiClient.getHealth().then((health) => setData((current) => ({ ...current, health }))),
       apiClient
-        .getSeasonOverview(selectedSeason)
+        .getGoalTimingInsight()
+        .then((featuredGoalTiming) => setData((current) => ({ ...current, featuredGoalTiming }))),
+      apiClient
+        .getSeasonOverview(apiSeason)
         .then((seasonOverview) => setData((current) => ({ ...current, overview: seasonOverview }))),
       apiClient
-        .getGoalTimingInsight(selectedSeason)
+        .getGoalTimingInsight(apiSeason)
         .then((seasonGoalTiming) => setData((current) => ({ ...current, goalTiming: seasonGoalTiming }))),
-      apiClient.getMatches(selectedSeason, 500).then((matches) => setData((current) => ({ ...current, matches }))),
-      apiClient.getTeams(selectedSeason, 500).then((teams) => setData((current) => ({ ...current, teams }))),
-      apiClient.getPlayers(selectedSeason, 200).then((players) => setData((current) => ({ ...current, players }))),
+      apiClient.getMatches(apiSeason, 500).then((matches) => setData((current) => ({ ...current, matches }))),
+      apiClient.getTeams(apiSeason, 500).then((teams) => setData((current) => ({ ...current, teams }))),
+      apiClient.getPlayers(apiSeason, 200).then((players) => setData((current) => ({ ...current, players }))),
     ])
       .then(() => setLoadState("success"))
       .catch((error) => {
@@ -109,15 +120,25 @@ export function useDashboardData() {
       });
   }
 
-  const selectedSeasonInfo = data.seasons.find((season) => season.season === selectedSeason);
-  const overview = data.overview?.season === selectedSeason ? data.overview : null;
-  const goalTiming = data.goalTiming?.season === selectedSeason ? data.goalTiming : null;
+  const selectedSeasonInfo = isAllSeasonsSelection(selectedSeason)
+    ? {
+        season: ALL_SEASONS_KEY,
+        match_count: data.seasons.reduce((total, season) => total + season.match_count, 0),
+        first_match_date: data.seasons[0]?.first_match_date ?? null,
+        last_match_date: data.seasons.at(-1)?.last_match_date ?? null,
+        team_count: data.overview?.team_count ?? 0,
+      }
+    : data.seasons.find((season) => season.season === selectedSeason);
+  const expectedScopeKey = isAllSeasonsSelection(selectedSeason) ? "all" : selectedSeason;
+  const overview = data.overview?.scope_key === expectedScopeKey ? data.overview : null;
+  const goalTiming = data.goalTiming?.scope_key === expectedScopeKey ? data.goalTiming : null;
   const apiOnline = data.health?.status === "ok" && data.health.database === "ok";
 
   return {
     apiOnline,
     data,
     errorMessage,
+    featuredGoalTiming: data.featuredGoalTiming,
     goalTiming,
     loadState,
     overview,

@@ -6,7 +6,9 @@ import { EditorialTable, EditorialTableHeader } from "../components/common/Edito
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
+import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
 import { TeamCard } from "../components/teams/TeamCard";
+import { getSelectedSeasonLabel } from "../utils/seasonScope";
 import { formatGoalDifference, getTeamGoalDifference, getTeamPoints, sortTeams, type TeamSortKey } from "../utils/teams";
 
 const sortOptions: { label: string; value: TeamSortKey }[] = [
@@ -35,6 +37,7 @@ function TeamIndexSkeleton() {
 export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason }: PageProps) {
   const [teamQuery, setTeamQuery] = useState("");
   const [sortKey, setSortKey] = useState<TeamSortKey>("points");
+  const seasonLabel = getSelectedSeasonLabel(selectedSeason);
 
   const filteredTeams = useMemo(() => {
     const normalizedQuery = teamQuery.trim().toLowerCase();
@@ -63,16 +66,16 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason }:
   return (
     <>
       <PageIntro
-        eyebrow="Team index"
-        title="Teams"
-        text="Compare UPL teams by record, scoring, conceding, and season-level performance signals."
+        eyebrow="Team intelligence"
+        title="Team Profiles"
+        text="Compare UPL clubs by record, scoring, concession, and season-level evidence before opening a deeper team brief."
       />
 
       {couldNotLoad ? (
         <section className="error-panel" role="alert">
           <span className="eyebrow">Teams</span>
           <h2>Could not load team summaries</h2>
-          <p>The team index did not load for the selected season. The data service may be waking up.</p>
+          <p>The team index did not load for the current scope. The data service may be waking up.</p>
           <button className="text-button" type="button" onClick={onRefresh}>
             Retry
           </button>
@@ -80,12 +83,10 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason }:
       ) : null}
 
       <section className="panel">
-        <div className="section-heading compact">
-          <div>
-            <h2>Find a team</h2>
-            <p>{selectedSeason ? `Showing team summaries for ${selectedSeason.replace("_", "/")}.` : "Showing the selected season."}</p>
-          </div>
-        </div>
+        <ReportSectionHeader
+          title="Find a club"
+          text={selectedSeason ? `Showing team summaries for ${seasonLabel}.` : "Showing the selected scope."}
+        />
         <div className="filter-grid team-filter-grid" aria-label="Team filters">
           <label>
             Search teams
@@ -111,7 +112,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason }:
       </section>
 
       <section className="metric-grid compact-metrics" aria-label="Team index highlights">
-        <KpiCard label="Teams tracked" value={data.teams.length} context="Distinct clubs in the selected season data." variant="compact" />
+        <KpiCard label="Teams tracked" value={data.teams.length} context="Distinct clubs in the current scope." variant="compact" />
         <KpiCard
           accent="green"
           label="Top attack"
@@ -135,12 +136,10 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason }:
       </section>
 
       <section className="panel">
-        <div className="section-heading">
-          <div>
-            <h2>Team ranking</h2>
-            <p>Each row links to a team profile and keeps the key season signals visible without feeling like a raw standings dump.</p>
-          </div>
-        </div>
+        <ReportSectionHeader
+          title="Team signal table"
+          text="Each row links to a team profile and keeps the key season signals visible without slipping into a plain standings dump."
+        />
         {loadState === "loading" && data.teams.length === 0 ? (
           <TeamIndexSkeleton />
         ) : filteredTeams.length > 0 ? (

@@ -38,6 +38,7 @@ from src.db.staging.normalization import (
 )
 from src.db.staging.pipeline import build_staging_from_raw
 from src.db.staging.transforms import (
+    _add_timeline_coverage_fields,
     _build_staging_tables,
     _clean_event_rows,
     _clean_match_rows,
@@ -57,6 +58,7 @@ from src.db.staging.validation import (
     _validate_required_columns,
     _validate_scoreline_timeline_goal_consistency,
     _validate_staging_tables,
+    _validate_timeline_coverage,
 )
 from src.db.staging.writers import (
     _configure_staging_session,

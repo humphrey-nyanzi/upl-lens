@@ -6,8 +6,10 @@ import type { EventResponse, MatchSummary } from "../api/types";
 import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
+import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
 import { TeamMarker } from "../components/common/TeamMarker";
-import { formatDate, formatScoreline, formatSeason } from "../utils/format";
+import { formatDate, formatScoreline } from "../utils/format";
+import { getSelectedSeasonLabel, toApiSeason } from "../utils/seasonScope";
 import {
   formatGoalDifference,
   getTeamFixtureNote,
@@ -25,6 +27,10 @@ type TeamProfileState = "idle" | "loading" | "success" | "error";
 
 function scoreline(match: MatchSummary) {
   return formatScoreline(match.home_score, match.away_score);
+}
+
+function buildTeamStandfirst(teamName: string, seasonLabel: string, matchesPlayed: number, fixtureNote: string | null) {
+  return `${teamName}'s ${seasonLabel.toLowerCase()} team brief brings together record, scoring profile, recent evidence, and event signals from the available data${fixtureNote ? `, with ${fixtureNote.toLowerCase()}` : ""}. ${matchesPlayed} fixtures are currently represented in this view.`;
 }
 
 function TeamProfileSkeleton() {
@@ -53,7 +59,7 @@ function TeamProfileSkeleton() {
 
 function RecentMatches({ matches, teamName }: { matches: MatchSummary[]; teamName: string }) {
   if (matches.length === 0) {
-    return <EmptyState message="No recent matches are available for this team in the selected season yet." />;
+    return <EmptyState message="No recent matches are available for this team in the current scope yet." />;
   }
 
   return (
@@ -83,7 +89,7 @@ function RecentMatches({ matches, teamName }: { matches: MatchSummary[]; teamNam
 
 function EventSummary({ events }: { events: EventResponse[] }) {
   if (events.length === 0) {
-    return <EmptyState message="No team event summary is available for this season yet." />;
+    return <EmptyState message="No team event summary is available for this scope yet." />;
   }
 
   const summary = summarizeTeamEvents(events);
@@ -117,6 +123,7 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
   const [teamEvents, setTeamEvents] = useState<EventResponse[]>([]);
   const [profileState, setProfileState] = useState<TeamProfileState>("idle");
   const [profileError, setProfileError] = useState("");
+  const seasonLabel = getSelectedSeasonLabel(selectedSeason);
 
   useEffect(() => {
     if (!team || !selectedSeason) return;
@@ -124,10 +131,11 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
     let ignore = false;
     setProfileState("loading");
     setProfileError("");
+    const apiSeason = toApiSeason(selectedSeason);
 
     Promise.all([
-      apiClient.getTeamMatches(selectedSeason, team.team_name, 12),
-      apiClient.getTeamEvents(selectedSeason, team.team_name, 200),
+      apiClient.getTeamMatches(apiSeason, team.team_name, 12),
+      apiClient.getTeamEvents(apiSeason, team.team_name, 200),
     ])
       .then(([matches, events]) => {
         if (!ignore) {
@@ -167,7 +175,7 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
       <section className="error-panel" role="alert">
         <span className="eyebrow">Team profile</span>
         <h2>Team not found</h2>
-        <p>This team could not be found for the selected season.</p>
+        <p>This team could not be found in the current scope.</p>
         <div className="match-detail-actions">
           <Link className="text-button" to="/teams">
             Back to Teams
@@ -185,6 +193,7 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
   const recentMatches = profileState === "success" ? teamMatches : fallbackMatches;
   const fixtureNote = getTeamFixtureNote(team);
   const pointsNote = getTeamPointsNote(team);
+  const standfirst = buildTeamStandfirst(team.team_name, seasonLabel, team.matches_played, fixtureNote);
 
   return (
     <article className="team-profile-page">
@@ -198,17 +207,18 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
           <span className="eyebrow">Team profile</span>
           <h1>{team.team_name}</h1>
           <p>
-            {formatSeason(selectedSeason)} · {team.matches_played} matches · {team.wins}W {team.draws}D {team.losses}L ·{" "}
+            {seasonLabel} · {team.matches_played} matches · {team.wins}W {team.draws}D {team.losses}L ·{" "}
             {formatGoalDifference(goalDifference)} GD
             {fixtureNote ? ` · ${fixtureNote}` : ""}
           </p>
+          <p className="report-standfirst">{standfirst}</p>
         </div>
       </header>
 
       {profileState === "error" ? (
         <section className="error-panel compact-error" role="alert">
           <span className="eyebrow">Team profile details</span>
-          <h2>Team profile unavailable for this season</h2>
+          <h2>Team profile unavailable for this scope</h2>
           <p>{profileError || "Recent matches and event details could not be loaded. The summary remains available."}</p>
           <button className="text-button" type="button" onClick={onRefresh}>
             Retry season data
@@ -229,12 +239,11 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
       </section>
 
       <section className="panel">
-        <div className="section-heading compact">
-          <div>
-            <span className="eyebrow">Scoring profile</span>
-            <h2>Goals for and against</h2>
-          </div>
-        </div>
+        <ReportSectionHeader
+          eyebrow="Scoring profile"
+          title="How the team is trending"
+          text="A quick read on how much this side scores, concedes, and turns results into official points."
+        />
         <div className="team-scoring-grid">
           <div>
             <span>Goals for</span>
@@ -261,12 +270,11 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
 
       <div className="match-detail-lower-grid">
         <section className="panel">
-          <div className="section-heading compact">
-            <div>
-              <span className="eyebrow">Recent matches</span>
-              <h2>Team results</h2>
-            </div>
-          </div>
+          <ReportSectionHeader
+            eyebrow="Recent evidence"
+            title="Latest results"
+            text="The latest fixtures are listed from newest to oldest so recent form stays easy to follow without turning this page into a raw archive."
+          />
           {profileState === "loading" && fallbackMatches.length === 0 ? (
             <div className="skeleton-card team-profile-skeleton">
               <span className="skeleton-line medium"></span>
@@ -279,12 +287,11 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
         </section>
 
         <section className="panel">
-          <div className="section-heading compact">
-            <div>
-              <span className="eyebrow">Events</span>
-              <h2>Team event summary</h2>
-            </div>
-          </div>
+          <ReportSectionHeader
+            eyebrow="Event evidence"
+            title="Season event profile"
+            text="These totals show what the available event timeline says about this team's season activity."
+          />
           {profileState === "loading" ? (
             <div className="skeleton-card team-profile-skeleton">
               <span className="skeleton-line medium"></span>
@@ -298,12 +305,11 @@ export default function TeamDetailPage({ data, loadState, onRefresh, selectedSea
       </div>
 
       <section className="panel related-actions-panel">
-        <div className="section-heading compact">
-          <div>
-            <span className="eyebrow">Related</span>
-            <h2>Keep exploring</h2>
-          </div>
-        </div>
+        <ReportSectionHeader
+          eyebrow="Next step"
+          title="Follow the signal"
+          text="Jump from this club brief into relevant fixtures, league-wide insight pages, or the underlying data notes."
+        />
         <div className="match-detail-actions">
           <Link className="text-button" to="/teams">
             Back to Teams

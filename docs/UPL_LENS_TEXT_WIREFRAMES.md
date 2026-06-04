@@ -20,6 +20,18 @@ These wireframes define the layout structure for each major UPL Lens page before
 
 - They do not define final colours, typography, spacing, animations, or implementation details.
 
+Source-record boundary:
+
+- The official UPL website is the source archive.
+
+- UPL Lens should transform source details into football intelligence, summarize
+  compact context where needed, and link to the official source for full archive
+  detail.
+
+- Wireframes should not recreate full official match pages, raw timelines,
+  lineups, officials lists, or plain fixtures unless the layout adds analytical
+  meaning.
+
 - 2. Global layout wireframe
 
 - ## Desktop app shell
@@ -357,7 +369,7 @@ Desktop wireframe
 
 │ │ Browse UPL matches by season, team, result, and matchday, then open │ │
 
-│ │ full match details. │ │
+│ │ match intelligence briefs. │ │
 
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 
@@ -518,7 +530,7 @@ Mobile wireframe
 └────────────────────────────────────┘
 
 ```
-5. Match Detail page wireframe
+5. Match Intelligence Brief page wireframe
 
 Route
 
@@ -563,31 +575,31 @@ Desktop wireframe
 
 │ ┌───────────────────────────────────────────────┐ ┌──────────────────────┐ │
 
-│ │ EVENT TIMELINE │ │ MATCH INFO │ │
+│ │ MATCH INTELLIGENCE │ │ MATCH CONTEXT │ │
 
 │ │ │ │ │ │
 
-│ │ First half │ │ League │ │
+│ │ Key pattern │ │ League │ │
 
-│ │ 12' Goal Team A Player Name │ │ Season │ │
+│ │ Team A scored twice before halftime │ │ Season │ │
 
-│ │ 27' Yellow Team B Player Name │ │ Matchday │ │
+│ │ and protected the lead late. │ │ Matchday │ │
 
-│ │ 45' Goal Team A Player Name │ │ Date/time │ │
+│ │ │ │ Date/time │ │
 
-│ │ │ │ Venue │ │
+│ │ Supporting events │ │ Venue │ │
 
-│ │ Second half │ │ Ground address │ │
+│ │ 12' Goal Team A Player Name │ │ Ground address │ │
 
-│ │ 54' Sub Team B Out → In │ │ │ │
+│ │ 45' Goal Team A Player Name │ │ │ │
 
-│ │ 73' Red card Team A Player Name │ │ DATA COMPLETENESS │ │
+│ │ 88' Goal Team B Player Name │ │ DATA COMPLETENESS │ │
 
-│ │ 88' Goal Team B Player Name │ │ [Timeline available] │ │
+│ │ [Open full official record] │ │ [Event intelligence] │ │
 
 │ │ │ │ [Stats available] │ │
 
-│ │ │ │ [Officials listed] │ │
+│ │ │ │ [Officials context] │ │
 
 │ └───────────────────────────────────────────────┘ └──────────────────────┘ │
 
@@ -597,17 +609,17 @@ Desktop wireframe
 
 │ ┌───────────────────────────────────────────────┐ ┌──────────────────────┐ │
 
-│ │ MATCH STATS │ │ OFFICIALS │ │
+│ │ MATCH STATS │ │ OFFICIALS CONTEXT │ │
 
 │ │ │ │ │ │
 
 │ │ Statistic Home Away │ │ Referee: Name │ │
 
-│ │ Possession 00 00 │ │ Assistant: Name │ │
+│ │ Possession 00 00 │ │ Discipline context, if │ │
 
-│ │ Shots 00 00 │ │ Fourth official │ │
+│ │ Shots 00 00 │ │ available │ │
 
-│ │ Corners 00 00 │ │ │ │
+│ │ Corners 00 00 │ │ [Full official source] │ │
 
 │ │ Fouls 00 00 │ │ │ │
 
@@ -659,33 +671,35 @@ Mobile wireframe
 
 │ DATA STATUS │
 
-│ [Timeline available] │
+│ [Event intelligence] │
 
 │ [Stats available] │
 
-│ [Officials listed] │
+│ [Officials context] │
 
 ├────────────────────────────────────┤
 
-│ EVENT TIMELINE │
+│ MATCH INTELLIGENCE │
 
-│ First half │
+│ Key pattern │
 
-│ 12' Goal — Team A — Player │
+│ Team A scored twice before │
 
-│ 27' Yellow — Team B — Player │
+│ halftime and protected the │
 
-│ 45' Goal — Team A — Player │
+│ lead late. │
 
 │ │
 
-│ Second half │
+│ Supporting events │
 
-│ 54' Sub — Team B — Out → In │
+│ 12' Goal — Team A — Player │
 
-│ 73' Red — Team A — Player │
+│ 45' Goal — Team A — Player │
 
 │ 88' Goal — Team B — Player │
+
+│ [Open full official record] │
 
 ├────────────────────────────────────┤
 
@@ -701,13 +715,13 @@ Mobile wireframe
 
 ├────────────────────────────────────┤
 
-│ OFFICIALS │
+│ OFFICIALS CONTEXT │
 
 │ Referee: Name │
 
-│ Assistant: Name │
+│ Discipline note, if available │
 
-│ Fourth official: Name │
+│ [Full official source] │
 
 ├────────────────────────────────────┤
 
@@ -1956,7 +1970,7 @@ Search should not appear as a fake placeholder. It must route to real pages.
 └────────────────────────────────────┘
 
 ```
-## Match Detail loading
+## Match Intelligence Brief loading
 
 ```text
 ┌────────────────────────────────────┐
@@ -1969,7 +1983,7 @@ Search should not appear as a fake placeholder. It must route to real pages.
 
 ├────────────────────────────────────┤
 
-│ Timeline skeleton │
+│ Intelligence summary skeleton │
 
 ├────────────────────────────────────┤
 
@@ -1977,7 +1991,7 @@ Search should not appear as a fake placeholder. It must route to real pages.
 
 ├────────────────────────────────────┤
 
-│ Officials skeleton │
+│ Officials context skeleton │
 
 └────────────────────────────────────┘
 
@@ -2130,7 +2144,7 @@ Team not found
 
 - 3. Matches
 
-- 4. Match Detail
+- 4. Match Intelligence Brief
 
 - 5. Teams
 

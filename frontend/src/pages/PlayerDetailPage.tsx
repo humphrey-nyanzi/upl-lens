@@ -6,11 +6,18 @@ import type { PlayerDetailResponse } from "../api/types";
 import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
-import { formatDate, formatScoreline } from "../utils/format";
+import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
+import { formatDate, formatScoreline, formatSeason } from "../utils/format";
+import { getSelectedSeasonLabel, toApiSeason } from "../utils/seasonScope";
+import { getTeamSlug } from "../utils/teams";
 
 function formatRole(role: string | null) {
   if (!role) return "Listed";
   return role.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function buildPlayerStandfirst(player: PlayerDetailResponse, teams: string, seasonLabel: string) {
+  return `${player.player_name}'s ${seasonLabel.toLowerCase()} player brief brings together scoring, creative output, appearances, discipline, and recent match involvement for ${teams}.`;
 }
 
 export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "selectedSeason">) {
@@ -18,6 +25,7 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
   const [player, setPlayer] = useState<PlayerDetailResponse | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
+  const seasonLabel = getSelectedSeasonLabel(selectedSeason);
 
   useEffect(() => {
     if (!playerSlug) return;
@@ -27,7 +35,7 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
     setErrorMessage("");
 
     apiClient
-      .getPlayerDetail(playerSlug, selectedSeason)
+      .getPlayerDetail(playerSlug, toApiSeason(selectedSeason))
       .then((response) => {
         if (!ignore) {
           setPlayer(response);
@@ -39,7 +47,7 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
           setPlayer(null);
           setLoadState("error");
           if (error instanceof ApiRequestError && error.status === 404) {
-            setErrorMessage("Player not found in the selected season data.");
+            setErrorMessage("Player not found in the current scope.");
           } else {
             setErrorMessage(error instanceof Error ? error.message : "Could not load player profile.");
           }
@@ -77,6 +85,8 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
 
   const teams = player.teams.length > 0 ? player.teams.join(", ") : "Team TBC";
   const cards = player.yellow_cards + player.red_cards;
+  const standfirst = buildPlayerStandfirst(player, teams, seasonLabel);
+  const primaryTeam = player.primary_team ?? player.teams[0] ?? null;
 
   return (
     <article className="player-profile-page">
@@ -86,6 +96,7 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
         <p className="eyebrow">Player profile</p>
         <h1>{player.player_name}</h1>
         <p>{teams}</p>
+        <p className="report-standfirst">{standfirst}</p>
       </header>
 
       <section className="metric-grid compact-metrics" aria-label="Player profile summary">
@@ -97,18 +108,17 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
 
       <div className="match-detail-lower-grid">
         <section className="panel">
-          <div className="section-heading compact">
-            <div>
-              <h2>Season breakdown</h2>
-              <p>Lineup and event totals grouped by season.</p>
-            </div>
-          </div>
+          <ReportSectionHeader
+            eyebrow="Season view"
+            title="Output by season"
+            text="Lineup and event totals are grouped by season so longer-term contribution stays easy to compare."
+          />
           {player.season_breakdown.length > 0 ? (
             <div className="player-list compact" role="list">
               {player.season_breakdown.map((season) => (
                 <div className="player-list-row static" key={season.season} role="listitem">
                   <div>
-                    <strong>{season.season}</strong>
+                    <strong>{formatSeason(season.season)}</strong>
                     <span>{season.teams.join(", ") || "Team TBC"}</span>
                   </div>
                   <dl>
@@ -126,12 +136,11 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
         </section>
 
         <section className="panel">
-          <div className="section-heading compact">
-            <div>
-              <h2>Recent matches</h2>
-              <p>Latest available match records tied to this player.</p>
-            </div>
-          </div>
+          <ReportSectionHeader
+            eyebrow="Recent involvement"
+            title="Latest match evidence"
+            text="The latest available match records show role, contribution, and discipline in one scan line."
+          />
           {player.recent_matches.length > 0 ? (
             <div className="player-match-list">
               {player.recent_matches.map((match) => (
@@ -151,6 +160,25 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
           )}
         </section>
       </div>
+
+      <section className="panel related-actions-panel">
+        <ReportSectionHeader
+          eyebrow="Next step"
+          title="Follow the signal"
+          text="Move from this player brief into the broader player pool, team context, or supporting match evidence."
+        />
+        <div className="match-detail-actions">
+          <Link className="text-button" to="/players">Back to Players</Link>
+          {primaryTeam ? (
+            <Link className="text-button" to={`/teams/${getTeamSlug(primaryTeam)}`}>
+              View {primaryTeam}
+            </Link>
+          ) : null}
+          <Link className="text-button" to="/matches">
+            View match briefs
+          </Link>
+        </div>
+      </section>
     </article>
   );
 }

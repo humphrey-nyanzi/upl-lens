@@ -72,12 +72,13 @@ def _event_type_label(event_type: str | None) -> str:
     return labels.get(event_type, event_type.replace("_", " ").title())
 
 
-def get_season_overview(season: str) -> dict[str, Any] | None:
-    """Return one season-level dashboard summary from staging tables.
+def get_season_overview(season: str | None = None) -> dict[str, Any] | None:
+    """Return a scope-aware dashboard summary from staging tables.
 
     This is the first API shape built specifically for the React overview. It
     lets Postgres do season-wide counting once, instead of forcing the browser
-    to page through every match and event row.
+    to page through every match and event row. When ``season`` is omitted, the
+    response aggregates across every app-safe season currently available.
     """
 
     with get_api_psycopg_connection() as connection:
@@ -86,18 +87,17 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
             WITH app_safe_matches AS (
                 SELECT *
                 FROM staging.matches
-                WHERE season = %(season)s::text
+                WHERE (%(season)s::text IS NULL OR season = %(season)s::text)
                     AND is_source_anomaly IS NOT TRUE
             ),
             match_totals AS (
                 SELECT
-                    season,
+                    COUNT(DISTINCT season) AS season_count,
                     COUNT(*) AS match_count,
                     COALESCE(SUM(COALESCE(total_goals, 0)), 0) AS scoreline_goal_count,
                     MIN(match_date) AS first_match_date,
                     MAX(match_date) AS latest_match_date
                 FROM app_safe_matches
-                GROUP BY season
             ),
             team_rows AS (
                 SELECT home_team AS team_name
@@ -113,7 +113,15 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
                 FROM team_rows
             )
             SELECT
-                match_totals.season,
+                CASE
+                    WHEN %(season)s::text IS NULL THEN 'all'
+                    ELSE %(season)s::text
+                END AS season,
+                CASE
+                    WHEN %(season)s::text IS NULL THEN 'all'
+                    ELSE %(season)s::text
+                END AS scope_key,
+                COALESCE(match_totals.season_count, 0) AS season_count,
                 match_totals.match_count,
                 COALESCE(team_totals.team_count, 0) AS team_count,
                 match_totals.scoreline_goal_count,
@@ -127,6 +135,8 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
         )
         if overview is None:
             return None
+        if season is not None and overview["season_count"] == 0:
+            return None
 
         event_counts = _fetch_all(
             """
@@ -136,7 +146,7 @@ def get_season_overview(season: str) -> dict[str, Any] | None:
             FROM staging.events AS events
             INNER JOIN staging.matches AS matches
                 ON matches.match_id = events.match_id
-            WHERE events.season = %(season)s::text
+            WHERE (%(season)s::text IS NULL OR events.season = %(season)s::text)
                 AND matches.is_source_anomaly IS NOT TRUE
             GROUP BY COALESCE(event_type, 'other')
             ORDER BY count DESC, event_type;

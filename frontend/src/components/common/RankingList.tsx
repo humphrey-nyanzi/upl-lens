@@ -16,7 +16,7 @@ export function RankingList({ actionLabel, items, title }: RankingListProps) {
       <div className="panel-heading compact">
         <div>
           <h2>{title}</h2>
-          <p>{items.length > 0 ? "Quick leaders from the selected season." : "No ranking data available yet."}</p>
+          <p>{items.length > 0 ? "Quick leaders from the current scope." : "No ranking data available yet."}</p>
         </div>
       </div>
       <ol className="ranking-list">

@@ -36,6 +36,17 @@ CREATE TABLE IF NOT EXISTS staging.matches (
     away_first_half_goals INTEGER,
     home_second_half_goals INTEGER,
     away_second_half_goals INTEGER,
+    timeline_status TEXT NOT NULL DEFAULT 'unknown',
+    timeline_issue_count INTEGER NOT NULL DEFAULT 0,
+    timeline_note TEXT,
+    scoreline_goal_count INTEGER,
+    timeline_goal_count INTEGER,
+    stats_assist_count INTEGER,
+    timeline_assist_count INTEGER,
+    stats_yellow_card_count INTEGER,
+    timeline_yellow_card_count INTEGER,
+    stats_red_card_count INTEGER,
+    timeline_red_card_count INTEGER,
     has_timeline BOOLEAN,
     has_lineups BOOLEAN,
     has_officials BOOLEAN,
@@ -49,6 +60,7 @@ CREATE INDEX IF NOT EXISTS idx_staging_matches_date ON staging.matches (match_da
 CREATE INDEX IF NOT EXISTS idx_staging_matches_match_day ON staging.matches (match_day);
 CREATE INDEX IF NOT EXISTS idx_staging_matches_home_team ON staging.matches (home_team);
 CREATE INDEX IF NOT EXISTS idx_staging_matches_away_team ON staging.matches (away_team);
+CREATE INDEX IF NOT EXISTS idx_staging_matches_timeline_status ON staging.matches (timeline_status);
 
 CREATE TABLE IF NOT EXISTS staging.events (
     event_row_key TEXT PRIMARY KEY,

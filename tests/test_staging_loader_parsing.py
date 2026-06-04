@@ -8,6 +8,7 @@ import pandas as pd
 
 from src import config
 from src.db.staging_loader import (
+    _build_staging_tables,
     _has_error_level_issues,
     _clean_match_rows,
     _validate_fixture_completeness,
@@ -17,6 +18,7 @@ from src.db.staging_loader import (
     _parse_minute,
     _season_date_anomaly_reason,
     _validate_scoreline_timeline_goal_consistency,
+    _validate_timeline_coverage,
     _standardize_label,
 )
 
@@ -186,6 +188,163 @@ def test_forfeit_match_rows_get_admin_result_fields() -> None:
     assert bool(row["played_on_pitch"]) is False
     assert row["home_awarded_points"] == 3
     assert row["away_awarded_points"] == 0
+
+
+def _raw_match_fixture() -> dict[str, object]:
+    """Return a minimal raw match row with all fields needed by staging."""
+
+    return {
+        "match_id": 31687,
+        "match_url": "https://upl.co.ug/event/vipers-sc-vs-express-fc-12/",
+        "season": "2025-26",
+        "date": "21/05/2026",
+        "time": "16:00",
+        "league": "Uganda Premier League",
+        "match_day": 30,
+        "home_team": "Vipers SC",
+        "home_team_url": None,
+        "away_team": "Express FC",
+        "away_team_url": None,
+        "ground_name": "St Mary's Stadium",
+        "ground_address": None,
+        "man_of_the_match": None,
+        "man_of_the_match_team": None,
+        "home_score": 2,
+        "away_score": 0,
+        "home_first_half_goals": None,
+        "away_first_half_goals": None,
+        "home_second_half_goals": None,
+        "away_second_half_goals": None,
+        "has_timeline": True,
+        "has_lineups": True,
+        "has_officials": True,
+        "has_stats": True,
+        "ingested_at": pd.Timestamp("2026-05-21T18:00:00Z"),
+    }
+
+
+def _raw_event_fixture(event_index: int, event_type: str, team_side: str = config.SIDE_HOME) -> dict[str, object]:
+    """Return a minimal raw event row for timeline coverage tests."""
+
+    return {
+        "event_row_key": f"31687-{event_index}",
+        "match_id": 31687,
+        "match_url": "https://upl.co.ug/event/vipers-sc-vs-express-fc-12/",
+        "season": "2025-26",
+        "date": "21/05/2026",
+        "time": "16:00",
+        "league": "Uganda Premier League",
+        "match_day": 30,
+        "home_team": "Vipers SC",
+        "away_team": "Express FC",
+        "event_index": event_index,
+        "event_type": event_type,
+        "event_minute": f"{20 + event_index}",
+        "team_side": team_side,
+        "player_name": f"Player {event_index}",
+        "player_url": None,
+        "goal_type": None,
+        "sub_out_player_name": None,
+        "sub_out_player_url": None,
+        "sub_in_player_name": None,
+        "sub_in_player_url": None,
+        "ingested_at": pd.Timestamp("2026-05-21T18:00:00Z"),
+    }
+
+
+def _raw_stat_fixture(name: str, home_value: int, away_value: int) -> dict[str, object]:
+    """Return a minimal raw stat row for timeline coverage tests."""
+
+    safe_name = name.lower().replace(" ", "_")
+    return {
+        "stat_row_key": f"31687-{safe_name}",
+        "match_id": 31687,
+        "match_url": "https://upl.co.ug/event/vipers-sc-vs-express-fc-12/",
+        "season": "2025-26",
+        "match_day": 30,
+        "home_team": "Vipers SC",
+        "away_team": "Express FC",
+        "statistic_name": name,
+        "home_value": home_value,
+        "away_value": away_value,
+        "ingested_at": pd.Timestamp("2026-05-21T18:00:00Z"),
+    }
+
+
+def test_timeline_coverage_marks_missing_assists_and_cards_as_partial() -> None:
+    """Stat evidence should make partial timelines explicit for the frontend."""
+
+    staging_tables = _build_staging_tables(
+        {
+            "matches": pd.DataFrame([_raw_match_fixture()]),
+            "events": pd.DataFrame(
+                [
+                    _raw_event_fixture(1, "Goal"),
+                    _raw_event_fixture(2, "Goal"),
+                ]
+            ),
+            "lineups": pd.DataFrame(),
+            "staff": pd.DataFrame(),
+            "officials": pd.DataFrame(),
+            "stats": pd.DataFrame(
+                [
+                    _raw_stat_fixture("Assists", 1, 0),
+                    _raw_stat_fixture("Yellow Cards", 0, 1),
+                    _raw_stat_fixture("Red Cards", 0, 0),
+                ]
+            ),
+        }
+    )
+
+    row = staging_tables["matches"].iloc[0]
+    assert row["timeline_status"] == "partial"
+    assert row["timeline_issue_count"] == 2
+    assert row["scoreline_goal_count"] == 2
+    assert row["timeline_goal_count"] == 2
+    assert row["stats_assist_count"] == 1
+    assert row["timeline_assist_count"] == 0
+    assert row["stats_yellow_card_count"] == 1
+    assert row["timeline_yellow_card_count"] == 0
+    assert "source assists=1, parsed timeline=0" in row["timeline_note"]
+    assert "source yellow cards=1, parsed timeline=0" in row["timeline_note"]
+
+    issues = _validate_timeline_coverage(staging_tables, "test-run")
+    assert len(issues) == 1
+    assert issues[0]["check_name"] == "partial_timeline_coverage"
+    assert issues[0]["severity"] == "warning"
+
+
+def test_timeline_coverage_marks_matching_timeline_as_complete() -> None:
+    """When scoreline, stats, and parsed events agree, the timeline is complete."""
+
+    staging_tables = _build_staging_tables(
+        {
+            "matches": pd.DataFrame([_raw_match_fixture()]),
+            "events": pd.DataFrame(
+                [
+                    _raw_event_fixture(1, "Goal"),
+                    _raw_event_fixture(2, "Goal"),
+                    _raw_event_fixture(3, "Assist"),
+                    _raw_event_fixture(4, "Yellow Card", team_side=config.SIDE_AWAY),
+                ]
+            ),
+            "lineups": pd.DataFrame(),
+            "staff": pd.DataFrame(),
+            "officials": pd.DataFrame(),
+            "stats": pd.DataFrame(
+                [
+                    _raw_stat_fixture("Assists", 1, 0),
+                    _raw_stat_fixture("Yellow Cards", 0, 1),
+                    _raw_stat_fixture("Red Cards", 0, 0),
+                ]
+            ),
+        }
+    )
+
+    row = staging_tables["matches"].iloc[0]
+    assert row["timeline_status"] == "complete"
+    assert row["timeline_issue_count"] == 0
+    assert row["timeline_note"] is None
 
 
 def test_fixture_completeness_warns_for_near_complete_missing_team_match() -> None:

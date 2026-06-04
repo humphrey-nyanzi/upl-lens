@@ -18,11 +18,22 @@ const InsightsListPage = lazy(() => import("./pages/InsightsListPage").then((m) 
 const InsightsDetailWrapper = lazy(() => import("./pages/InsightsDetailWrapper").then((m) => ({ default: m.InsightsDetailWrapper })));
 const TrendsPage = lazy(() => import("./pages/TrendsPage").then((m) => ({ default: m.TrendsPage })));
 
+function RouteLoadingFallback() {
+  return (
+    <section className="route-loading-state" aria-busy="true" aria-label="Loading page">
+      <div className="skeleton-line short" />
+      <div className="skeleton-line title" />
+      <div className="skeleton-line medium" />
+    </section>
+  );
+}
+
 function App() {
   const {
     apiOnline,
     data,
     errorMessage,
+    featuredGoalTiming,
     goalTiming,
     loadState,
     overview,
@@ -36,6 +47,7 @@ function App() {
     apiOnline,
     data,
     errorMessage,
+    featuredGoalTiming,
     goalTiming,
     loadState,
     onPageChange: (() => {}) as (page: PageKey) => void,
@@ -67,7 +79,7 @@ function App() {
       teams={data.teams}
       players={data.players}
     >
-      <Suspense fallback={<div className="loading">Loading…</div>}>
+      <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           <Route path="/" element={<OverviewPage {...pageProps} />} />
           <Route path="/matches" element={<MatchExplorerPage {...pageProps} />} />

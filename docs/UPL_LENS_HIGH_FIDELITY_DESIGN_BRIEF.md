@@ -97,6 +97,36 @@ It supersedes earlier wireframes or page requirements where there are contradict
 
 - The homepage should communicate value immediately, then allow users to explore deeper through Matches, Teams, Insights, and Trends.
 
+- ## Source record vs intelligence layer
+
+- **Durable product boundary:**
+
+```text
+Official UPL site = source record.
+UPL Lens = analytical meaning.
+```
+
+- UPL Lens must not become a prettier clone of the official UPL website.
+
+- Official fixtures, results, match reports, raw event timelines, lineups,
+  officials lists, and source metadata should appear only when they are
+  transformed into insight or compactly support an analytical view.
+
+- Use this treatment ladder:
+
+- **Transform:** timing patterns, match rhythm, card pressure, late-drama
+  signals, team trend context, official tendencies, season-relative comparison,
+  or anomaly flags.
+
+- **Summarize:** scoreline, key events, short match context, compact data note.
+
+- **Link out:** full raw timeline, full lineup, plain officials list, and full
+  official match record when UPL Lens does not add analytical meaning yet.
+
+- Match Detail should be a **Match Intelligence Brief**, not an official
+  match-page clone. It should explain why a match matters and link to the
+  official source for full archive detail.
+
 - 3. Product name and logo treatment
 
 - ## Product name
@@ -957,7 +987,7 @@ Sidebar content
 
 - If exact colours are uncertain, use restrained approximations and keep names readable.
 
-- ## Match Detail
+- ## Match Intelligence Brief
 
 - **Route:**
 
@@ -965,13 +995,13 @@ Sidebar content
 
 - **Purpose:**
 
-- explain one match clearly
+- explain why one match matters
 
 - **Design style:**
 
-- structured match report
+- structured football intelligence brief
 
-- football-native timeline
+- selected match signals with compact source context
 
 - **Must include:**
 
@@ -983,19 +1013,19 @@ Sidebar content
 
 - home and away team links
 
-- event timeline
+- match intelligence summary
 
 - match stats
 
-- officials
+- officials context, only where useful
 
 - source/data completeness note
 
 - related actions
 
-- Event timeline should be visual but restrained.
+- Supporting events should be visual but selective.
 
-- Avoid raw database table presentation.
+- Avoid raw database table presentation and full official-source replication.
 
 - ## Teams
 
@@ -1865,7 +1895,7 @@ Sidebar content
 
 - Matches
 
-- Match Detail
+- Match Intelligence Brief
 
 - Teams
 

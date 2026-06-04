@@ -16,6 +16,7 @@ export type DashboardData = {
   seasons: SeasonResponse[];
   overview: SeasonOverviewResponse | null;
   goalTiming: GoalTimingInsightResponse | null;
+  featuredGoalTiming: GoalTimingInsightResponse | null;
   matches: MatchSummary[];
   teams: TeamResponse[];
   players: PlayerSummary[];
@@ -39,4 +40,5 @@ export type PageProps = {
   selectedSeason: string;
   selectedSeasonInfo: SeasonResponse | undefined;
   goalTiming: GoalTimingInsightResponse | null;
+  featuredGoalTiming: GoalTimingInsightResponse | null;
 };

@@ -1,6 +1,7 @@
 import type { SeasonResponse } from "../../api/types";
 import type { LoadState } from "../../app/types";
 import { formatSeason } from "../../utils/format";
+import { ALL_SEASONS_KEY } from "../../utils/seasonScope";
 import { Calendar } from "lucide-react";
 
 type SeasonControlsProps = {
@@ -29,6 +30,7 @@ export function SeasonControls({
         <div className="shell-season-select">
           <Calendar size={14} className="season-icon" aria-hidden />
           <select value={selectedSeason} onChange={(event) => onSeasonChange(event.target.value)} disabled={seasons.length === 0}>
+            <option value={ALL_SEASONS_KEY}>All seasons</option>
             {seasons.map((season) => (
               <option value={season.season} key={season.season}>
                 {formatSeason(season.season)}
@@ -41,6 +43,7 @@ export function SeasonControls({
           <label>
             Season
             <select value={selectedSeason} onChange={(event) => onSeasonChange(event.target.value)} disabled={seasons.length === 0}>
+              <option value={ALL_SEASONS_KEY}>All seasons</option>
               {seasons.map((season) => (
                 <option value={season.season} key={season.season}>
                   {formatSeason(season.season)}

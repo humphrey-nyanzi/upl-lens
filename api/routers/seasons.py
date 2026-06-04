@@ -19,6 +19,17 @@ def get_seasons() -> list[SeasonResponse]:
     return [SeasonResponse(**row) for row in list_seasons()]
 
 
+@router.get("/overview", response_model=SeasonOverviewResponse)
+def get_dashboard_overview(season: str | None = None) -> SeasonOverviewResponse:
+    """Return a season-specific or all-seasons overview for the frontend."""
+
+    row = get_season_overview(season)
+    if row is None:
+        detail = "Requested season was not found." if season else "No overview data is available."
+        raise HTTPException(status_code=404, detail=detail)
+    return SeasonOverviewResponse(**row)
+
+
 @router.get("/{season}/overview", response_model=SeasonOverviewResponse)
 def get_season_dashboard_overview(season: str) -> SeasonOverviewResponse:
     """Return one season summary for the React League Overview."""

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="UPL Lens">
+  <rect width="64" height="64" rx="16" fill="#F5F3EE"/>
+  <rect x="8" y="8" width="48" height="48" rx="12" fill="#FFFDFC" stroke="#1F7A3A" stroke-width="2"/>
+  <path d="M20 20h7v15c0 4 2 6 5 6s5-2 5-6V20h7v15c0 8-4.8 13-12 13S20 43 20 35V20z" fill="#0F1720"/>
+  <path d="M20 50h24" stroke="#1F7A3A" stroke-width="3" stroke-linecap="round"/>
+</svg>

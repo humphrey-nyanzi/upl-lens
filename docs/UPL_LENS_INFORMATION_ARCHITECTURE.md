@@ -90,6 +90,18 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - The app should not behave like a raw database viewer. It should surface useful football patterns first, then allow users to drill down into matches, teams, insights, and trends.
 
+- ## Source record vs intelligence layer
+
+- The official UPL website is the source record and archive. UPL Lens is the
+  intelligence layer built from that source.
+
+- Any surface that uses match-page details should choose one of three treatments:
+  transform the detail into insight, summarize it as compact context, or link to
+  the official source for full archive detail.
+
+- Do not rebuild official match pages, raw timelines, plain fixtures, full
+  lineups, or officials lists unless UPL Lens adds a clear analytical layer.
+
 - ## Drilldowns over clutter
 
 - The Overview page should not try to show everything. It should act as a launchpad into deeper product areas.
@@ -186,7 +198,7 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - /matches Match Explorer
 
-- /matches/:matchId Match Detail
+- /matches/:matchId Match Intelligence Brief
 
 - /teams Team Index
 
@@ -392,7 +404,8 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - Matches → match list skeleton
 
-- Match Detail → scoreline header skeleton + timeline skeleton
+- Match Intelligence Brief → scoreline header skeleton + intelligence summary
+  skeleton
 
 - Teams → team card skeletons
 
@@ -738,7 +751,7 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - The page should not display a giant raw table by default. It should use compact, scannable match cards or rows.
 
-- ## Match Detail
+- ## Match Intelligence Brief
 
 - Page route
 
@@ -746,9 +759,14 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - Page role
 
-- The Match Detail page explains what happened in one match.
+- The Match Intelligence Brief explains why one match matters using the
+  scoreline, structured match data, analytical signals, and compact source
+  context.
 
 - This is the next major workflow after the Overview.
+
+- It should not recreate the official match page. Full archive detail belongs on
+  the official source page; UPL Lens should show the football meaning.
 
 - Primary user needs
 
@@ -756,11 +774,11 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - see the match scoreline
 
-- understand when key events happened
+- understand the key match pattern or turning point
 
-- inspect goals, cards, and substitutions
+- see the events that support that pattern
 
-- see officials
+- see officials only as source context or analytical signal
 
 - view match stats where available
 
@@ -776,13 +794,13 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - 2. Scoreline panel
 
-- 3. Match metadata
+- 3. Compact match context
 
-- 4. Event timeline
+- 4. Match intelligence summary
 
 - 5. Match stats
 
-- 6. Officials
+- 6. Officials context, if useful
 
 - 7. Source/data quality note
 
@@ -810,33 +828,34 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - venue
 
-- Event timeline
+- Match intelligence summary
 
 - **Should include:**
 
-- minute
+- key scoring windows
 
-- event type
+- turning points
 
-- team
+- event clusters
 
-- player
+- late-drama signal, if present
 
-- goal type, where available
+- first-half vs second-half balance
 
-- substitution in/out, where available
-
-- card type
+- selected event details that support the interpretation
 
 - Events should be visually grouped and readable.
 
-- **Possible timeline groups:**
+- Do not show a full raw event list by default. If users need the complete
+  archive timeline, link to the official source page.
+
+- **Possible analytical groups:**
 
 - First half
 
 - Second half
 
-- Added time
+- Final 15 minutes
 
 - Match stats
 
@@ -844,21 +863,23 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - Fields come from the stats array returned by the match detail endpoint.
 
-- Officials panel
+- Officials context panel
 
-- **Should show:**
+- **Should show only when useful:**
 
-- role
+- lead referee
 
-- official name
+- official names tied to an analytical discipline/referee signal
+
+- official source link for the complete list
 
 - Data quality/source note
 
 - **Should show quiet indicators such as:**
 
-- Timeline available
+- Event intelligence available
 
-- Officials available
+- Officials context available
 
 - Stats available
 
@@ -888,7 +909,8 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - UX notes
 
-- Match Detail should feel like a clean football match report powered by structured data, not a database dump.
+- Match Intelligence Brief should feel like a clean football intelligence report
+  powered by structured data, not a database dump or official-site clone.
 
 - ## Teams
 
@@ -1892,7 +1914,7 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - Match Explorer V1
 
-- Match Detail V1
+- Match Intelligence Brief V1
 
 - Teams Index V1
 
@@ -2316,7 +2338,7 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - - small caveat only when interpretation could be affected
 
-- Match Detail
+- Match Intelligence Brief
 
 - - data completeness indicators
 
@@ -2364,7 +2386,7 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - Matches page
 
-- Match Detail page
+- Match Intelligence Brief page
 
 - Teams page
 
@@ -2476,11 +2498,11 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - quiet trust note
 
-- Phase 3: Match Detail workflow
+- Phase 3: Match Intelligence Brief workflow
 
 - **Goal:**
 
-- Make matches explorable.
+- Make matches explorable without recreating official match pages.
 
 - **Scope:**
 
@@ -2488,15 +2510,15 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 - /matches/:matchId
 
-- match detail API client
+- match intelligence API client
 
 - scoreline header
 
-- timeline
+- intelligence summary
 
 - stats
 
-- officials
+- officials context
 
 - source link
 
@@ -2613,7 +2635,7 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 
 │ ├── Match Explorer
 
-│ └── Match Detail
+│ └── Match Intelligence Brief
 
 │
 

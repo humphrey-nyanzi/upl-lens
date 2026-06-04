@@ -4,7 +4,6 @@ import { BarChartBig, CircleCheck, Goal, Trophy } from "lucide-react";
 import type { PageProps } from "../app/types";
 import { ErrorPanel } from "../components/common/ErrorPanel";
 import { KpiCard } from "../components/common/KpiCard";
-import { OverviewSkeleton } from "../components/common/Skeletons";
 import { FeaturedInsight } from "../components/overview/FeaturedInsight";
 import { HeroSection } from "../components/overview/HeroSection";
 import {
@@ -14,10 +13,38 @@ import {
 } from "../components/overview/OverviewPanels";
 import { getTeamPoints } from "../utils/teams";
 
+function OverviewSkeleton() {
+  return (
+    <>
+      <section className="hero-panel skeleton-panel" aria-busy="true" aria-label="Loading league overview">
+        <div className="skeleton-line short" />
+        <div className="skeleton-line title" />
+        <div className="skeleton-line" />
+        <div className="skeleton-line medium" />
+      </section>
+      <section className="metric-grid" aria-label="Loading summary cards">
+        {[0, 1, 2, 3].map((item) => (
+          <article className="metric-card skeleton-card" key={item}>
+            <div className="skeleton-line short" />
+            <div className="skeleton-line number" />
+            <div className="skeleton-line" />
+          </article>
+        ))}
+      </section>
+      <section className="featured-insight skeleton-card">
+        <div className="skeleton-line short" />
+        <div className="skeleton-line title" />
+        <div className="skeleton-line" />
+        <p className="empty-state">Loading the latest league data. The service may be waking up.</p>
+      </section>
+    </>
+  );
+}
+
 export function OverviewPage({
   data,
   errorMessage,
-  goalTiming,
+  featuredGoalTiming,
   loadState,
   onPageChange,
   overview,
@@ -104,9 +131,9 @@ export function OverviewPage({
       </section>
 
       <section className="overview-main-grid" aria-label="League intelligence dashboard">
-        <FeaturedInsight goalTiming={goalTiming} loadState={loadState} onPageChange={onPageChange} />
+        <FeaturedInsight goalTiming={featuredGoalTiming} loadState={loadState} onPageChange={onPageChange} />
         <div className="overview-side-stack">
-          <TeamSignalPanel teams={topTeams} loadState={loadState} onPageChange={onPageChange} />
+          <TeamSignalPanel teams={topTeams} matches={data.matches} loadState={loadState} onPageChange={onPageChange} />
           <RecentMatchPanel matches={recentMatches} loadState={loadState} onPageChange={onPageChange} />
         </div>
       </section>

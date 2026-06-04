@@ -8,7 +8,10 @@ import { EditorialTable, EditorialTableHeader } from "../components/common/Edito
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
+import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
 import { MatchRow } from "../components/matches/MatchRow";
+import { hasMatchBriefSignal } from "../utils/matchBriefs";
+import { toApiSeason } from "../utils/seasonScope";
 
 const resultOptions = [
   { label: "All matches", value: "all" },
@@ -16,11 +19,20 @@ const resultOptions = [
   { label: "Draws", value: "draw" },
 ];
 
+const signalOptions = [
+  { label: "All briefs", value: "all" },
+  { label: "Timeline backed", value: "timeline_backed" },
+  { label: "Goal-heavy", value: "goal_heavy" },
+  { label: "Discipline notes", value: "discipline" },
+  { label: "Result notes", value: "result_note" },
+];
+
 export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeason }: PageProps) {
   const [searchParams] = useSearchParams();
   const initialTeamFilter = searchParams.get("team") ?? "all";
   const [teamFilter, setTeamFilter] = useState(initialTeamFilter);
   const [resultFilter, setResultFilter] = useState("all");
+  const [signalFilter, setSignalFilter] = useState("all");
   const [serverFilteredMatches, setServerFilteredMatches] = useState<MatchSummary[] | null>(null);
   const [serverFilterState, setServerFilterState] = useState<"idle" | "loading" | "success" | "error">("idle");
 
@@ -42,9 +54,10 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
 
     let ignore = false;
     setServerFilterState("loading");
+    const apiSeason = toApiSeason(selectedSeason);
 
     apiClient
-      .getTeamMatches(selectedSeason, teamFilter, 500)
+      .getTeamMatches(apiSeason, teamFilter, 500)
       .then((matches) => {
         if (!ignore) {
           setServerFilteredMatches(matches);
@@ -70,14 +83,18 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
         const matchesResult =
           resultFilter === "all" ||
           (resultFilter === "completed" ? match.result !== null : match.result === resultFilter);
-        return matchesResult;
+        const matchesSignal =
+          signalFilter === "all" || hasMatchBriefSignal(match, signalFilter as Parameters<typeof hasMatchBriefSignal>[1]);
+        return matchesResult && matchesSignal;
       })
       .sort((left, right) => (right.match_date ?? "").localeCompare(left.match_date ?? "") || right.match_id - left.match_id);
-  }, [data.matches, resultFilter, serverFilteredMatches]);
+  }, [data.matches, resultFilter, serverFilteredMatches, signalFilter]);
 
   const visibleMatches = filteredMatches.slice(0, 12);
   const completedMatches = filteredMatches.filter((match) => match.result !== null).length;
-  const administrativeMatches = filteredMatches.filter((match) => match.is_administrative_result).length;
+  const timelineBackedMatches = filteredMatches.filter((match) => hasMatchBriefSignal(match, "timeline_backed")).length;
+  const goalHeavyMatches = filteredMatches.filter((match) => hasMatchBriefSignal(match, "goal_heavy")).length;
+  const notedMatches = filteredMatches.filter((match) => hasMatchBriefSignal(match, "result_note")).length;
   const averageGoals =
     completedMatches > 0
       ? filteredMatches.reduce((total, match) => total + (match.total_goals ?? 0), 0) / completedMatches
@@ -93,18 +110,16 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
   return (
     <>
       <PageIntro
-        eyebrow="Explore matches"
-        title="Match Explorer"
-        text="Browse scorelines, teams, venues, and match context in a cleaner public-facing match report list."
+        eyebrow="Match intelligence"
+        title="Match Briefs"
+        text="Scan evidence-led match briefs built from recorded UPL results, then open the fixtures that deserve a closer read."
       />
 
       <section className="panel match-explorer-results">
-        <div className="section-heading compact">
-          <div>
-            <h2>Find a match pattern</h2>
-            <p>Start with a team or result type. Deeper event filters can come later when the workflow needs them.</p>
-          </div>
-        </div>
+        <ReportSectionHeader
+          title="Filter the evidence"
+          text="Start with a team, result type, or evidence signal, then narrow the set down to the fixtures worth reading as briefs."
+        />
         <div className="filter-grid" aria-label="Match filters">
           <label>
             Team
@@ -127,43 +142,64 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
               ))}
             </select>
           </label>
+          <label>
+            Brief signal
+            <select value={signalFilter} onChange={(event) => setSignalFilter(event.target.value)}>
+              {signalOptions.map((option) => (
+                <option value={option.value} key={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </section>
 
       <section className="metric-grid compact-metrics" aria-label="Match explorer summary">
         <KpiCard
-          label="Matches found"
+          label="Briefs found"
           value={isTeamFilterLoading ? "..." : filteredMatches.length}
           context={matchCountContext}
           variant="compact"
         />
-        <KpiCard accent="green" label="Completed" value={completedMatches} context="Rows with a recorded result." variant="compact" />
         <KpiCard
-          accent="risk"
-          label="Admin results"
-          value={administrativeMatches}
-          context="Forfeits, walkovers, or awarded results in this set."
+          accent="green"
+          label="Timeline backed"
+          value={timelineBackedMatches}
+          context="Briefs with event evidence beyond the final scoreline."
           variant="compact"
         />
         <KpiCard
           accent="gold"
+          label="Goal-heavy"
+          value={goalHeavyMatches}
+          context="Matches in this set with at least five total goals."
+          variant="compact"
+        />
+        <KpiCard
+          accent="risk"
+          label="Result notes"
+          value={notedMatches}
+          context="Administrative outcomes or source issues that need extra reading care."
+          variant="compact"
+        />
+        <KpiCard
           label="Average goals"
           value={averageGoals.toFixed(1)}
-          context="Goals per completed match in this filtered set."
+          context="Goals per completed brief in this filtered set."
           variant="compact"
         />
       </section>
 
       <section className="panel">
-        <div className="section-heading">
-          <div>
-            <h2>Match report list</h2>
-            <p>Showing the latest 12 matches from the current filter set with scoreline, status, and route into the full report.</p>
-          </div>
+        <ReportSectionHeader
+          title="Latest briefs"
+          text="Showing the latest 12 matches from the current filter set with scoreline, brief signal, and a route into the fuller match evidence page."
+        >
           <button className="text-button" type="button" onClick={() => onPageChange("about")}>
             View data notes
           </button>
-        </div>
+        </ReportSectionHeader>
         <EditorialTable className="match-table-shell">
           <EditorialTableHeader
             className="match-table-header"

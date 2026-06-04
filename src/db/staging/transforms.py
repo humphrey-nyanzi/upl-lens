@@ -25,6 +25,177 @@ from src.db.staging.normalization import (
 )
 
 
+GOAL_EVENT_TYPES = {"goal", "own_goal", "penalty_goal"}
+TIMELINE_STATUS_ADMINISTRATIVE = "administrative_result"
+TIMELINE_STATUS_COMPLETE = "complete"
+TIMELINE_STATUS_PARTIAL = "partial"
+TIMELINE_STATUS_UNAVAILABLE = "unavailable"
+TIMELINE_STATUS_UNKNOWN = "unknown"
+
+
+def _sum_stat_values(home_value: object, away_value: object) -> int | None:
+    """Return a whole-number total for source stats that represent event counts."""
+
+    values = pd.to_numeric(pd.Series([home_value, away_value]), errors="coerce")
+    if values.isna().any():
+        return None
+    return int(values.sum())
+
+
+def _stat_count_by_match(stats: pd.DataFrame, statistic_name: str, output_column: str) -> pd.DataFrame:
+    """Return one source-stat count column by match."""
+
+    if stats.empty:
+        return pd.DataFrame(columns=["match_id", output_column])
+
+    normalized_name = stats["statistic_name"].fillna("").str.strip().str.casefold()
+    selected = stats.loc[normalized_name == statistic_name.casefold(), ["match_id", "home_value", "away_value"]].copy()
+    if selected.empty:
+        return pd.DataFrame(columns=["match_id", output_column])
+
+    selected[output_column] = [
+        _sum_stat_values(home_value, away_value)
+        for home_value, away_value in zip(selected["home_value"], selected["away_value"], strict=False)
+    ]
+    return selected.loc[:, ["match_id", output_column]]
+
+
+def _event_count_by_match(events: pd.DataFrame, event_types: set[str], output_column: str) -> pd.DataFrame:
+    """Return one parsed-timeline event count column by match."""
+
+    if events.empty:
+        return pd.DataFrame(columns=["match_id", output_column])
+
+    selected = events.loc[events["event_type"].isin(event_types), ["match_id"]]
+    if selected.empty:
+        return pd.DataFrame(columns=["match_id", output_column])
+
+    return selected.groupby("match_id").size().reset_index(name=output_column)
+
+
+def _coerce_optional_count(value: object) -> int | None:
+    """Convert a nullable count value to a Python int when present."""
+
+    if pd.isna(value):
+        return None
+    return int(value)
+
+
+def _timeline_coverage_note(row: pd.Series) -> str | None:
+    """Build a concise reader-facing note for timeline coverage caveats."""
+
+    if row["timeline_status"] == TIMELINE_STATUS_ADMINISTRATIVE:
+        return "Administrative result; timeline events may not represent played match events."
+
+    if row["timeline_status"] == TIMELINE_STATUS_UNAVAILABLE:
+        return "Timeline unavailable from the source match page."
+
+    if row["timeline_status"] != TIMELINE_STATUS_PARTIAL:
+        return None
+
+    issues: list[str] = []
+    comparisons = (
+        ("scoreline goals", "scoreline_goal_count", "timeline_goal_count"),
+        ("source assists", "stats_assist_count", "timeline_assist_count"),
+        ("source yellow cards", "stats_yellow_card_count", "timeline_yellow_card_count"),
+        ("source red cards", "stats_red_card_count", "timeline_red_card_count"),
+    )
+    for label, source_column, timeline_column in comparisons:
+        source_count = _coerce_optional_count(row.get(source_column))
+        timeline_count = _coerce_optional_count(row.get(timeline_column))
+        if source_count is None or timeline_count is None or source_count == timeline_count:
+            continue
+        issues.append(f"{label}={source_count}, parsed timeline={timeline_count}")
+
+    if not issues:
+        return "Timeline may be partial based on available source evidence."
+    return f"Timeline is partial: {'; '.join(issues)}."
+
+
+def _add_timeline_coverage_fields(
+    matches: pd.DataFrame,
+    events: pd.DataFrame,
+    stats: pd.DataFrame,
+) -> pd.DataFrame:
+    """Add queryable timeline-completeness evidence to staged matches."""
+
+    df = matches.copy()
+    if df.empty:
+        return pd.DataFrame(columns=list(STAGING_COLUMNS["matches"]))
+
+    coverage_columns = (
+        "timeline_status",
+        "timeline_issue_count",
+        "timeline_note",
+        "scoreline_goal_count",
+        "timeline_goal_count",
+        "stats_assist_count",
+        "timeline_assist_count",
+        "stats_yellow_card_count",
+        "timeline_yellow_card_count",
+        "stats_red_card_count",
+        "timeline_red_card_count",
+    )
+    df = df.drop(columns=list(coverage_columns), errors="ignore")
+
+    count_frames = [
+        _event_count_by_match(events, GOAL_EVENT_TYPES, "timeline_goal_count"),
+        _event_count_by_match(events, {"assist"}, "timeline_assist_count"),
+        _event_count_by_match(events, {"yellow_card"}, "timeline_yellow_card_count"),
+        _event_count_by_match(events, {"red_card"}, "timeline_red_card_count"),
+        _stat_count_by_match(stats, "Assists", "stats_assist_count"),
+        _stat_count_by_match(stats, "Yellow Cards", "stats_yellow_card_count"),
+        _stat_count_by_match(stats, "Red Cards", "stats_red_card_count"),
+    ]
+
+    df["scoreline_goal_count"] = df["total_goals"]
+    for count_frame in count_frames:
+        if count_frame.empty:
+            continue
+        df = df.merge(count_frame, on="match_id", how="left")
+
+    timeline_columns = (
+        "timeline_goal_count",
+        "timeline_assist_count",
+        "timeline_yellow_card_count",
+        "timeline_red_card_count",
+    )
+    stats_columns = ("stats_assist_count", "stats_yellow_card_count", "stats_red_card_count")
+    for column in timeline_columns:
+        if column not in df.columns:
+            df[column] = 0
+        df[column] = df[column].fillna(0).astype("Int64")
+    for column in stats_columns:
+        if column not in df.columns:
+            df[column] = pd.NA
+        df[column] = df[column].astype("Int64")
+
+    df["scoreline_goal_count"] = df["scoreline_goal_count"].astype("Int64")
+    df["timeline_issue_count"] = 0
+
+    goal_mismatch = df["scoreline_goal_count"].notna() & (df["scoreline_goal_count"] != df["timeline_goal_count"])
+    assist_mismatch = df["stats_assist_count"].notna() & (df["stats_assist_count"] != df["timeline_assist_count"])
+    yellow_mismatch = df["stats_yellow_card_count"].notna() & (
+        df["stats_yellow_card_count"] != df["timeline_yellow_card_count"]
+    )
+    red_mismatch = df["stats_red_card_count"].notna() & (df["stats_red_card_count"] != df["timeline_red_card_count"])
+    for mismatch in (goal_mismatch, assist_mismatch, yellow_mismatch, red_mismatch):
+        df["timeline_issue_count"] += mismatch.astype(int)
+
+    has_timeline = df["has_timeline"].fillna(False) | (df[list(timeline_columns)].sum(axis=1) > 0)
+    is_admin = df["is_administrative_result"].fillna(False)
+
+    df["timeline_status"] = TIMELINE_STATUS_COMPLETE
+    df.loc[~has_timeline, "timeline_status"] = TIMELINE_STATUS_UNAVAILABLE
+    df.loc[df["timeline_issue_count"] > 0, "timeline_status"] = TIMELINE_STATUS_PARTIAL
+    df.loc[is_admin, "timeline_status"] = TIMELINE_STATUS_ADMINISTRATIVE
+    df.loc[df["scoreline_goal_count"].isna(), "timeline_status"] = TIMELINE_STATUS_UNKNOWN
+    df.loc[df["scoreline_goal_count"].isna() & ~has_timeline, "timeline_status"] = TIMELINE_STATUS_UNAVAILABLE
+
+    df["timeline_note"] = df.apply(_timeline_coverage_note, axis=1)
+    return df[list(STAGING_COLUMNS["matches"])]
+
+
 def _clean_match_rows(raw_matches: pd.DataFrame) -> pd.DataFrame:
     """Transform `raw.matches` into `staging.matches` rows."""
 
@@ -71,6 +242,17 @@ def _clean_match_rows(raw_matches: pd.DataFrame) -> pd.DataFrame:
     df.loc[df["result"] == "home_win", "home_awarded_points"] = 3
     df.loc[df["result"] == "away_win", "away_awarded_points"] = 3
     df.loc[df["result"] == "draw", ["home_awarded_points", "away_awarded_points"]] = 1
+    df["timeline_status"] = TIMELINE_STATUS_UNKNOWN
+    df["timeline_issue_count"] = 0
+    df["timeline_note"] = None
+    df["scoreline_goal_count"] = df["total_goals"]
+    df["timeline_goal_count"] = 0
+    df["stats_assist_count"] = pd.NA
+    df["timeline_assist_count"] = 0
+    df["stats_yellow_card_count"] = pd.NA
+    df["timeline_yellow_card_count"] = 0
+    df["stats_red_card_count"] = pd.NA
+    df["timeline_red_card_count"] = 0
     df["raw_ingested_at"] = df["ingested_at"]
 
     return df[list(STAGING_COLUMNS["matches"])]
@@ -176,7 +358,7 @@ def _clean_stat_rows(raw_stats: pd.DataFrame) -> pd.DataFrame:
 def _build_staging_tables(raw_tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """Apply all raw-to-staging transformations."""
 
-    return {
+    staging_tables = {
         "matches": _clean_match_rows(raw_tables["matches"]),
         "events": _clean_event_rows(raw_tables["events"]),
         "lineups": _clean_team_person_table(raw_tables["lineups"], "lineups"),
@@ -184,4 +366,10 @@ def _build_staging_tables(raw_tables: dict[str, pd.DataFrame]) -> dict[str, pd.D
         "officials": _clean_official_rows(raw_tables["officials"]),
         "stats": _clean_stat_rows(raw_tables["stats"]),
     }
+    staging_tables["matches"] = _add_timeline_coverage_fields(
+        staging_tables["matches"],
+        staging_tables["events"],
+        staging_tables["stats"],
+    )
+    return staging_tables
 

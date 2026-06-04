@@ -36,6 +36,10 @@ artifacts carry an explicit exception or layout requirement.
 - The public product name is **UPL Lens**. Use this name in public-facing
   documentation, site titles, and social links.
 - The frontend should not read CSVs, notebooks, or exported notebook charts.
+- Treat the official UPL site as the source record and UPL Lens as the
+  intelligence layer. Do not clone official match pages, raw timelines,
+  lineups, or officials lists unless the UI transforms them into analytical
+  meaning.
 - All durable visual decisions for the launch are listed in
   [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) under "UPL Lens high-fidelity design
   decisions".

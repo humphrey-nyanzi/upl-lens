@@ -1,7 +1,18 @@
 import type { MatchSummary } from "../api/types";
+import { ALL_SEASONS_KEY } from "./seasonScope";
 
 export function formatSeason(season: string) {
   return season.replace("_", "/");
+}
+
+export function formatSeasonScope(season: string, seasonCount?: number) {
+  if (season === "all" || season === ALL_SEASONS_KEY) {
+    if (seasonCount && seasonCount > 0) {
+      return seasonCount === 1 ? "All recorded seasons" : `Across ${seasonCount} seasons`;
+    }
+    return "All seasons";
+  }
+  return `Season ${formatSeason(season)}`;
 }
 
 export function formatDate(value: string | null) {

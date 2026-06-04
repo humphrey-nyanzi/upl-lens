@@ -52,24 +52,24 @@ async function getJson<T>(path: string, params?: Record<string, QueryValue>): Pr
 export const apiClient = {
   getHealth: () => getJson<HealthResponse>("/health"),
   getSeasons: () => getJson<SeasonResponse[]>("/seasons"),
-  getSeasonOverview: (season: string) =>
-    getJson<SeasonOverviewResponse>(`/seasons/${season}/overview`),
-  getGoalTimingInsight: (season: string) =>
+  getSeasonOverview: (season?: string) =>
+    getJson<SeasonOverviewResponse>("/seasons/overview", { season }),
+  getGoalTimingInsight: (season?: string) =>
     getJson<GoalTimingInsightResponse>("/insights/goal-timing", { season }),
-  getMatches: (season: string, limit = 500) =>
+  getMatches: (season?: string, limit = 500) =>
     getJson<MatchSummary[]>("/matches", { season, limit }),
-  getTeamMatches: (season: string, team: string, limit = 500) =>
+  getTeamMatches: (season: string | undefined, team: string, limit = 500) =>
     getJson<MatchSummary[]>("/matches", { season, team, limit }),
   getMatchDetail: (matchId: number) => getJson<MatchDetailResponse>(`/matches/${matchId}`),
-  getTeams: (season: string, limit = 500) => getJson<TeamResponse[]>("/teams", { season, limit }),
-  getPlayers: (season: string, limit = 200, sort = "goals") =>
+  getTeams: (season?: string, limit = 500) => getJson<TeamResponse[]>("/teams", { season, limit }),
+  getPlayers: (season: string | undefined, limit = 200, sort = "goals") =>
     getJson<PlayerSummary[]>("/players", { season, limit, sort }),
   getPlayerDetail: (playerSlug: string, season?: string) =>
     getJson<PlayerDetailResponse>(`/players/${playerSlug}`, { season }),
-  getEvents: (season: string, limit = 200, offset = 0) =>
+  getEvents: (season: string | undefined, limit = 200, offset = 0) =>
     getJson<EventResponse[]>("/events", { season, limit, offset }),
-  getTeamEvents: (season: string, team: string, limit = 200, offset = 0) =>
+  getTeamEvents: (season: string | undefined, team: string, limit = 200, offset = 0) =>
     getJson<EventResponse[]>("/events", { season, team, limit, offset }),
-  getRecentEvents: (season: string, limit = 200) =>
+  getRecentEvents: (season: string | undefined, limit = 200) =>
     getJson<EventResponse[]>("/events", { season, limit }),
 };

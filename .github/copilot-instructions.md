@@ -62,6 +62,19 @@ intelligence platform: curated statistical insight first, dashboard-style
 drilldowns second, and the technical portfolio story quietly available through
 docs and methodology rather than driving the main UI.
 
+Use the source-record boundary consistently:
+
+```text
+Official UPL site = source record.
+UPL Lens = analytical meaning.
+```
+
+Do not recreate official UPL pages in React unless the UI transforms the raw
+record into insight. Plain timelines, lineups, officials, fixtures, or match
+metadata should be compactly summarized or linked to the official source unless
+UPL Lens adds context such as timing, trends, anomalies, comparisons, or other
+football intelligence.
+
 Prefer features that answer questions a user cannot easily answer from
 individual match pages.
 

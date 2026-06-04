@@ -1,12 +1,12 @@
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import type { ReactNode } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { pages } from "../../app/pages";
 import type { LoadState } from "../../app/types";
 import type { HealthResponse, MatchSummary, PlayerSummary, SeasonResponse, TeamResponse } from "../../api/types";
 import { SeasonControls } from "../season/SeasonControls";
 import { BrandLockup } from "./BrandLockup";
-import { Home, List, Users, BarChart2, TrendingUp, Info, Search, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Home, List, Users, BarChart2, TrendingUp, Info, Search, User, Menu, Github, Linkedin, Newspaper, Twitter } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDate, formatScoreline } from "../../utils/format";
 import { MatchStatusPill, TeamName } from "../common/EditorialRows";
 import { slugify } from "../../utils/slugs";
@@ -40,6 +40,16 @@ const navIcons: Record<string, ReactNode> = {
   about: <Info size={16} />,
 };
 
+const primaryMobilePages = ["overview", "insights", "trends"] as const;
+const secondaryPages = ["matches", "teams", "players", "about"] as const;
+
+const socialLinks = [
+  { href: "https://x.com", icon: <Twitter size={15} />, label: "X" },
+  { href: "https://github.com", icon: <Github size={15} />, label: "GitHub" },
+  { href: "https://humphreyn-substack.com", icon: <Newspaper size={15} />, label: "Substack" },
+  { href: "https://www.linkedin.com", icon: <Linkedin size={15} />, label: "LinkedIn" },
+];
+
 function formatFreshness(health: HealthResponse | null, apiOnline: boolean) {
   if (!apiOnline) return "Data status unavailable";
   const latestUpdate = health?.latest_staging_completed_at;
@@ -71,6 +81,7 @@ export function AppShell({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
+  const searchRegionRef = useRef<HTMLDivElement | null>(null);
   const freshnessLabel = formatFreshness(health, apiOnline);
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearch.length >= 2;
@@ -135,6 +146,31 @@ export function AppShell({
     setActiveSearchIndex((currentIndex) => (currentIndex >= 0 && currentIndex < combinedSearchResults.length ? currentIndex : 0));
   }, [combinedSearchResults.length, showSearchResults]);
 
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (searchRegionRef.current && !searchRegionRef.current.contains(event.target as Node)) {
+        setSearchOpen(false);
+        setActiveSearchIndex(-1);
+      }
+    }
+
+    function handlePageKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSearchOpen(false);
+        setMoreOpen(false);
+        setActiveSearchIndex(-1);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handlePageKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handlePageKeyDown);
+    };
+  }, []);
+
   function handleTeamSelect(teamName: string) {
     setSearchOpen(false);
     setSearchQuery("");
@@ -167,7 +203,15 @@ export function AppShell({
     handleMatchSelect(result.matchId);
   }
 
-  function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+  function closeMoreMenu() {
+    setMoreOpen(false);
+  }
+
+  function getSearchResultIndex(groupOffset: number, index: number) {
+    return groupOffset + index;
+  }
+
+  function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") {
       setSearchOpen(false);
       setActiveSearchIndex(-1);
@@ -221,26 +265,30 @@ export function AppShell({
               to={page.key === "overview" ? "/" : `/${page.key}`}
               className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
               aria-current={path === page.key ? "page" : undefined}
+              title={page.label}
             >
               <span aria-hidden="true" className="nav-icon">
                 {navIcons[page.key]}
               </span>
-              {page.label}
+              <span className="nav-label">{page.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="sidebar-status">
-          <span>Data status</span>
-          <strong>{apiOnline ? "Live" : loadState === "error" ? "Offline" : "Waking up"}</strong>
-          <p>{apiOnline ? "Ready for analysis" : "The hosted API may be starting."}</p>
-        </div>
-
         <nav className="sidebar-footer-social" aria-label="Social links">
-          <a href="https://x.com" target="_blank" rel="noreferrer" className="social-link">X</a>
-          <a href="https://github.com" target="_blank" rel="noreferrer" className="social-link">GitHub</a>
-          <a href="https://humphreyn-substack.com" target="_blank" rel="noreferrer" className="social-link">Substack</a>
-          <a href="https://www.linkedin.com" target="_blank" rel="noreferrer" className="social-link">LinkedIn</a>
+          {socialLinks.map((link) => (
+            <a
+              key={link.label}
+              aria-label={link.label}
+              className="social-link icon-only"
+              href={link.href}
+              rel="noreferrer"
+              target="_blank"
+              title={link.label}
+            >
+              {link.icon}
+            </a>
+          ))}
         </nav>
       </aside>
 
@@ -251,23 +299,6 @@ export function AppShell({
               <BrandLockup compact />
             </Link>
           </div>
-          <nav className="mobile-nav" aria-label="Mobile product sections">
-            {pages.slice(0, 4).map((page) => (
-              <NavLink
-                key={page.key}
-                to={page.key === "overview" ? "/" : `/${page.key}`}
-                className={({ isActive }) => (isActive ? "mobile-nav-item active" : "mobile-nav-item")}
-              >
-                <span className="mobile-nav-icon" aria-hidden="true">{navIcons[page.key]}</span>
-                <span className="mobile-nav-label">{page.shortLabel}</span>
-              </NavLink>
-            ))}
-
-            <button className="mobile-nav-item" type="button" onClick={() => setMoreOpen((s) => !s)} aria-expanded={moreOpen} aria-controls="mobile-more-menu">
-              <span className="mobile-nav-icon" aria-hidden="true"><Info size={16} /></span>
-              <span className="mobile-nav-label">More</span>
-            </button>
-          </nav>
           <div className="top-search-area">
             <SeasonControls
               seasons={seasons}
@@ -277,7 +308,18 @@ export function AppShell({
               onSeasonChange={onSeasonChange}
               variant="shell"
             />
-            <div className="shell-search-group">
+            <div
+              ref={searchRegionRef}
+              className={`shell-search-group${showSearchResults ? " is-open" : ""}`}
+              onBlurCapture={(event) => {
+                const nextFocusTarget = event.relatedTarget;
+                if (nextFocusTarget instanceof Node && searchRegionRef.current?.contains(nextFocusTarget)) {
+                  return;
+                }
+                setSearchOpen(false);
+                setActiveSearchIndex(-1);
+              }}
+            >
               <div className="search-bar-container">
                 <Search size={14} className="search-icon" aria-hidden />
                 <input
@@ -287,14 +329,13 @@ export function AppShell({
                   aria-expanded={showSearchResults}
                   aria-haspopup="listbox"
                   className="search-input"
-                  onBlur={() => setTimeout(() => setSearchOpen(false), 120)}
                   onChange={(event) => {
                     setSearchQuery(event.target.value);
                     setSearchOpen(true);
                   }}
                   onFocus={() => setSearchOpen(true)}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="Search teams, players..."
+                  placeholder="Search teams, players, and matches"
                   role="combobox"
                   type="text"
                   value={searchQuery}
@@ -307,30 +348,30 @@ export function AppShell({
                       <span>Teams</span>
                       {teamResults.map((team, index) => {
                         const result: SearchResult = { id: `team-${slugify(team.team_name)}`, type: "team", teamName: team.team_name };
-                        const isActive = activeSearchIndex === index;
+                        const isActive = activeSearchIndex === getSearchResultIndex(0, index);
 
                         return (
-                        <button
-                          aria-selected={isActive}
-                          className={isActive ? "active" : undefined}
-                          id={`search-result-${result.id}`}
-                          key={team.team_name}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            handleSearchResultSelect(result);
-                          }}
-                          onMouseEnter={() => setActiveSearchIndex(index)}
-                          role="option"
-                          type="button"
-                        >
-                          <span className="search-result-topline">
-                            <TeamName className="search-team-name" label={team.team_name} size="small" />
-                            <span className="search-result-chip">Team</span>
-                          </span>
-                          <small>
-                            {team.wins}W {team.draws}D {team.losses}L · {team.goals_for} GF
-                          </small>
-                        </button>
+                          <button
+                            aria-selected={isActive}
+                            className={isActive ? "active" : undefined}
+                            id={`search-result-${result.id}`}
+                            key={team.team_name}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              handleSearchResultSelect(result);
+                            }}
+                            onMouseEnter={() => setActiveSearchIndex(getSearchResultIndex(0, index))}
+                            role="option"
+                            type="button"
+                          >
+                            <span className="search-result-topline">
+                              <TeamName className="search-team-name" label={team.team_name} size="small" />
+                              <span className="search-result-chip">Team</span>
+                            </span>
+                            <small>
+                              {team.wins}W {team.draws}D {team.losses}L · {team.goals_for} GF
+                            </small>
+                          </button>
                         );
                       })}
                     </div>
@@ -339,7 +380,7 @@ export function AppShell({
                     <div className="search-results-group">
                       <span>Players</span>
                       {playerResults.map((player, index) => {
-                        const resultIndex = teamResults.length + index;
+                        const resultIndex = getSearchResultIndex(teamResults.length, index);
                         const result: SearchResult = {
                           id: `player-${player.player_slug}`,
                           type: "player",
@@ -349,27 +390,27 @@ export function AppShell({
                         const isActive = activeSearchIndex === resultIndex;
 
                         return (
-                        <button
-                          aria-selected={isActive}
-                          className={isActive ? "active" : undefined}
-                          id={`search-result-${result.id}`}
-                          key={player.player_slug}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            handleSearchResultSelect(result);
-                          }}
-                          onMouseEnter={() => setActiveSearchIndex(resultIndex)}
-                          role="option"
-                          type="button"
-                        >
-                          <span className="search-result-topline">
-                            <strong>{player.player_name}</strong>
-                            <span className="search-result-chip">Player</span>
-                          </span>
-                          <small>
-                            <TeamName className="search-team-name" label={player.primary_team ?? "Team TBC"} size="small" /> · {player.goals} G · {player.assists} A · {player.appearances} apps
-                          </small>
-                        </button>
+                          <button
+                            aria-selected={isActive}
+                            className={isActive ? "active" : undefined}
+                            id={`search-result-${result.id}`}
+                            key={player.player_slug}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              handleSearchResultSelect(result);
+                            }}
+                            onMouseEnter={() => setActiveSearchIndex(resultIndex)}
+                            role="option"
+                            type="button"
+                          >
+                            <span className="search-result-topline">
+                              <strong>{player.player_name}</strong>
+                              <span className="search-result-chip">Player</span>
+                            </span>
+                            <small>
+                              <TeamName className="search-team-name" label={player.primary_team ?? "Team TBC"} size="small" /> · {player.goals} G · {player.assists} A · {player.appearances} apps
+                            </small>
+                          </button>
                         );
                       })}
                     </div>
@@ -378,32 +419,32 @@ export function AppShell({
                     <div className="search-results-group">
                       <span>Matches</span>
                       {matchResults.map((match, index) => {
-                        const resultIndex = teamResults.length + playerResults.length + index;
+                        const resultIndex = getSearchResultIndex(teamResults.length + playerResults.length, index);
                         const result: SearchResult = { id: `match-${match.match_id}`, type: "match", matchId: match.match_id };
                         const isActive = activeSearchIndex === resultIndex;
 
                         return (
-                        <button
-                          aria-selected={isActive}
-                          className={isActive ? "active" : undefined}
-                          id={`search-result-${result.id}`}
-                          key={match.match_id}
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            handleSearchResultSelect(result);
-                          }}
-                          onMouseEnter={() => setActiveSearchIndex(resultIndex)}
-                          role="option"
-                          type="button"
-                        >
-                          <span className="search-result-topline">
-                            <strong>
-                              {match.home_team ?? "Home"} {formatScoreline(match.home_score, match.away_score)} {match.away_team ?? "Away"}
-                            </strong>
-                            <MatchStatusPill match={match} />
-                          </span>
-                          <small>{formatDate(match.match_date)} · Match</small>
-                        </button>
+                          <button
+                            aria-selected={isActive}
+                            className={isActive ? "active" : undefined}
+                            id={`search-result-${result.id}`}
+                            key={match.match_id}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              handleSearchResultSelect(result);
+                            }}
+                            onMouseEnter={() => setActiveSearchIndex(resultIndex)}
+                            role="option"
+                            type="button"
+                          >
+                            <span className="search-result-topline">
+                              <strong>
+                                {match.home_team ?? "Home"} {formatScoreline(match.home_score, match.away_score)} {match.away_team ?? "Away"}
+                              </strong>
+                              <MatchStatusPill match={match} />
+                            </span>
+                            <small>{formatDate(match.match_date)} · Match brief</small>
+                          </button>
                         );
                       })}
                     </div>
@@ -414,25 +455,71 @@ export function AppShell({
                 </div>
               ) : null}
             </div>
-            <div className="data-status-indicator">
-              <span className="status-dot"></span>
+            <div className={`data-status-indicator${apiOnline ? " is-live" : " is-waking"}`} title={freshnessLabel}>
+              <span className="status-dot" aria-hidden="true"></span>
               <span className="status-text">{freshnessLabel}</span>
             </div>
           </div>
+          <nav className="mobile-nav" aria-label="Mobile product sections">
+            {primaryMobilePages.map((pageKey) => {
+              const page = pages.find((item) => item.key === pageKey)!;
+
+              return (
+              <NavLink
+                key={page.key}
+                to={page.key === "overview" ? "/" : `/${page.key}`}
+                className={({ isActive }) => (isActive ? "mobile-nav-item active" : "mobile-nav-item")}
+                aria-label={page.label}
+                title={page.label}
+              >
+                <span className="mobile-nav-icon" aria-hidden="true">{navIcons[page.key]}</span>
+                <span className="visually-hidden">{page.shortLabel}</span>
+              </NavLink>
+              );
+            })}
+
+            <button
+              className={`mobile-nav-item${moreOpen || secondaryPages.includes(path as (typeof secondaryPages)[number]) ? " active" : ""}`}
+              type="button"
+              onClick={() => setMoreOpen((s) => !s)}
+              aria-expanded={moreOpen}
+              aria-controls="mobile-more-menu"
+              aria-label="More"
+              title="More"
+            >
+              <span className="mobile-nav-icon" aria-hidden="true"><Menu size={16} /></span>
+              <span className="visually-hidden">More</span>
+            </button>
+          </nav>
         </header>
 
         {moreOpen ? (
           <div id="mobile-more-menu" className="mobile-more-menu">
             <nav>
-              <Link to="/insights" onClick={() => setMoreOpen(false)}>Insights</Link>
-              <Link to="/trends" onClick={() => setMoreOpen(false)}>Trends</Link>
-              <Link to="/about" onClick={() => setMoreOpen(false)}>About</Link>
+              {secondaryPages.map((pageKey) => {
+                const page = pages.find((item) => item.key === pageKey)!;
+                return (
+                  <Link key={page.key} to={page.key === "overview" ? "/" : `/${page.key}`} onClick={closeMoreMenu}>
+                    <span className="mobile-more-link-icon" aria-hidden="true">{navIcons[page.key]}</span>
+                    <span>{page.label}</span>
+                  </Link>
+                );
+              })}
             </nav>
             <div className="mobile-more-social">
-              <a href="https://x.com" target="_blank" rel="noreferrer" className="social-link">X</a>
-              <a href="https://github.com" target="_blank" rel="noreferrer" className="social-link">GitHub</a>
-              <a href="https://humphreyn-substack.com" target="_blank" rel="noreferrer" className="social-link">Substack</a>
-              <a href="https://www.linkedin.com" target="_blank" rel="noreferrer" className="social-link">LinkedIn</a>
+              {socialLinks.map((link) => (
+                <a
+                  key={link.label}
+                  aria-label={link.label}
+                  className="social-link icon-only"
+                  href={link.href}
+                  rel="noreferrer"
+                  target="_blank"
+                  title={link.label}
+                >
+                  {link.icon}
+                </a>
+              ))}
             </div>
           </div>
         ) : null}

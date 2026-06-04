@@ -80,9 +80,48 @@ This app is not:
 - A full commercial scouting platform at the current stage.
 - A product that hides source-data limitations to look more polished.
 
-The official UPL website remains the source archive. UPL Match Intelligence
-should explain patterns, trends, and meaning that are hard to see from official
-match pages alone.
+The official UPL website remains the source archive. UPL Lens should explain
+patterns, trends, and meaning that are hard to see from official match pages
+alone.
+
+## Source Record Vs Intelligence Layer
+
+The product boundary is:
+
+```text
+Official UPL site = source record.
+UPL Lens = analytical meaning.
+```
+
+Do not reproduce a raw official UPL page unless the app transforms that source
+record into insight. The app should avoid becoming a cleaner clone of official
+fixtures, results, match reports, lineups, officials, or timelines.
+
+For every raw-data element, choose one of three treatments:
+
+1. **Transform**
+   - Show it because UPL Lens adds analytical value.
+   - Examples: goal timing context, card timing, match rhythm, team trend
+     impact, official card-rate context, late-drama tags, or season-relative
+     comparisons.
+
+2. **Summarize**
+   - Show a compact version because it supports the analysis.
+   - Examples: scoreline, key goals, decisive cards, a short match context
+     strip, or a short event summary.
+
+3. **Link Out**
+   - Do not duplicate it. Link to the official source when the user wants the
+     complete archive detail.
+   - Examples: full raw timeline, full lineup list, plain officials list, full
+     official match record, or other source details that UPL Lens has not yet
+     contextualized.
+
+Match pages should be treated as **Match Intelligence Briefs**, not official
+match-page clones. A match page should answer why the match matters through
+signals such as timing, momentum, cards, trend fit, anomalies, or team context.
+If UPL Lens cannot add that layer yet, show only compact supporting facts and a
+clear official-source link.
 
 ## Target Audiences
 
@@ -226,6 +265,9 @@ Prioritize analysis that adds meaning beyond the official website:
 
 Do not prioritize generic fixtures, results, and tables as the main feature.
 They may exist as supporting context, but they should not define the product.
+When a workflow risks copying the official website, prefer analytical
+summaries, compact context, and official-source links over reproducing the whole
+source page.
 
 ## Feature Philosophy
 
@@ -433,6 +475,8 @@ When deciding whether to build something, ask:
 5. Will the feature keep working as new seasons are added?
 6. Is this useful to a stats-interested fan before it is useful to a recruiter?
 7. Does the technical work support the product promise, or only add complexity?
+8. Are we transforming the official source record, summarizing it for context,
+   or linking out instead of duplicating it?
 
 If the answer to the first three questions is not clear, do more product or
 research thinking before implementation.

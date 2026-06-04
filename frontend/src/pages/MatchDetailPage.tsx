@@ -5,8 +5,10 @@ import { ApiRequestError, apiClient } from "../api/client";
 import type { PageProps } from "../app/types";
 import type { EventResponse, MatchDetailResponse, MatchStatResponse, OfficialResponse } from "../api/types";
 import { MatchStatusPill, StatComparisonRow, StatusPill } from "../components/common/EditorialRows";
+import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
 import { TeamMarker } from "../components/common/TeamMarker";
-import { formatDate, formatResult, formatScoreline, formatSeason, matchStatus } from "../utils/format";
+import { formatDate, formatResult, formatScoreline, formatSeason } from "../utils/format";
+import { buildMatchBriefCards, getMatchBriefSignals } from "../utils/matchBriefs";
 import { slugify } from "../utils/slugs";
 
 type MatchDetailState = "loading" | "success" | "not_found" | "error" | "offline";
@@ -97,6 +99,21 @@ function groupEvents(events: EventResponse[]) {
     .filter((group) => group.events.length > 0);
 }
 
+function timelineStatusLabel(match: MatchDetailResponse) {
+  if (match.timeline_status === "administrative_result") return "Administrative result";
+  if (match.timeline_status === "partial") return "Partial timeline";
+  if (match.timeline_status === "complete") return "Timeline complete";
+  if (match.timeline_status === "unavailable") return "Timeline unavailable";
+  return match.has_timeline || match.events.length > 0 ? "Timeline available" : "Timeline unknown";
+}
+
+function timelineStatusTone(match: MatchDetailResponse) {
+  if (match.timeline_status === "partial" || match.timeline_status === "administrative_result") return "warning" as const;
+  if (match.timeline_status === "complete") return "success" as const;
+  if (match.has_timeline || match.events.length > 0) return "success" as const;
+  return "muted" as const;
+}
+
 function metadataRows(match: MatchDetailResponse) {
   return [
     { label: "Competition", value: formatValue(match.league) },
@@ -117,6 +134,18 @@ function metadataRows(match: MatchDetailResponse) {
     },
     { label: "Man of the match", value: formatValue(match.man_of_the_match) },
   ].filter((row) => row.value);
+}
+
+function buildMatchStandfirst(match: MatchDetailResponse) {
+  const season = formatSeason(match.season);
+  const date = formatDate(match.match_date);
+  const venue = formatValue(match.ground_name);
+
+  if (match.is_administrative_result) {
+    return `A match intelligence brief for this ${season} fixture, where the recorded outcome comes through an administrative decision${venue ? ` at ${venue}` : ""}. UPL Lens keeps the key context visible, then points back to the source record where needed.`;
+  }
+
+  return `A match intelligence brief for this ${season} fixture, combining the recorded scoreline, event evidence, venue context, and match stats${venue ? ` from ${venue}` : ""}${date ? ` on ${date}` : ""}. It keeps the source record compact while surfacing the parts most useful for interpretation.`;
 }
 
 function MatchDetailLoading() {
@@ -174,17 +203,17 @@ function MatchDetailError({
           }
         : {
             title: "Could not load match details",
-            text: "The match report did not load. Try again or return to the match list.",
+            text: "The match brief did not load. Try again or return to the brief list.",
           };
 
   return (
     <section className="error-panel match-detail-error">
-      <span className="eyebrow">Match report</span>
+      <span className="eyebrow">Match brief</span>
       <h2>{copy.title}</h2>
       <p>{copy.text}</p>
       <div className="match-detail-actions">
         <Link className="text-button" to="/matches">
-          Back to Matches
+          Back to Match Briefs
         </Link>
         {state !== "not_found" ? (
           <button className="text-button" type="button" onClick={onRetry}>
@@ -209,32 +238,42 @@ function MatchTeamLink({ markerPosition = "before", name }: { markerPosition?: "
   );
 }
 
-function MatchTimeline({ events }: { events: EventResponse[] }) {
+function MatchTimeline({ events, match }: { events: EventResponse[]; match: MatchDetailResponse }) {
   const groups = useMemo(() => groupEvents(events), [events]);
 
   if (events.length === 0) {
-    return <div className="empty-state">No timeline events are available for this match yet.</div>;
+    return (
+      <div>
+        {match.timeline_note ? <p className="match-timeline-caveat">{match.timeline_note}</p> : null}
+        <div className="empty-state">No timeline events are available for this match yet.</div>
+      </div>
+    );
   }
 
   return (
-    <div className="match-timeline">
-      {groups.map((group) => (
-        <section className="match-timeline-group" key={group.label}>
-          <h3>{group.label}</h3>
-          <ol>
-            {group.events.map((event) => (
-              <li key={event.event_row_key}>
-                <span className="event-minute">{eventMinute(event)}</span>
-                <div className="event-copy">
-                  <strong>{eventLabel(event)}</strong>
-                  <span>{event.team_name ?? "Team not listed"}</span>
-                  <p>{eventDescription(event)}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ))}
+    <div>
+      {match.timeline_status === "partial" && match.timeline_note ? (
+        <p className="match-timeline-caveat">{match.timeline_note}</p>
+      ) : null}
+      <div className="match-timeline">
+        {groups.map((group) => (
+          <section className="match-timeline-group" key={group.label}>
+            <h3>{group.label}</h3>
+            <ol>
+              {group.events.map((event) => (
+                <li key={event.event_row_key}>
+                  <span className="event-minute">{eventMinute(event)}</span>
+                  <div className="event-copy">
+                    <strong>{eventLabel(event)}</strong>
+                    <span>{event.team_name ?? "Team not listed"}</span>
+                    <p>{eventDescription(event)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
@@ -276,11 +315,12 @@ function OfficialsPanel({ officials }: { officials: OfficialResponse[] }) {
 }
 
 function DataCompletenessNote({ match }: { match: MatchDetailResponse }) {
+  const timelineNote = match.timeline_status === "partial" || match.timeline_status === "unavailable" ? match.timeline_note : null;
   const sourceCopy = match.is_administrative_result
     ? match.administrative_note ?? "This result includes a forfeit, walkover, or other administrative decision."
     : match.is_source_anomaly
     ? match.source_anomaly_reason ?? "This match has a source-data anomaly."
-    : "Timeline, stats, and officials are shown where available from the source match page.";
+    : timelineNote ?? "Timeline, stats, and officials are shown where available from the source match page.";
 
   return (
     <section className={match.is_source_anomaly || match.is_administrative_result ? "match-data-note anomaly" : "match-data-note"}>
@@ -289,15 +329,46 @@ function DataCompletenessNote({ match }: { match: MatchDetailResponse }) {
         <p>{sourceCopy}</p>
       </div>
       <div className="match-data-chips" aria-label="Match data completeness">
-        <StatusPill tone={match.has_timeline || match.events.length > 0 ? "success" : "muted"} value={match.has_timeline || match.events.length > 0 ? "Timeline available" : "Timeline unavailable"} />
+        <StatusPill tone={timelineStatusTone(match)} value={timelineStatusLabel(match)} />
         <StatusPill tone={match.has_stats || match.stats.length > 0 ? "success" : "muted"} value={match.has_stats || match.stats.length > 0 ? "Stats available" : "Stats unavailable"} />
         <StatusPill tone={match.has_officials || match.officials.length > 0 ? "success" : "muted"} value={match.has_officials || match.officials.length > 0 ? "Officials listed" : "Officials unavailable"} />
         {match.is_source_anomaly || match.is_administrative_result ? <StatusPill tone="warning" value="Result note" /> : null}
         {match.match_url ? (
           <a href={match.match_url} target="_blank" rel="noreferrer">
-            Source page
+            Official source
           </a>
         ) : null}
+      </div>
+    </section>
+  );
+}
+
+function MatchBriefEvidence({ match }: { match: MatchDetailResponse }) {
+  const cards = buildMatchBriefCards(match);
+  const signals = getMatchBriefSignals(match).slice(0, 4);
+
+  return (
+    <section className="panel match-brief-evidence-panel">
+      <ReportSectionHeader
+        eyebrow="Brief frame"
+        title="Why this match matters"
+        text="These signals turn the recorded fixture into a match brief by showing what kind of result this was, how strong the evidence is, and where caution still matters."
+      />
+      {signals.length > 0 ? (
+        <div className="match-brief-signal-row" aria-label="Match brief signals">
+          {signals.map((signal) => (
+            <StatusPill key={`${match.match_id}-${signal.key}`} tone={signal.tone} value={signal.label} />
+          ))}
+        </div>
+      ) : null}
+      <div className="match-brief-card-grid">
+        {cards.map((card) => (
+          <article className="match-brief-card" key={card.label}>
+            <span>{card.label}</span>
+            <strong className={card.tone ? `tone-${card.tone}` : undefined}>{card.value}</strong>
+            <p>{card.text}</p>
+          </article>
+        ))}
       </div>
     </section>
   );
@@ -360,15 +431,17 @@ export default function MatchDetailPage(_props: PageProps) {
   const homeTeam = getSafeTeamName(match.home_team);
   const awayTeam = getSafeTeamName(match.away_team);
   const metaRows = metadataRows(match);
+  const standfirst = buildMatchStandfirst(match);
 
   return (
     <article className="match-detail-page">
       <Link className="text-button back-link" to="/matches">
-        Back to Matches
+        Back to Match Briefs
       </Link>
 
       <header className="match-detail-hero">
         <div className="match-detail-meta-line">
+          {match.league ? <span>{match.league}</span> : null}
           <span>{formatSeason(match.season)}</span>
           {formatMatchday(match.match_day) ? <span>{formatMatchday(match.match_day)}</span> : null}
           <span>{formatDate(match.match_date)}</span>
@@ -396,28 +469,29 @@ export default function MatchDetailPage(_props: PageProps) {
           </strong>
           <StatusPill tone={match.result ? "success" : "muted"} value={match.result ? formatResult(match.result) : "Result pending"} />
         </div>
+
+        <p className="report-standfirst">{standfirst}</p>
       </header>
 
       <DataCompletenessNote match={match} />
+      <MatchBriefEvidence match={match} />
 
       <div className="match-detail-grid">
         <section className="panel match-timeline-panel">
-          <div className="section-heading compact">
-            <div>
-              <span className="eyebrow">Timeline</span>
-              <h2>Match events</h2>
-            </div>
-          </div>
-          <MatchTimeline events={match.events} />
+          <ReportSectionHeader
+            eyebrow="Timeline evidence"
+            title="How the match unfolded"
+            text="The event log is grouped by match phase so the flow of the result stays readable without turning into a raw source dump."
+          />
+          <MatchTimeline events={match.events} match={match} />
         </section>
 
         <aside className="panel match-info-panel">
-          <div className="section-heading compact">
-            <div>
-              <span className="eyebrow">Match info</span>
-              <h2>Details</h2>
-            </div>
-          </div>
+          <ReportSectionHeader
+            eyebrow="Source context"
+            title="Recorded details"
+            text="Venue, scheduling, award, and result-context fields are kept compact here so they support the brief without recreating the full source page."
+          />
           <dl className="match-info-list">
             {metaRows.map((row) => (
               <div key={row.label}>
@@ -428,7 +502,7 @@ export default function MatchDetailPage(_props: PageProps) {
           </dl>
           {match.match_url ? (
             <a className="text-button source-link" href={match.match_url} target="_blank" rel="noreferrer">
-              Open source page
+              Open official source
             </a>
           ) : null}
         </aside>
@@ -436,36 +510,33 @@ export default function MatchDetailPage(_props: PageProps) {
 
       <div className="match-detail-lower-grid">
         <section className="panel">
-          <div className="section-heading compact">
-            <div>
-              <span className="eyebrow">Stats</span>
-              <h2>Match stats</h2>
-            </div>
-          </div>
+          <ReportSectionHeader
+            eyebrow="Stat evidence"
+            title="What shaped the result"
+            text="Home and away values are shown side by side so the scoreline can be read as evidence rather than a final number alone."
+          />
           <MatchStatsPanel stats={match.stats} />
         </section>
 
         <section className="panel">
-          <div className="section-heading compact">
-            <div>
-              <span className="eyebrow">Officials</span>
-              <h2>Match crew</h2>
-            </div>
-          </div>
+          <ReportSectionHeader
+            eyebrow="Source context"
+            title="Officials listed"
+            text="The officiating crew is shown by role when the source page includes it, but remains a supporting context block rather than the centre of the brief."
+          />
           <OfficialsPanel officials={match.officials} />
         </section>
       </div>
 
       <section className="panel related-actions-panel">
-        <div className="section-heading compact">
-          <div>
-            <span className="eyebrow">Related</span>
-            <h2>Keep exploring</h2>
-          </div>
-        </div>
+        <ReportSectionHeader
+          eyebrow="Next step"
+          title="Follow the signal"
+          text="Move from this single fixture into team context or the wider league notes that help explain what the match means."
+        />
         <div className="match-detail-actions">
           <Link className="text-button" to="/matches">
-            Back to Matches
+            Back to Match Briefs
           </Link>
           <Link className="text-button" to={`/teams/${slugify(homeTeam)}`}>
             View {homeTeam}

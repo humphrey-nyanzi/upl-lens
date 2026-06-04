@@ -6,8 +6,10 @@ import type { PlayerSummary } from "../api/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
+import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
 import { TeamName } from "../components/common/EditorialRows";
 import { PlayerRow } from "../components/players/PlayerRow";
+import { getSelectedSeasonLabel } from "../utils/seasonScope";
 
 function sortPlayers(players: PlayerSummary[], metric: keyof Pick<PlayerSummary, "goals" | "assists" | "appearances" | "starts">) {
   return [...players].sort((left, right) => right[metric] - left[metric] || left.player_name.localeCompare(right.player_name));
@@ -32,6 +34,7 @@ function PlayerRankCard({ label, player, value }: { label: string; player: Playe
 
 export function PlayersPage({ data, loadState, selectedSeason }: PageProps) {
   const players = data.players;
+  const seasonLabel = getSelectedSeasonLabel(selectedSeason);
   const byGoals = sortPlayers(players, "goals");
   const byAssists = sortPlayers(players, "assists");
   const byAppearances = sortPlayers(players, "appearances");
@@ -41,13 +44,13 @@ export function PlayersPage({ data, loadState, selectedSeason }: PageProps) {
   return (
     <>
       <PageIntro
-        eyebrow="Player profiles"
-        title="Players"
-        text="Browse the available UPL player records with a clearer hierarchy for production, contribution, and team context."
+        eyebrow="Player intelligence"
+        title="Player Profiles"
+        text="Scan the player pool through production, usage, and team context before opening an individual player brief."
       />
 
       <section className="metric-grid compact-metrics" aria-label="Player summary">
-        <KpiCard label="Players tracked" value={players.length} context={`Distinct player profiles in ${selectedSeason || "the selected season"}.`} variant="compact" />
+        <KpiCard label="Players tracked" value={players.length} context={`Distinct player profiles in ${seasonLabel.toLowerCase()}.`} variant="compact" />
         <KpiCard accent="green" label="Top scorer" value={byGoals[0]?.goals ?? 0} context={byGoals[0]?.player_name ?? "No scorer data yet."} variant="compact" />
         <KpiCard accent="gold" label="Most appearances" value={byAppearances[0]?.appearances ?? 0} context={byAppearances[0]?.player_name ?? "No lineup data yet."} variant="compact" />
       </section>
@@ -60,12 +63,10 @@ export function PlayersPage({ data, loadState, selectedSeason }: PageProps) {
       </section>
 
       <section className="panel">
-        <div className="section-heading">
-          <div>
-            <h2>Player list</h2>
-            <p>Sorted by goals, then appearances. Desktop reads like a compact table; mobile collapses into player cards.</p>
-          </div>
-        </div>
+        <ReportSectionHeader
+          title="Player index"
+          text="Sorted by goals, then appearances. Desktop reads like a compact table; mobile collapses into player cards."
+        />
         {topPlayers.length > 0 ? (
           <EditorialTable className="player-table-shell">
             <EditorialTableHeader

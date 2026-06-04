@@ -61,6 +61,25 @@ def test_staging_matches_has_source_anomaly_flags() -> None:
     assert "source_anomaly_reason TEXT" in matches_sql
 
 
+def test_staging_matches_has_timeline_coverage_fields() -> None:
+    """Partial source timelines should be queryable from staging.matches."""
+
+    sql = STAGING_MIGRATION.read_text(encoding="utf-8")
+    matches_sql = _table_block(sql, "matches")
+
+    assert "timeline_status TEXT NOT NULL DEFAULT 'unknown'" in matches_sql
+    assert "timeline_issue_count INTEGER NOT NULL DEFAULT 0" in matches_sql
+    assert "timeline_note TEXT" in matches_sql
+    assert "scoreline_goal_count INTEGER" in matches_sql
+    assert "timeline_goal_count INTEGER" in matches_sql
+    assert "stats_assist_count INTEGER" in matches_sql
+    assert "timeline_assist_count INTEGER" in matches_sql
+    assert "stats_yellow_card_count INTEGER" in matches_sql
+    assert "timeline_yellow_card_count INTEGER" in matches_sql
+    assert "stats_red_card_count INTEGER" in matches_sql
+    assert "timeline_red_card_count INTEGER" in matches_sql
+
+
 def test_raw_schema_stays_source_tolerant_without_match_foreign_keys() -> None:
     """Raw ingestion should remain looser than staging and avoid child-table FKs."""
 
@@ -92,6 +111,8 @@ def test_schema_sql_includes_team_season_summary_migration() -> None:
     assert r"\i migrations/006_create_analytics_team_season_summary.sql" in schema_sql
     assert r"\i migrations/007_repair_analytics_team_season_summary.sql" in schema_sql
     assert r"\i migrations/008_add_admin_results_and_official_points.sql" in schema_sql
+    assert r"\i migrations/009_backfill_team_summary_admin_fields.sql" in schema_sql
+    assert r"\i migrations/010_add_timeline_coverage_fields.sql" in schema_sql
 
 
 def test_admin_result_migration_adds_official_points_contract() -> None:

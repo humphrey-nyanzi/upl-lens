@@ -56,6 +56,37 @@ React must not read:
 If the UI needs new data, add or extend the FastAPI and query layer instead of
 bypassing it.
 
+## Source Record Vs Intelligence Layer
+
+Durable product boundary:
+
+```text
+Official UPL site = source record.
+UPL Lens = analytical meaning.
+```
+
+UPL Lens should not drift into becoming a cleaner copy of official UPL match
+pages. A surface may show raw source details only when those details support a
+clear analytical purpose.
+
+Use this treatment ladder for official-source details:
+
+- **Transform** details into insight when possible: timing patterns, match
+  rhythm, card pressure, late-drama signals, trend fit, season-relative
+  comparisons, official tendencies, or anomaly flags.
+- **Summarize** details when they provide useful context: scoreline, key
+  events, a short match context strip, or compact source facts.
+- **Link out** when the user wants full archive detail that UPL Lens is not
+  transforming yet: full raw timeline, full lineup, plain officials list, or
+  full official match record.
+
+Match detail pages should behave as **Match Intelligence Briefs**. They should
+explain why a match matters and how it fits league/team patterns, not simply
+rebuild the official match report with a different design.
+
+When a frontend request or page requirement risks duplicating the official UPL
+site, review it against this boundary before implementation.
+
 
 ## UPL Lens high-fidelity design decisions (durable)
 
@@ -402,6 +433,9 @@ Component rules:
 - Rankings should show clear rank, team, and value hierarchy.
 - Match rows should surface date, teams, score, and result state before deeper
   detail.
+- Match detail surfaces should prioritize intelligence summaries over complete
+  raw source replication. Full official details should be linked out unless
+  they are transformed into UPL Lens analysis.
 - Team summary cards should show analytical signals such as win rate, ranking,
   record, goal difference, and goals for or against where available.
 - Filter groups should be moderate and page-specific.

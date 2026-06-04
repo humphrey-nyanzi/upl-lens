@@ -151,60 +151,6 @@ Implemented in the frontend with reusable stable team markers, Top 5 team
 markers, and recent-match home/away markers. No crest assets, fake logos, API
 changes, or backend changes were added.
 
-### Request: UPL Lens Public Launch Frontend Redesign (Master Request)
-
-Status: approved
-
-Area: frontend redesign, launch
-
-Request:
-
-This is the master approved request that authorizes the frontend redesign and
-public launch under the UPL Lens brand. It supersedes prior mockup-only
-requests and consolidates high-level decisions and approved surface rules.
-
-Why it matters:
-
-The redesign and relaunch unify product naming, visual identity, and the
-approved high-fidelity decisions listed in `docs/FRONTEND_DESIGN_SYSTEM.md`.
-
-Clarifications for launch (binding for this approved request):
-
-- Editorial Light is the default theme for UPL Lens. Implement the light token
-  set as the launch baseline.
-- Dark mode is an optional future variant and is not required for launch.
-- The sidebar must show only one visible support link: "About". Methodology
-  and data notes must be accessible from About, not as a separate top-level
-  navigation item.
-- No export button on public pages by default.
-- No official club logos embedded; use team-initial badges with stable seeded
-  palettes.
-
-Data/API needs:
-
-Map existing frontend data requirements to current FastAPI endpoints. Any new
-data need must be proposed as a separate request with `Data/API needs` filled
-out and approved before implementation.
-
-Mobile/accessibility notes:
-
-Follow existing accessibility principles in the design system. Mobile-first
-layouts are required; desktop enhancements allowed when they preserve
-accessibility.
-
-Out of scope:
-
-- Directly changing backend data models
-- Adding CSV or notebook data sources to the frontend
-
-Approval notes:
-
-Approved as the canonical redesign and launch request for UPL Lens. Use this
-file for ticket-level details, but move durable decisions into
-`docs/FRONTEND_DESIGN_SYSTEM.md` and the UPL Lens start file.
-
-
-
 ### Request: Refine Goal Timing Distribution Chart
 
 Status: approved
@@ -259,126 +205,302 @@ Approval notes:
 
 Approved after identifying that the previous heatmap direction duplicated the timing dimension and weakened analytical clarity.
 
-### Request: Reorganize Overview Cards into Single Horizontal Row
+### Request: Add Cross-Season Aggregation and Fixed Featured-Insight Season Framing
 
 Status: approved
 
-Area: League Overview layout
+Area: season selector, overview, insight framing, insight detail behavior
 
 Request:
 
-Reorganize the featured insight card, league leaders card, and recent matches card into a single horizontal row layout. The featured insight card should take up 60% of the width, while the league leaders and recent matches cards share the remaining 40%. There should be no blank space underneath the featured insights card.
+Extend season handling so users can choose an "All Seasons" option that
+aggregates available data across seasons, while keeping featured insights on
+the Overview page fixed to the scope of the research insight itself rather than
+changing with the currently selected season. On the insight detail page, allow
+season-level exploration where the underlying data supports it.
 
 Why it matters:
 
-This creates a more compact, dashboard-like first viewport that uses horizontal space efficiently and eliminates vertical gaps that make the page feel sparse.
+The current season selector assumes a single active season context everywhere.
+That is useful for operational comparison, but it breaks down when users want
+league-wide or multi-season context and when featured research insights are
+meant to summarize a longer time window.
 
 Implementation requirements:
 
-- Place featured insight, league leaders, and recent matches cards in one horizontal row
-- Featured insight card: 60% width
-- League leaders and recent matches cards: share 40% (20% each or stacked vertically within the 40% column)
-- No blank space underneath the featured insights card
-- Maintain responsive behavior on mobile (stack vertically on small screens)
+- Add an "All Seasons" selector option wherever the global season context is
+  used for supported aggregated metrics.
+- When "All Seasons" is selected, dashboard metrics should aggregate across the
+  available seasons for that metric rather than showing one arbitrary season.
+- The Overview featured insight should remain fixed to the insight's research
+  scope even when the global season selector changes.
+- The Overview featured insight must clearly label the season span or date span
+  used for that insight, for example a single season or a five-season window.
+- Clicking the featured insight should route to the insight detail page where
+  users can explore season variation or compare seasons when the data supports
+  it.
+- Insight detail pages should support season toggles or selectors where
+  technically and analytically appropriate.
+
+Why now:
+
+This request establishes a cleaner contract between global product context and
+research-driven featured insights, which will matter more as the insight
+library grows.
 
 Data/API needs:
 
-None - uses existing data.
+Likely requires backend/API support for reliable all-season aggregation and
+possibly per-insight multi-season breakdowns. The frontend must continue to use
+FastAPI JSON only.
 
 Mobile/accessibility notes:
 
-On mobile screens, cards should stack vertically to maintain readability.
+Season controls must remain understandable on small screens. Fixed featured
+insight scope should be visible in copy, not implied only through charts.
 
 Out of scope:
 
-None.
+- Inventing unsupported multi-season metrics
+- Forcing every insight to become a full comparison dashboard if the data does
+  not support that level of exploration yet
 
 Approval notes:
 
-Approved by user for immediate implementation.
+Approved by user as a season-model and insight-context refinement. Backend/API
+needs should be proposed carefully during implementation rather than assumed.
 
-### Request: Hero Section Background Image Integration
+### Request: Improve Insights Library Home and Insight Exploration Surfaces
 
 Status: approved
 
-Area: League Overview hero section
+Area: insights library, insight discovery, insight detail exploration
 
 Request:
 
-Make the hero section image a background image of the entire hero section, with the text "understand the premier league" etc appearing on the left side within the image area, and the footballer visible on the right with no text overlaying him.
+Improve the Insights library landing view so it feels intentional and useful,
+with a clearer hierarchy between featured/current insights and older or smaller
+insight entries. The current Insights home view should evolve into a better
+editorial library surface rather than a sparse placeholder. Where possible,
+insight detail views should also support richer exploration such as season
+switching or comparison.
 
 Why it matters:
 
-This creates a more integrated, cohesive hero section where the image and text feel like part of the same design rather than two separate containers.
+The insights area is one of the strongest ways to show that UPL Lens is doing
+more than reproducing match records. If the library home is weak, the product's
+research and storytelling value is harder to see.
 
 Implementation requirements:
 
-- Use the hero image as a background image for the hero section
-- Position text on the left side within the image area
-- Ensure the footballer on the right remains visible with no text overlay
-- Maintain readability of text against the background
-- Ensure responsive behavior on mobile
+- Redesign the Insights home view into a clearer editorial library layout.
+- Consider a stronger featured/latest insight area near the top.
+- Support a secondary grid, list, or patterned layout for prior insights below.
+- Keep the page readable, compact, and aligned with the Editorial Light system.
+- When an insight supports deeper exploration, its detail page should feel more
+  like a focused mini-dashboard than a static article card.
+- Season toggles or similar comparison controls may be added on supported
+  insight pages.
+
+Why now:
+
+This helps convert the Insights area from a minimal route into a durable
+product surface that can support future research promotion.
 
 Data/API needs:
 
-None - uses existing image.
+Likely limited for the library-home redesign itself. Insight detail exploration
+may require additional endpoint support depending on the insight.
 
 Mobile/accessibility notes:
 
-Text must remain readable against the background image on all screen sizes. Consider overlay or gradient if needed for contrast.
+The featured/latest insight treatment must stack cleanly on mobile and keep tap
+targets obvious.
 
 Out of scope:
 
-None.
+- Inventing fake insight records
+- Requiring every insight to use the same chart/control pattern regardless of
+  data shape
 
 Approval notes:
 
-Approved by user for immediate implementation.
+Approved by user as a substantive improvement to the Insights discovery and
+exploration experience.
 
-### Request: Redesign Overview Cards Layout and Styling
+### Request: Expand the Trends Page Into a Real Multi-Visualization Exploration Surface
 
 Status: approved
 
-Area: League Overview main cards
+Area: trends, visualizations, season comparison, exploratory controls
 
 Request:
 
-Redesign the featured insight, recent matches, and league leaders cards to match the reference design with improved visual hierarchy, clearer data presentation, and more polished card styling.
+Develop the Trends page into a much richer exploration surface with more charts
+and visual summaries across seasons, halves, and other time-based patterns,
+while preserving readability and avoiding visual overcrowding.
 
 Why it matters:
 
-The current cards need better visual treatment to match the intended design direction with clearer metrics, better spacing, and more professional appearance.
+Trends is currently underdeveloped relative to the product promise. A stronger
+Trends page gives UPL Lens a clearer analytical identity and helps users move
+from single-surface summaries into broader league pattern exploration.
 
 Implementation requirements:
 
-- Update Featured Insight card to show large metric (e.g., "41%") prominently with chart
-- Update Recent Matches card to show compact result rows with team markers
-- Update Team Signals card to show form guide with visual match history indicators
-- Improve card styling with better borders, shadows, and spacing
-- Ensure all cards maintain the 60%/40% horizontal layout
-- Add appropriate buttons for "Explore", "View all", etc.
+- Add more charts and visualizations to the Trends page.
+- Prioritize trend questions that compare:
+  - seasons
+  - first half vs second half
+  - other time-based or competition-pattern views already supported by data
+- Provide toggles, filters, or compact controls where they improve exploration.
+- Avoid overcramming the page; preserve whitespace, grouping, and scanability.
+- Keep the page feeling like a public intelligence surface rather than a raw
+  chart dump.
+
+Why now:
+
+This is one of the largest remaining product gaps in the public analytical
+surface.
 
 Data/API needs:
 
-None - uses existing data.
+Likely requires checking which trend-ready aggregates already exist and whether
+new FastAPI support is needed for comparison views.
 
 Mobile/accessibility notes:
 
-Cards should stack vertically on mobile while maintaining readability.
+Trend controls and charts must degrade gracefully on smaller screens without
+requiring horizontal scrolling where avoidable.
 
 Out of scope:
 
-None.
+- Adding charts with weak analytical value only to fill space
+- Replacing the whole app with a dedicated BI-style trends dashboard
 
 Approval notes:
 
-Approved by user for immediate implementation.
+Approved by user as a major product-surface enhancement for a later
+implementation phase.
+
+## Impeccable-Oriented Implementation Notes
+
+Use this section to keep approved UPL Lens requests aligned with the local
+`impeccable` skill expectations before implementation starts.
+
+### Required pass order for substantial frontend work
+
+For any meaningful UI batch, prefer this sequence:
+
+```text
+layout or adapt or optimize or harden or clarify
+-> implement the actual fixes
+-> polish
+```
+
+Notes:
+
+- Use `layout` when the main problem is hierarchy, spacing, or report-like
+  structure.
+- Use `adapt` when the main problem is mobile behavior, touch sizing, bottom
+  navigation, sidebar collapse, or breakpoint-specific interaction patterns.
+- Use `optimize` when bundle size, heavy lazy chunks, route-entry cost, or
+  overly expensive skeleton/loading systems are the primary issue.
+- Use `harden` when interaction timing, keyboard flows, overflow, extreme data,
+  missing states, or focus behavior are fragile.
+- Use `clarify` when labels, empty states, utility copy, and section framing
+  feel too utilitarian or ambiguous.
+- End with `polish`, because impeccable treats alignment to the design system,
+  state completeness, spacing consistency, and flow coherence as a required
+  final pass rather than optional cleanup.
+
+### Current impeccable backlog mapped into the approved request queue
+
+1. Large async chunk optimization:
+   - maps to: Improve Shared Loading States, Iconography, and Frontend Text
+     Formatting
+   - command family: `optimize` -> `polish`
+   - implementation meaning: reduce route-entry or shared-chunk cost before
+     adding more heavy UI systems
+
+2. Touch sizing on compact links and chips:
+   - maps to: Refine App Shell Navigation, Search, Brand, and Global Utility UI
+     plus Improve Shared Loading States, Iconography, and Frontend Text
+     Formatting
+   - command family: `adapt` -> `polish`
+   - implementation meaning: treat mobile and coarse-pointer ergonomics as a
+     first-class product requirement, not a CSS afterthought
+
+3. Detail-page editorial hierarchy:
+   - maps to: future non-Overview detail page refinement work, especially
+     Match, Team, and Player report surfaces
+   - command family: `layout` -> `clarify` -> `polish`
+   - implementation meaning: make these pages read like guided reports, not
+     stacked records panels
+
+4. Search popover blur-timeout fragility:
+   - maps to: Refine App Shell Navigation, Search, Brand, and Global Utility UI
+   - command family: `harden` -> `polish`
+   - implementation meaning: remove timeout-dependent dismissal where it harms
+     keyboard or assistive workflows
+
+5. Utilitarian copy on non-Overview pages:
+   - maps to: Improve Insights Library Home and Insight Exploration Surfaces,
+     Expand the Trends Page Into a Real Multi-Visualization Exploration
+     Surface, and later Match/Players explorer copy refinements
+   - command family: `clarify` -> `polish`
+   - implementation meaning: rewrite for calm editorial guidance without
+     turning the app into marketing copy
+
+### Request shaping rules for future implementation batches
+
+Before implementing an approved request, tighten it into one of these batch
+types:
+
+- `global systems batch`
+  - shared controls, iconography, skeletons, focus states, touch targets,
+    shell/navigation behavior
+- `overview report batch`
+  - hero, scoreline presentation, featured summary framing, signal board
+- `library/discovery batch`
+  - insights home, search-result hierarchy, trends discovery surfaces
+- `data-contract batch`
+  - all-seasons aggregation, fixed insight scope across selectors, insight
+    comparison controls that need API support
+- `detail report batch`
+  - Match Detail, Team Detail, and Player Detail hierarchy and narrative flow
+
+This prevents mixing visual hierarchy, responsiveness, performance, copy, and
+data-contract changes in one vague implementation pass.
+
+### Impeccable acceptance expectations for UPL Lens
+
+Substantial approved requests should be considered ready only when they satisfy
+these expectations:
+
+- mobile interaction targets are touch-safe where they behave like controls
+- no important interaction depends on hover alone
+- no timeout-driven focus/blur workaround is carrying a core interaction if a
+  more robust approach is available
+- typography and spacing reinforce hierarchy without falling back to generic
+  card-grid repetition
+- copy is plain, specific, and product-led rather than utilitarian filler or
+  marketing language
+- loading and empty states match the shape of the content without excessive
+  performance cost
+- changes align with the shared Editorial Light tokens and existing component
+  vocabulary
+- final implementation is suitable for a closing `polish` pass
 
 ## Recommended Implementation Order
 
 Use this order once requests are approved:
 
 ```text
+1. Refine Goal Timing Distribution Chart
+2. Improve Insights Library Home and Insight Exploration Surfaces
+3. Add Cross-Season Aggregation and Fixed Featured-Insight Season Framing
+4. Expand the Trends Page Into a Real Multi-Visualization Exploration Surface
 
 ```
 
@@ -418,6 +540,10 @@ Implemented entries stay intentionally short.
 - Surface hierarchy and visual depth were refined with shared radius,
   elevation, border, and surface-variant rules.
 - KPI and number cards were consolidated around the shared `KpiCard` component.
+- Overview card composition, hero integration, and signal-board scoreline refinements were implemented.
+- App shell navigation, search, brand, favicon, and global utility polish were implemented.
+- Shared loading, iconography, and public-facing text formatting refinements were implemented.
+- Public app workflows were reviewed against the source-record vs intelligence-layer philosophy.
 
 ## Implementation Notes
 

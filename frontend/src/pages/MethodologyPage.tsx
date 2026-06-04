@@ -2,8 +2,12 @@ import type { PageProps } from "../app/types";
 import { PageIntro } from "../components/common/PageIntro";
 import { StatusItem } from "../components/common/StatusItem";
 import { formatDate } from "../utils/format";
+import { getSelectedSeasonLabel, isAllSeasonsSelection } from "../utils/seasonScope";
 
-export function MethodologyPage({ apiOnline, data, overview, selectedSeasonInfo }: PageProps) {
+export function MethodologyPage({ apiOnline, data, overview, selectedSeason, selectedSeasonInfo }: PageProps) {
+  const seasonLabel = getSelectedSeasonLabel(selectedSeason, selectedSeasonInfo);
+  const scopeNoun = isAllSeasonsSelection(selectedSeason) ? "current archive view" : "current season view";
+
   return (
     <>
       <PageIntro
@@ -33,7 +37,7 @@ export function MethodologyPage({ apiOnline, data, overview, selectedSeasonInfo 
           <div className="section-heading compact">
             <div>
               <h2>Freshness and coverage</h2>
-              <p>These details help readers judge how recent and complete the current season view is.</p>
+              <p>These details help readers judge how recent and complete the {scopeNoun} is.</p>
             </div>
           </div>
           <div className="trust-list">
@@ -51,6 +55,7 @@ export function MethodologyPage({ apiOnline, data, overview, selectedSeasonInfo 
                   : "Unavailable"
               }
             />
+            <StatusItem label="Selected scope" value={seasonLabel} />
             <StatusItem
               label="Scoreline goals"
               value={overview?.scoreline_goal_count != null ? overview.scoreline_goal_count.toLocaleString() : "Unavailable"}

@@ -537,6 +537,59 @@ def _validate_scoreline_timeline_goal_consistency(
     return issues
 
 
+def _validate_timeline_coverage(staging_tables: dict[str, pd.DataFrame], run_id: str) -> list[dict[str, Any]]:
+    """Warn when a match timeline is missing events implied by scoreline/stats."""
+
+    issues: list[dict[str, Any]] = []
+    matches = staging_tables["matches"]
+    if matches.empty or "timeline_status" not in matches.columns:
+        return issues
+
+    partial_matches = matches.loc[matches["timeline_status"] == "partial"]
+    for _, row in partial_matches.head(200).iterrows():
+        issue_value = row.get("timeline_note")
+        if pd.isna(issue_value):
+            issue_value = f"timeline_issue_count={row.get('timeline_issue_count')}"
+        issues.append(
+            _issue(
+                run_id,
+                "warning",
+                "partial_timeline_coverage",
+                "staging",
+                "matches",
+                (
+                    "Parsed timeline does not fully match scoreline/stat evidence. "
+                    "Show the timeline as partial and avoid treating it as exhaustive."
+                ),
+                season=row.get("season"),
+                match_id=row.get("match_id"),
+                column_name="timeline_status",
+                issue_value=issue_value,
+            )
+        )
+
+    unavailable_matches = matches.loc[
+        (matches["timeline_status"] == "unavailable") & matches["scoreline_goal_count"].notna()
+    ]
+    for _, row in unavailable_matches.head(200).iterrows():
+        issues.append(
+            _issue(
+                run_id,
+                "info",
+                "timeline_unavailable",
+                "staging",
+                "matches",
+                "No parsed timeline events are available for a match with a recorded scoreline.",
+                season=row.get("season"),
+                match_id=row.get("match_id"),
+                column_name="timeline_status",
+                issue_value=row.get("timeline_note"),
+            )
+        )
+
+    return issues
+
+
 def _validate_fixture_completeness(
     staging_tables: dict[str, pd.DataFrame],
     run_id: str,
@@ -617,6 +670,7 @@ def _validate_staging_tables(
     issues.extend(_validate_missing_team_player_values(staging_tables, run_id))
     issues.extend(_validate_man_of_match_quality(raw_tables, staging_tables, run_id))
     issues.extend(_validate_scoreline_timeline_goal_consistency(staging_tables, run_id))
+    issues.extend(_validate_timeline_coverage(staging_tables, run_id))
     issues.extend(_validate_fixture_completeness(staging_tables, run_id))
     return pd.DataFrame(issues)
 

@@ -23,6 +23,22 @@ Uganda Premier League match intelligence and statistical insights.
 
 UPL Lens helps fans, analysts, and football professionals understand the Uganda Premier League through trusted match data, statistical insights, and team-level exploration.
 
+## Source record vs intelligence layer
+
+The official UPL website is the source record. UPL Lens is the analytical
+meaning layer.
+
+Do not duplicate official UPL pages unless the product transforms the source
+record into insight. Fixtures, lineups, officials, full raw timelines, and full
+match reports should be summarized or linked to the official source unless UPL
+Lens adds timing, trend, anomaly, comparison, or other intelligence context.
+
+Use this rule on every page:
+
+- Transform source details when UPL Lens can add football intelligence.
+- Summarize source details when they support the user's understanding.
+- Link out to the official source when the user wants complete archive detail.
+
 ## Product type
 
 UPL Lens is a public sports intelligence site.
@@ -83,7 +99,7 @@ UPL Lens is a public sports intelligence site.
 
 - /matches Match Explorer
 
-- /matches/:matchId Match Detail
+- /matches/:matchId Match Intelligence Brief
 
 - /teams Team Index
 
@@ -661,7 +677,8 @@ UPL Lens is a public sports intelligence site.
 
 - **Suggested text:**
 
-- Browse UPL matches by season, team, result, and matchday, then open full match details.
+- Browse UPL matches by season, team, result, and matchday, then open match
+  intelligence briefs.
 
 - 2. Search and filter panel
 
@@ -823,7 +840,7 @@ UPL Lens is a public sports intelligence site.
 
 - player search unless backend supports it
 
-- ## Match Detail Page
+- ## Match Intelligence Brief Page
 
 - Route
 
@@ -831,9 +848,15 @@ UPL Lens is a public sports intelligence site.
 
 - Page role
 
-- The Match Detail page explains one match clearly using structured match data.
+- The Match Intelligence Brief explains why one match matters using structured
+  match data, analytical signals, and compact source context.
 
 - This is one of the highest-priority new pages.
+
+- It should not recreate the official UPL match page. The official site remains
+  the complete source record; UPL Lens should transform match details into
+  football meaning, summarize only the source context needed for that meaning,
+  and link out to the official source for full archive detail.
 
 - Primary user questions
 
@@ -843,13 +866,15 @@ UPL Lens is a public sports intelligence site.
 
 - What was the score?
 
-- When did key events happen?
+- Why is this match analytically interesting?
 
-- Who scored or received cards?
+- What timing, card, scoring, or match-rhythm pattern stood out?
+
+- How did this match fit each team's wider season context?
 
 - What stats are available?
 
-- Who officiated the match?
+- Which source details support the interpretation?
 
 - Can I open the original source?
 
@@ -933,9 +958,15 @@ UPL Lens is a public sports intelligence site.
 
 - source link
 
-- 4. Event timeline
+- 4. Match intelligence summary
 
-- **Required content per event:**
+- **Purpose:**
+
+- Turn event data into a readable match story with analytical value.
+
+- **Should include where supported by data:**
+
+- key scoring windows
 
 - minute
 
@@ -945,35 +976,37 @@ UPL Lens is a public sports intelligence site.
 
 - player name
 
-- goal type, if available
+- goal type, if relevant
 
-- substitution out/in, if available
+- card timing, if relevant
 
-- card type
+- turning points
 
-- **Timeline should support:**
+- event clusters
 
-- goals
+- late-drama signal
 
-- own goals
+- first-half vs second-half balance
 
-- penalty goals
+- **Treatment rule:**
 
-- yellow cards
+- Do not show a complete raw event timeline by default.
 
-- red cards
+- Show only the key events needed to explain the match.
 
-- substitutions
+- If the user needs every raw event, provide a clear link to the official source.
 
-- **Preferred grouping:**
+- If the app later supports an expanded event view, it must still include an
+  analytical framing such as phase grouping, scoring-window context, discipline
+  signal, or match-rhythm explanation.
+
+- **Preferred grouping when useful:**
 
 - First half
 
 - Second half
 
-- Added time, if useful
-
-- **Requirements:**
+- Final 15 minutes
 
 - Must be readable on mobile.
 
@@ -1001,13 +1034,24 @@ UPL Lens is a public sports intelligence site.
 
 - Show calm empty state.
 
-- 6. Officials panel
+- 6. Officials context panel
 
-- **Required content:**
+- **Purpose:**
 
-- role
+- Use officials as match context or analytical signal, not as a plain copied
+  source list.
 
-- official name
+- **Should show when useful:**
+
+- lead referee
+
+- official names that support a wider referee/discipline interpretation
+
+- link to official-source match page for full list
+
+- **Do not show by default:**
+
+- a full plain officials list with no analytical context
 
 - **If no officials:**
 
@@ -1017,9 +1061,9 @@ UPL Lens is a public sports intelligence site.
 
 - **Required indicators:**
 
-- timeline available
+- event intelligence available
 
-- officials available
+- officials context available
 
 - stats available
 
@@ -1061,21 +1105,21 @@ UPL Lens is a public sports intelligence site.
 
 - metadata skeleton
 
-- timeline skeleton
+- intelligence summary skeleton
 
 - stats panel skeleton
 
-- officials panel skeleton
+- officials context skeleton
 
 - Empty state
 
 - **Possible empty sections:**
 
-- No timeline events available for this match.
+- No event intelligence available for this match.
 
 - No match stats available.
 
-- No officials listed.
+- No officials context available.
 
 - Error state
 
@@ -1102,6 +1146,14 @@ UPL Lens is a public sports intelligence site.
 - unsupported tactical claims
 
 - fake logos
+
+- full official match-page clone
+
+- full raw event timeline by default
+
+- full lineup list by default
+
+- plain officials list unless contextualized
 
 - ## Teams Page
 
