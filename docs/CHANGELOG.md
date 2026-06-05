@@ -5,6 +5,14 @@ This changelog records high-signal repo changes for UPL Match Intelligence.
 It is intentionally concise. Use it to understand what changed recently before
 you start editing code or docs.
 
+## 2026-06-05
+
+### Roadmap naming sync
+
+- Updated the roadmap and diagram collection public-product language so Product
+  Experience planning points at UPL Lens while preserving UPL Match Intelligence
+  as the broader repo, data-platform, research, API, and historical context.
+
 ## 2026-05-31
 
 ### UPL Lens frontend doc package

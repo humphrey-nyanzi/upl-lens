@@ -4,6 +4,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -17,7 +18,9 @@ import { formatPercent } from "../../utils/format";
 
 type ChartDatum = {
   color?: string;
+  isPeak?: boolean;
   label: string;
+  peakLabel?: string;
   rank?: number | null;
   share?: number;
   value: number;
@@ -205,7 +208,7 @@ export function DistributionBarChart({ data, height, valueLabel = "Value" }: Bar
 
   return (
     <ChartShell height={height}>
-      <BarChart data={data} margin={{ bottom: 0, left: -24, right: 4, top: 12 }}>
+      <BarChart data={data} margin={{ bottom: 0, left: -18, right: 6, top: 14 }}>
         <CartesianGrid stroke={chartColors.grid} strokeDasharray="3 6" vertical={false} />
         <XAxis
           axisLine={false}
@@ -216,9 +219,22 @@ export function DistributionBarChart({ data, height, valueLabel = "Value" }: Bar
         />
         <YAxis axisLine={false} tick={{ fill: chartColors.axis, fontSize: 11 }} tickLine={false} />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: chartColors.tooltipCursor }} />
-        <Bar barSize={28} dataKey="value" maxBarSize={42} name={valueLabel} radius={[8, 8, 2, 2]}>
+        <Bar barSize={26} dataKey="value" maxBarSize={38} name={valueLabel} radius={[7, 7, 2, 2]}>
+          <LabelList
+            dataKey="peakLabel"
+            fill="var(--color-accent-gold-text)"
+            fontSize={11}
+            fontWeight={600}
+            position="top"
+          />
           {data.map((item) => (
-            <Cell fill={item.color ?? chartColors.green} key={item.label} />
+            <Cell
+              className={item.isPeak ? "chart-bar-peak" : undefined}
+              fill={item.color ?? chartColors.green}
+              key={item.label}
+              stroke={item.isPeak ? "var(--color-accent-gold-text)" : "transparent"}
+              strokeWidth={item.isPeak ? 2 : 0}
+            />
           ))}
         </Bar>
       </BarChart>

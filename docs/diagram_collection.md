@@ -1,7 +1,8 @@
 
-# UPL Match Intelligence — Mermaid Diagram Collection
+# UPL Match Intelligence / UPL Lens - Mermaid Diagram Collection
 
-Status: **visual system overview / maintained architecture reference**.
+Status: **visual system overview / maintained architecture reference**. These
+diagrams describe the repo's data platform, API, and UPL Lens public frontend.
 
 Use this file when you need a high-level visual map of the codebase, data
 pipeline, database shape, API flow, or scraper lifecycle. Keep it accurate when

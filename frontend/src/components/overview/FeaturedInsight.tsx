@@ -1,6 +1,7 @@
 import type { GoalTimingInsightResponse } from "../../api/types";
 import type { LoadState, PageKey } from "../../app/types";
 import { formatPercent, formatSeasonScope } from "../../utils/format";
+import { getPeakRegularTimeInterval, getRegularTimeIntervals } from "../../utils/goalTiming";
 import { useNavigate } from "react-router-dom";
 import { ChartLegend, DistributionBarChart, InsightChartCard } from "../charts/ChartPrimitives";
 
@@ -12,15 +13,16 @@ type FeaturedInsightProps = {
 
 export function FeaturedInsight({ goalTiming, loadState, onPageChange }: FeaturedInsightProps) {
   const navigate = useNavigate();
-  const chartData =
-    goalTiming?.intervals.map((interval) => ({
-      color: interval.rank === 1 ? "var(--color-green)" : "var(--color-featured-bar-muted)",
-      label: interval.interval,
-      rank: interval.rank,
-      share: interval.share,
-      value: interval.goals,
-    })) ?? [];
-  const peakInterval = goalTiming?.intervals.find((interval) => interval.rank === 1);
+  const peakInterval = goalTiming ? getPeakRegularTimeInterval(goalTiming.intervals) : null;
+  const chartData = getRegularTimeIntervals(goalTiming?.intervals ?? []).map((interval) => ({
+    color: interval.interval === peakInterval?.interval ? "var(--color-accent-gold)" : "var(--color-chart-green-muted)",
+    isPeak: interval.interval === peakInterval?.interval,
+    label: interval.interval,
+    peakLabel: interval.interval === peakInterval?.interval ? "Peak" : undefined,
+    rank: interval.rank,
+    share: interval.share,
+    value: interval.goals,
+  }));
   const seasonLabel = goalTiming ? formatSeasonScope(goalTiming.scope_key, goalTiming.season_count) : "Current insight window";
 
   return (
@@ -33,7 +35,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
       caveat={
         goalTiming ? (
           <p className="caveat compact">
-            {seasonLabel}. Added-time goals and full interval values live on the Goal Timing page.
+            {seasonLabel}. The Goal Timing page explains added-time handling and regular-time window values.
           </p>
         ) : null
       }
@@ -44,7 +46,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
               <strong>{peakInterval ? formatPercent(peakInterval.share) : "N/A"}</strong>
               <p>
                 of all goals scored in{" "}
-                <span>{goalTiming.peak_interval ?? "the peak interval"}</span>
+                <span>{peakInterval?.interval ?? "the peak interval"}</span>
               </p>
               <small>{seasonLabel}</small>
             </div>
@@ -61,8 +63,8 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
         goalTiming ? (
           <ChartLegend
             items={[
-              { color: "var(--color-featured-bar-muted)", label: "Regular window" },
-              { color: "var(--color-green)", label: "Peak window" },
+              { color: "var(--color-chart-green-muted)", label: "Regular window" },
+              { color: "var(--color-accent-gold)", label: "Peak window" },
             ]}
           />
         ) : null

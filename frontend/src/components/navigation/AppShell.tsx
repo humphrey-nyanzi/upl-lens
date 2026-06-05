@@ -82,6 +82,7 @@ export function AppShell({
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const searchRegionRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const freshnessLabel = formatFreshness(health, apiOnline);
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearch.length >= 2;
@@ -170,6 +171,12 @@ export function AppShell({
       document.removeEventListener("keydown", handlePageKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (searchOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchOpen]);
 
   function handleTeamSelect(teamName: string) {
     setSearchOpen(false);
@@ -308,9 +315,19 @@ export function AppShell({
               onSeasonChange={onSeasonChange}
               variant="shell"
             />
+            <button
+              className="mobile-search-trigger"
+              type="button"
+              aria-expanded={searchOpen}
+              aria-controls="global-search-results"
+              aria-label="Search teams, players, and matches"
+              onClick={() => setSearchOpen((isOpen) => !isOpen)}
+            >
+              <Search size={18} aria-hidden="true" />
+            </button>
             <div
               ref={searchRegionRef}
-              className={`shell-search-group${showSearchResults ? " is-open" : ""}`}
+              className={`shell-search-group${searchOpen ? " is-open" : ""}`}
               onBlurCapture={(event) => {
                 const nextFocusTarget = event.relatedTarget;
                 if (nextFocusTarget instanceof Node && searchRegionRef.current?.contains(nextFocusTarget)) {
@@ -323,6 +340,7 @@ export function AppShell({
               <div className="search-bar-container">
                 <Search size={14} className="search-icon" aria-hidden />
                 <input
+                  ref={searchInputRef}
                   aria-activedescendant={activeSearchOptionId}
                   aria-label="Search teams, players, and matches"
                   aria-controls="global-search-results"
@@ -460,11 +478,13 @@ export function AppShell({
               <span className="status-text">{freshnessLabel}</span>
             </div>
           </div>
-          <nav className="mobile-nav" aria-label="Mobile product sections">
-            {primaryMobilePages.map((pageKey) => {
-              const page = pages.find((item) => item.key === pageKey)!;
+        </header>
 
-              return (
+        <nav className="mobile-nav" aria-label="Mobile product sections">
+          {primaryMobilePages.map((pageKey) => {
+            const page = pages.find((item) => item.key === pageKey)!;
+
+            return (
               <NavLink
                 key={page.key}
                 to={page.key === "overview" ? "/" : `/${page.key}`}
@@ -475,23 +495,22 @@ export function AppShell({
                 <span className="mobile-nav-icon" aria-hidden="true">{navIcons[page.key]}</span>
                 <span className="visually-hidden">{page.shortLabel}</span>
               </NavLink>
-              );
-            })}
+            );
+          })}
 
-            <button
-              className={`mobile-nav-item${moreOpen || secondaryPages.includes(path as (typeof secondaryPages)[number]) ? " active" : ""}`}
-              type="button"
-              onClick={() => setMoreOpen((s) => !s)}
-              aria-expanded={moreOpen}
-              aria-controls="mobile-more-menu"
-              aria-label="More"
-              title="More"
-            >
-              <span className="mobile-nav-icon" aria-hidden="true"><Menu size={16} /></span>
-              <span className="visually-hidden">More</span>
-            </button>
-          </nav>
-        </header>
+          <button
+            className={`mobile-nav-item${moreOpen || secondaryPages.includes(path as (typeof secondaryPages)[number]) ? " active" : ""}`}
+            type="button"
+            onClick={() => setMoreOpen((s) => !s)}
+            aria-expanded={moreOpen}
+            aria-controls="mobile-more-menu"
+            aria-label="More"
+            title="More"
+          >
+            <span className="mobile-nav-icon" aria-hidden="true"><Menu size={16} /></span>
+            <span className="visually-hidden">More</span>
+          </button>
+        </nav>
 
         {moreOpen ? (
           <div id="mobile-more-menu" className="mobile-more-menu">

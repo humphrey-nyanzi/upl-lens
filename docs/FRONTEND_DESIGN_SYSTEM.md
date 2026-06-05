@@ -452,6 +452,10 @@ Approved principles:
 - Tables should support comparison and scanning.
 - Chart labels should be understandable without reading code.
 - Caveats should sit near the chart or table they affect.
+- Goal Timing distribution charts use six regular-time windows, subdued green
+  bars for regular intervals, and warm gold only for the peak interval.
+- Peak intervals must not rely on color alone; include a visible text cue or
+  equivalent non-color marker such as a peak label and outline.
 - Explorer pages should favor filters, compact cards, summaries, and drilldown
   paths over raw database-style tables.
 - Top-level pages should use previews before full tables when the data is still

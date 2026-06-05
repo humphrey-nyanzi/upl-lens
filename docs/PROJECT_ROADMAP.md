@@ -1,4 +1,4 @@
-# UPL Match Intelligence Roadmap
+# UPL Match Intelligence / UPL Lens Roadmap
 
 ## Purpose
 
@@ -35,10 +35,11 @@ Build an open-source UPL data observatory where users can explore matches,
 teams, players, discipline, goal timing, lineups, officials, and match trends
 across seasons.
 
-Product framing: UPL Match Intelligence is an independent statistical
-observatory for people who want to understand the league beyond fixtures,
-results, and tables. It should lead with curated insight, then offer deeper
-analytical drilldowns.
+Public product framing: **UPL Lens** is an independent statistical observatory
+for people who want to understand the league beyond fixtures, results, and
+tables. It should lead with curated insight, then offer deeper analytical
+drilldowns. The broader repo still contains the UPL Match Intelligence data
+platform, research lab, API, and historical operating context.
 
 The project should support two audiences:
 
@@ -668,9 +669,10 @@ Acceptance criteria:
 - Match, team, event, and season endpoints return real Postgres data.
 - OpenAPI docs are usable for development.
 
-## Launch Milestone 4 - React Frontend
+## Launch Milestone 4 - UPL Lens React Frontend
 
-Objective: Build a real interactive product, not another notebook dashboard.
+Objective: Build UPL Lens into a real interactive product, not another notebook
+dashboard or official-site clone.
 
 Current pilot foundation:
 
@@ -1009,9 +1011,9 @@ The next best implementation sequence should use the four continuous areas:
 2. **Data Reliability & Operations**: add a small observability and test
    foundation around stage logs, run summaries, validation severity, and the
    highest-risk parser/transform functions.
-3. **Product Experience**: redesign the React app from a pilot overview into a
-   more useful analytical product with clearer navigation, loading states,
-   filters, and detail paths.
+3. **Product Experience**: continue the UPL Lens frontend relaunch from the
+   UPL Lens launch docs into a more useful analytical product with clearer
+   navigation, loading states, filters, and detail paths.
 4. **Research & Football Intelligence**: start Feature 2, likely a discipline
    or card-trends package, and validate it in a notebook before promoting it to
    FastAPI and React.

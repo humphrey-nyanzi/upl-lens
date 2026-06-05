@@ -1,13 +1,17 @@
 import type { GoalTimingInsightResponse } from "../../api/types";
 import { formatPercent } from "../../utils/format";
+import { getPeakRegularTimeInterval, getRegularTimeIntervals } from "../../utils/goalTiming";
 import { ChartLegend, DistributionBarChart, InsightChartCard } from "./ChartPrimitives";
 
 export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightResponse }) {
-  const maxGoals = Math.max(...goalTiming.intervals.map((interval) => interval.goals), 1);
-  const peakInterval = goalTiming.intervals.find((interval) => interval.rank === 1);
-  const chartData = goalTiming.intervals.map((interval) => ({
-    color: interval.rank === 1 ? "var(--color-accent-gold)" : "var(--color-accent-green-muted)",
+  const regularIntervals = getRegularTimeIntervals(goalTiming.intervals);
+  const maxGoals = Math.max(...regularIntervals.map((interval) => interval.goals), 1);
+  const peakInterval = getPeakRegularTimeInterval(goalTiming.intervals);
+  const chartData = regularIntervals.map((interval) => ({
+    color: peakInterval?.interval === interval.interval ? "var(--color-accent-gold)" : "var(--color-chart-green-muted)",
+    isPeak: peakInterval?.interval === interval.interval,
     label: interval.interval,
+    peakLabel: peakInterval?.interval === interval.interval ? "Peak" : undefined,
     rank: interval.rank,
     share: interval.share,
     value: interval.goals,
@@ -18,7 +22,7 @@ export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightR
       caveat={
         <>
           <div className="chart-value-list" aria-label="Readable goal timing values">
-            {goalTiming.intervals.map((interval) => (
+            {regularIntervals.map((interval) => (
               <span key={interval.interval}>
                 <strong>{interval.interval}</strong>
                 {interval.goals.toLocaleString()} goals, {formatPercent(interval.share)}
@@ -26,7 +30,7 @@ export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightR
             ))}
           </div>
           <p className="caveat">
-            Peak window: {goalTiming.peak_interval ?? "not available"}. Chart scale is based on the highest interval count of{" "}
+            Peak regular-time window: {peakInterval?.interval ?? "not available"}. Chart scale is based on the highest regular-time interval count of{" "}
             {maxGoals.toLocaleString()} goals.
           </p>
         </>
@@ -49,7 +53,7 @@ export function GoalTimingChart({ goalTiming }: { goalTiming: GoalTimingInsightR
       legend={
         <ChartLegend
           items={[
-            { color: "var(--color-accent-green-muted)", label: "Regular scoring window" },
+            { color: "var(--color-chart-green-muted)", label: "Regular scoring window" },
             { color: "var(--color-accent-gold)", label: "Peak scoring window" },
           ]}
         />

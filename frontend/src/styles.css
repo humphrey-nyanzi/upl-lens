@@ -13,6 +13,7 @@
   --color-green-strong: #176534;
   --color-green-soft: rgba(31, 122, 58, 0.1);
   --color-featured-bar-muted: #d7dfd0;
+  --color-chart-green-muted: #8fb79a;
   --color-gold: #D4A017;
   --color-gold-deep: #6F5208;
   --color-gold-soft: rgba(212, 160, 23, 0.13);
@@ -224,7 +225,7 @@ p {
 
 .app-shell {
   min-height: 100vh;
-  padding-bottom: 74px;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
 }
 
 .visually-hidden {
@@ -251,8 +252,9 @@ p {
   position: sticky;
   z-index: 20;
   top: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
   gap: 8px;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -261,7 +263,11 @@ p {
 }
 
 .mobile-brand {
-  display: block;
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  justify-content: center;
 }
 
 .brand-lockup {
@@ -380,7 +386,6 @@ p {
 }
 
 .season-controls button,
-.export-button,
 .text-button,
 .ghost-button {
   display: inline-flex;
@@ -403,7 +408,6 @@ p {
   transition: var(--transition-control);
 }
 
-.export-button:visited,
 .text-button:visited,
 .ghost-button:visited {
   color: var(--color-text-primary);
@@ -411,11 +415,9 @@ p {
 }
 
 .season-controls button:hover,
-.export-button:hover,
 .text-button:hover,
 .ghost-button:hover,
 .season-controls button:focus-visible,
-.export-button:focus-visible,
 .text-button:focus-visible,
 .ghost-button:focus-visible {
   border-color: var(--state-green-border-strong);
@@ -448,19 +450,35 @@ p {
 }
 
 .top-search-area {
-  display: flex;
+  display: contents;
+}
+
+.mobile-search-trigger {
+  display: inline-flex;
+  grid-column: 1;
+  grid-row: 1;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  padding: 0;
 }
 
 .shell-search-group {
   position: relative;
+  display: none;
+  grid-column: 1 / -1;
+  grid-row: 2;
   flex: 1;
-  min-width: 220px;
+  min-width: 0;
 }
 
 .shell-search-group.is-open {
+  display: block;
   z-index: 31;
 }
 
@@ -676,18 +694,23 @@ p {
 
 .data-status-indicator {
   display: flex;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
   align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  padding: 0 8px;
+  justify-content: center;
+  gap: 0;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   background: rgba(255, 253, 252, 0.72);
 }
 
 .status-dot {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--color-green);
   flex-shrink: 0;
@@ -695,6 +718,7 @@ p {
 }
 
 .status-text {
+  display: none;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
@@ -729,12 +753,13 @@ p {
 .mobile-nav {
   position: fixed;
   z-index: 26;
-  left: 12px;
-  right: 12px;
+  left: 50%;
+  width: min(520px, calc(100vw - 24px));
   bottom: max(12px, env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  transform: translateX(-50%);
   padding: 8px;
   border: 1px solid var(--surface-border);
   border-radius: calc(var(--radius-panel) + 4px);
@@ -780,9 +805,10 @@ p {
 .mobile-more-menu {
   position: fixed;
   z-index: 27;
-  left: 12px;
-  right: 12px;
+  left: 50%;
+  width: min(520px, calc(100vw - 24px));
   bottom: calc(max(12px, env(safe-area-inset-bottom)) + 72px);
+  transform: translateX(-50%);
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-panel);
   background: rgba(255, 253, 252, 0.97);
@@ -832,12 +858,6 @@ p {
   border-radius: var(--radius-panel);
   background: var(--surface-gradient);
   box-shadow: var(--shadow-card);
-}
-
-.export-button {
-  border-color: var(--color-success-soft-border);
-  background: var(--color-success-soft-bg);
-  color: var(--color-green-deep);
 }
 
 .workspace {
@@ -1673,7 +1693,6 @@ p {
 .search-results-panel,
 .mobile-nav-item,
 .text-button,
-.export-button,
 .slash-button,
 .dark-mode-toggle {
   border-color: var(--surface-border);
@@ -2802,9 +2821,9 @@ p {
   gap: 8px;
   width: fit-content;
   max-width: 100%;
-  border: 1px solid var(--color-gold);
+  border: 1px solid var(--state-gold-border);
   border-radius: 999px;
-  background: var(--color-surface-soft);
+  background: var(--state-gold-wash);
   padding: 6px 10px;
 }
 
@@ -2816,7 +2835,7 @@ p {
 }
 
 .chart-peak-note span {
-  color: var(--color-accent-gold);
+  color: var(--color-accent-gold-text);
   text-transform: uppercase;
 }
 
@@ -2875,7 +2894,7 @@ p {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-surface);
-  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 16px 34px rgba(90, 73, 45, 0.16);
   color: var(--color-text-secondary);
   padding: 10px 11px;
   font-size: 12px;
@@ -4381,7 +4400,12 @@ p {
   }
 
   .mobile-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: min(420px, calc(100vw - 24px));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mobile-more-menu {
+    width: min(420px, calc(100vw - 24px));
   }
 
   .mobile-nav-item {
@@ -4397,15 +4421,10 @@ p {
   }
 
   .season-controls select,
-  .season-controls button,
-  .export-button {
+  .season-controls button {
     min-height: 44px;
     padding-inline: 10px;
     font-size: 12px;
-  }
-
-  .export-button {
-    justify-self: stretch;
   }
 
   .overview-page {
@@ -4743,24 +4762,11 @@ p {
 
 @media (min-width: 680px) {
   .top-bar {
-    flex-direction: row;
-    align-items: center;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
     gap: 10px;
   }
 
   .mobile-brand {
-    display: none;
-  }
-
-  .mobile-nav {
-    display: none;
-  }
-
-  .shell-controls {
-    display: block;
-  }
-
-  .top-search-area {
     display: flex;
   }
 
@@ -4816,15 +4822,14 @@ p {
 @media (min-width: 980px) {
   .app-shell {
     display: grid;
-    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-columns: 240px minmax(0, 1fr);
     min-height: 100vh;
     padding-bottom: 0;
-    transition: grid-template-columns 180ms ease;
   }
 
-  .app-shell:has(.sidebar:hover),
-  .app-shell:has(.sidebar:focus-within) {
-    grid-template-columns: 240px minmax(0, 1fr);
+  .mobile-nav,
+  .mobile-more-menu {
+    display: none;
   }
 
   .sidebar {
@@ -4838,7 +4843,6 @@ p {
     background: var(--color-surface);
     padding: var(--space-5) var(--space-4);
     overflow: hidden;
-    transition: padding 180ms ease;
   }
 
   .side-nav {
@@ -4880,21 +4884,10 @@ p {
 
   .nav-label,
   .brand-subtitle {
-    opacity: 0;
-    max-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    transition:
-      opacity 140ms ease,
-      max-width 180ms ease;
-  }
-
-  .app-shell:has(.sidebar:hover) .nav-label,
-  .app-shell:has(.sidebar:focus-within) .nav-label,
-  .app-shell:has(.sidebar:hover) .brand-subtitle,
-  .app-shell:has(.sidebar:focus-within) .brand-subtitle {
     opacity: 1;
     max-width: 180px;
+    overflow: hidden;
+    white-space: nowrap;
   }
 
   .nav-item:hover,
@@ -4947,6 +4940,8 @@ p {
   }
 
   .top-bar {
+    display: flex;
+    flex-direction: row;
     grid-template-columns: minmax(280px, max-content) minmax(280px, 1fr) max-content;
     padding: var(--space-3) var(--space-5);
     align-items: center;
@@ -4956,6 +4951,42 @@ p {
   .mobile-brand,
   .mobile-nav {
     display: none;
+  }
+
+  .mobile-search-trigger {
+    display: none;
+  }
+
+  .top-search-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .shell-controls {
+    display: block;
+  }
+
+  .shell-search-group {
+    display: block;
+    min-width: 220px;
+  }
+
+  .data-status-indicator {
+    width: auto;
+    min-height: 36px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .status-text {
+    display: inline;
   }
 
   .workspace {
@@ -5117,7 +5148,6 @@ p {
   /* Hide duplicate bottom CTA inside the Recent Matches list on the Overview page
      (the top header already provides the primary 'View all' action). */
   .overview-main-grid .match-list .text-button,
-  .overview-main-grid .match-list .export-button,
   .overview-main-grid .match-list .ghost-button {
     display: none;
   }

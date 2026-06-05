@@ -153,7 +153,7 @@ changes, or backend changes were added.
 
 ### Request: Refine Goal Timing Distribution Chart
 
-Status: approved
+Status: implemented
 
 Area: charts, Goal Timing, League Overview
 
@@ -203,7 +203,7 @@ Do not redesign the full Goal Timing page in this request.
 
 Approval notes:
 
-Approved after identifying that the previous heatmap direction duplicated the timing dimension and weakened analytical clarity.
+Implemented with a Recharts distribution chart that enforces the six regular-time windows, uses subdued green bars, highlights the peak interval in gold, keeps the peak annotation/caveat beside the chart, and aligns the Overview preview to the same color language. No backend or API changes were added.
 
 ### Request: Add Cross-Season Aggregation and Fixed Featured-Insight Season Framing
 
