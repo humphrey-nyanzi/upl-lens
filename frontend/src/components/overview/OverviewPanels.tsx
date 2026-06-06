@@ -102,7 +102,7 @@ export function TeamSignalPanel({
         )}
       </div>
       <button className="text-button compact-result-link" type="button" onClick={() => onPageChange("teams")}>
-        View full table
+        Open team board
       </button>
     </section>
   );
@@ -147,7 +147,7 @@ export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey)
       page: "matches" as PageKey,
       title: "Match evidence",
       description: "Review recent scorelines and match-by-match context behind overview signals.",
-      action: "Open matches",
+      action: "Open match briefs",
     },
     {
       icon: <TrendingUp size={24} />,
@@ -264,7 +264,7 @@ export function RecentMatchPanel({
         )}
       </div>
       <button className="text-button compact-result-link" type="button" onClick={() => onPageChange("matches")}>
-        View all matches
+        View match briefs
       </button>
     </section>
   );

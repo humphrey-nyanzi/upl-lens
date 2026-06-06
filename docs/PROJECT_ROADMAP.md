@@ -64,6 +64,62 @@ Examples:
 - Which matches had the most dramatic timelines?
 - How has the league changed season by season?
 
+## Intelligence-Layer Frontend Maturation
+
+This phase covers the backend-upgraded UPL Lens pages that surface routine
+intelligence modules on normal pages without collapsing them into promoted
+insights.
+
+### Milestone 1 - Backend Intelligence API
+
+Status: complete.
+
+The backend now exposes richer shapes for trends, overview intelligence, match
+triage, team profiles, player leaderboards, and extended match/player detail
+payloads.
+
+### Milestone 2 - Documentation Alignment
+
+Status: current task.
+
+Keep the docs aligned to the backend contract, page responsibilities, and
+implementation order.
+
+### Milestone 3 - Frontend API Contract Sync
+
+- update `frontend/src/api/types.ts`
+- update `frontend/src/api/client.ts`
+- preserve existing methods while adding safe fallbacks for new fields
+
+### Milestone 4 - Visual Component System
+
+- reusable charts
+- timeline rail
+- signal chips
+- form strip
+- data-quality components
+
+### Milestone 5 - Trends Page Rebuild
+
+Highest frontend priority.
+
+### Milestone 6 - Teams and Matches Intelligence Pages
+
+- team intelligence board
+- team dossier
+- match intelligence triage
+- match intelligence brief
+
+### Milestone 7 - Player Contribution Pages
+
+- player contribution board
+- player contribution profile
+
+### Milestone 8 - Overview and About Polish
+
+- editorial control room refinement
+- trust and methodology polish
+
 ## Architecture Overview
 
 The project should be split into three tracks.

@@ -52,7 +52,7 @@ export function getTeamPointsNote(team: TeamResponse) {
   }
   if (team.points_adjustment !== 0) {
     const prefix = team.points_adjustment > 0 ? "+" : "";
-    parts.push(`${prefix}${team.points_adjustment} official table adjustment`);
+    parts.push(`${prefix}${team.points_adjustment} official points adjustment`);
   }
   if (team.points_note) {
     parts.push(team.points_note);

@@ -41,6 +41,24 @@ production path.
 For product identity and positioning, read
 [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md).
 
+## Current Implementation Phase
+
+The backend has been upgraded for intelligence-layer frontend work. The next
+implementation order is:
+
+1. Sync `frontend/src/api/client.ts` and `frontend/src/api/types.ts` with the
+   current backend responses.
+2. Build reusable chart and visual components for signals, comparisons, and
+   data-quality notes.
+3. Upgrade the Trends page first.
+4. Upgrade Teams and Team Detail.
+5. Upgrade Matches and Match Detail.
+6. Upgrade Players and Player Detail.
+7. Refine Overview and About.
+
+Do not begin page redesigns before checking the current API contract and the
+page requirements for that surface.
+
 ## Four Continuous Development Areas
 
 ```mermaid
@@ -114,6 +132,8 @@ Purpose: turn trusted data and validated research into a useful public app.
 Read first:
 
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
+- [API_CONTRACT.md](API_CONTRACT.md)
+- [API_INTELLIGENCE_ENDPOINTS.md](API_INTELLIGENCE_ENDPOINTS.md)
 - [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md)
 - [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
@@ -169,6 +189,8 @@ not as a new default pattern for splitting every topic into another file.
 | [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Local setup, commands, verification, troubleshooting | You want to run or debug the project locally. |
 | [OPERATIONS.md](OPERATIONS.md) | Data-refresh, automation, deployment, logs, escalation | You are touching scraping, loading, staging, hosting, or workflow health. |
 | [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) | Product identity and decision rules | You are planning product-facing work or checking scope. |
+| [API_CONTRACT.md](API_CONTRACT.md) | Frontend-facing API contract for intelligence-layer pages | You need the current route shapes, fields, caveats, and page owners. |
+| [API_INTELLIGENCE_ENDPOINTS.md](API_INTELLIGENCE_ENDPOINTS.md) | Routine intelligence API contracts | You are wiring Trends, Teams, Matches, Players, or Overview pages to backend-computed signals. |
 | [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Planning map, strengths, gaps, next priorities | You need project direction or milestone context. |
 | [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) | Research playbook: ideas, data access, promotion, analytics decisions | You are working in notebooks or promoting a football insight. |
 | [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) | Frontend playbook: visual system, product UI rules, page templates | You are designing or implementing frontend behavior. |
@@ -204,6 +226,8 @@ If you want to add a football insight:
 If you want to improve the app:
 
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
+- [API_CONTRACT.md](API_CONTRACT.md)
+- [API_INTELLIGENCE_ENDPOINTS.md](API_INTELLIGENCE_ENDPOINTS.md)
 - [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md)
 - [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
 - [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)

@@ -3,17 +3,31 @@ import type {
   GoalTimingInsightResponse,
   HealthResponse,
   MatchDetailResponse,
+  MatchIntelligenceSummary,
   MatchSummary,
+  OverviewIntelligenceResponse,
   PlayerDetailResponse,
+  PlayerLeaderboardsResponse,
   PlayerSummary,
   SeasonOverviewResponse,
   SeasonResponse,
+  SeasonTrendsResponse,
+  TeamProfileResponse,
   TeamResponse,
 } from "./types";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 type QueryValue = string | number | null | undefined;
+
+type MatchIntelligenceParams = {
+  team?: string;
+  match_day?: number;
+  signal?: string;
+  sort?: string;
+  limit?: number;
+  offset?: number;
+};
 
 export class ApiRequestError extends Error {
   status: number;
@@ -54,16 +68,25 @@ export const apiClient = {
   getSeasons: () => getJson<SeasonResponse[]>("/seasons"),
   getSeasonOverview: (season?: string) =>
     getJson<SeasonOverviewResponse>("/seasons/overview", { season }),
+  getSeasonTrends: () => getJson<SeasonTrendsResponse>("/trends/seasons"),
+  getOverviewIntelligence: (season?: string) =>
+    getJson<OverviewIntelligenceResponse>("/overview/intelligence", { season }),
   getGoalTimingInsight: (season?: string) =>
     getJson<GoalTimingInsightResponse>("/insights/goal-timing", { season }),
   getMatches: (season?: string, limit = 500) =>
     getJson<MatchSummary[]>("/matches", { season, limit }),
+  getMatchIntelligence: (season?: string, params: MatchIntelligenceParams = {}) =>
+    getJson<MatchIntelligenceSummary[]>("/matches/intelligence", { season, ...params }),
   getTeamMatches: (season: string | undefined, team: string, limit = 500) =>
     getJson<MatchSummary[]>("/matches", { season, team, limit }),
   getMatchDetail: (matchId: number) => getJson<MatchDetailResponse>(`/matches/${matchId}`),
   getTeams: (season?: string, limit = 500) => getJson<TeamResponse[]>("/teams", { season, limit }),
+  getTeamProfile: (teamSlug: string, season?: string) =>
+    getJson<TeamProfileResponse>(`/teams/${teamSlug}/profile`, { season }),
   getPlayers: (season: string | undefined, limit = 200, sort = "goals") =>
     getJson<PlayerSummary[]>("/players", { season, limit, sort }),
+  getPlayerLeaderboards: (season?: string, limit = 10) =>
+    getJson<PlayerLeaderboardsResponse>("/players/leaderboards", { season, limit }),
   getPlayerDetail: (playerSlug: string, season?: string) =>
     getJson<PlayerDetailResponse>(`/players/${playerSlug}`, { season }),
   getEvents: (season: string | undefined, limit = 200, offset = 0) =>

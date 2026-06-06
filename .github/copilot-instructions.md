@@ -2,8 +2,9 @@
 
 ## Big Picture
 
-This repository is evolving from a UPL goal timing notebook project into **UPL
-Match Intelligence**: an open-source Uganda Premier League data platform.
+This repository is evolving from a UPL goal timing notebook project into an
+open-source Uganda Premier League data platform with **UPL Lens** as the public
+frontend product.
 
 The target architecture is:
 
@@ -18,7 +19,8 @@ features.
 Read `AGENTS.md`, `docs/START_HERE.md`, `docs/PRODUCT_STRATEGY.md`, and
 `docs/PROJECT_ROADMAP.md` before making large changes.
 If the task affects the public frontend relaunch, also read
-`docs/UPL_LENS_FRONTEND_START_HERE.md`.
+`docs/UPL_LENS_FRONTEND_START_HERE.md` first and treat it as the launch
+precedence guide for UPL Lens UI work.
 
 ## Current Project State
 

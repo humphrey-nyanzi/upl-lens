@@ -4,6 +4,9 @@ UPL Lens — Text Wireframe Layouts
 
 These wireframes define the layout structure for each major UPL Lens page before visual design and coding.
 
+The intelligence-layer page wireframes near the top of this file take
+precedence over older baseline page examples when they conflict.
+
 **They are intentionally low-fidelity. They describe:**
 
 - what appears on each page
@@ -31,6 +34,65 @@ Source-record boundary:
 - Wireframes should not recreate full official match pages, raw timelines,
   lineups, officials lists, or plain fixtures unless the layout adds analytical
   meaning.
+
+## Intelligence-layer page wireframes
+
+Use these current content wireframes when implementing the backend-upgraded
+pages. They describe page purpose, main modules, and the data shapes the UI
+should surface.
+
+- Overview
+  - Page header, Season Pulse, Things to Notice, Recent Signal Matches, Team
+    Signals, Featured Insight, Data Quality / Freshness Note.
+  - Visual slots: compact gauge bars, trend teaser mini-chart, small match
+    signal cards.
+  - Backend: `/seasons/overview`, `/overview/intelligence`,
+    `/matches/intelligence`, `/teams`, `/insights/goal-timing`.
+- Matches
+  - Page header, signal filter panel, intelligence summary strip, match signal
+    cards/list, evidence quality summary.
+  - Visual slots: interest sort chips, compact signal labels, result/late-drama
+    indicators.
+  - Backend: `/matches/intelligence`, `/matches/{match_id}`.
+- Match Detail
+  - Page header, signal summary, key moments, event timeline rail, score
+    progression, event phase summary, compact source metadata, data
+    completeness note, official source link.
+  - Visual slots: key-moment rail, phase groupings, score progression strip.
+  - Backend: `/matches/{match_id}`.
+- Teams
+  - Page header, team summary strip, attack vs defence comparison, points vs
+    goal difference comparison, archetype/profile labels, team ranking cards.
+  - Visual slots: scatter plots, horizontal comparison bars.
+  - Backend: `/teams`.
+- Team Detail
+  - Page header, record summary, attack/defence profile, home/away split,
+    recent form strip, recent goals for/against visual, goal timing mini-chart,
+    discipline summary, data quality note.
+  - Visual slots: form strip, mini chart, comparison cards.
+  - Backend: `/teams/{team_slug}/profile`.
+- Players
+  - Page header, grouped leaderboards, filters/search/sort, contribution
+    categories, data-quality caveat.
+  - Visual slots: contribution bars, leaderboard cards, goals vs starts
+    scatter.
+  - Backend: `/players`, `/players/leaderboards`.
+- Player Detail
+  - Page header, contribution identity, output rates, starts share, season
+    trend, recent involvement, data-quality note.
+  - Visual slots: season trend strip, contribution metrics, recent-match rows.
+  - Backend: `/players/{player_slug}`.
+- Trends
+  - Page header, trends summary cards, scoring over time, discipline over
+    time, home/draw/away result trend, high-scoring match share, late-goal
+    trend, timeline/data coverage quality, season comparison table.
+  - Visual slots: season charts, 100% stacked bars, timeline coverage bars.
+  - Backend: `/trends/seasons`.
+- About
+  - Page header, independent/not official note, source record vs intelligence
+    layer explanation, data pipeline summary, data-quality notes, maintainer
+    links, social links.
+  - Backend: mostly static, optional `/health` status chip.
 
 - 2. Global layout wireframe
 

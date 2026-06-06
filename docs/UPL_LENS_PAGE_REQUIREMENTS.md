@@ -9,6 +9,9 @@ It should guide the next implementation phase after the information architecture
 
 The purpose is to prevent random frontend work and ensure the app grows as a coherent public football intelligence product.
 
+The intelligence-layer upgrade notes at the end of this file take precedence
+over older baseline page descriptions when they conflict.
+
 2. Product context
 
 ## Product name
@@ -2830,3 +2833,112 @@ UPL Lens is a public sports intelligence site.
 - About = product identity
 
 - Methodology = trust and data quality
+
+## Backend API Contract Note
+
+The backend now exposes routine intelligence endpoints for the core
+non-featured pages described above. Use [API_CONTRACT.md](API_CONTRACT.md) as
+the canonical frontend-facing reference, and keep
+[API_INTELLIGENCE_ENDPOINTS.md](API_INTELLIGENCE_ENDPOINTS.md) as the focused
+routine-intelligence note. These endpoints keep durable calculations, labels,
+rates, signals, and caveats in FastAPI/query services instead of recreating
+them in React.
+
+## Intelligence-Layer Page Upgrade Notes
+
+These notes take precedence over earlier baseline page descriptions when they
+conflict. They describe the current backend-supported implementation target.
+
+### Overview
+
+- Role: editorial control room.
+- Required sections: Season Pulse, Things to Notice, Recent Signal Matches,
+  Team Signals, Featured Insight, Data Quality / Freshness Note.
+- Visualizations: compact gauge bars, event breakdown strip, small match
+  signal cards, trend teaser mini-chart.
+- Backend: `/seasons/overview`, `/overview/intelligence`, `/matches/intelligence`,
+  `/teams`, `/insights/goal-timing`.
+- Rule: keep routine overview intelligence separate from promoted insights.
+
+### Matches
+
+- Role: match intelligence triage.
+- Required sections: signal filter panel, match intelligence summary strip,
+  match-type filters, interest-based sorting, evidence quality summary, match
+  signal cards/list.
+- Required filters when supported: latest, interest, goals, events, cards,
+  late_drama, goal_heavy, red_card, administrative_result, timeline_complete,
+  timeline_partial, timeline_unavailable.
+- Backend: `/matches/intelligence`, `/matches/{match_id}`. Use `/matches` only
+  for basic list fallback.
+
+### Match Detail
+
+- Role: match intelligence brief.
+- Required sections: match signal summary, key moments, event timeline rail,
+  score progression, event phase summary, compact source metadata, data
+  completeness note, official source link.
+- Rule: do not lead with a raw event dump. Key moments and analytical framing
+  come first.
+- Backend: `/matches/{match_id}` with extended fields such as
+  `intelligence_summary`, `key_moments`, `event_phase_summary`, and
+  `score_progression`.
+
+### Teams
+
+- Role: team intelligence board.
+- Required sections: team summary strip, attack vs defence comparison, points
+  vs goal difference comparison, team archetype/profile labels, team signal
+  rankings, team card/list.
+- Visualizations: attack vs defence scatter, points vs goal difference scatter,
+  horizontal comparison bars.
+- Backend: `/teams`, with fields such as `goal_difference`, `goals_per_match`,
+  `conceded_per_match`, `win_rate`, `points_per_match`, and `profile_labels`.
+
+### Team Detail
+
+- Role: team dossier.
+- Required sections: team identity panel, record summary, attack/defence
+  profile, home/away split, recent form strip, recent goals for/against visual,
+  team goal timing mini-chart, discipline/event summary, data quality note.
+- Backend: `/teams/{team_slug}/profile`.
+
+### Players
+
+- Role: player contribution board.
+- Required sections: grouped leaderboards, player filters/search/sort,
+  contribution categories, data-quality caveat.
+- Visualizations: goals vs starts scatter, contribution bars, leaderboard
+  cards.
+- Backend: `/players`, `/players/leaderboards`.
+
+### Player Detail
+
+- Role: player contribution profile.
+- Required sections: contribution identity, output rates, starts share, season
+  trend, recent involvement, data-quality note.
+- Backend: `/players/{player_slug}` with extended fields such as
+  `goal_contributions`, `goals_per_appearance`, `assists_per_appearance`,
+  `goal_contributions_per_appearance`, `starts_share`, `cards_per_appearance`,
+  `profile_labels`, `season_trend`, and `data_quality_note`.
+
+### Trends
+
+- Role: league evolution page.
+- Required sections: trends summary cards, scoring over time, discipline over
+  time, home/draw/away result trend, high-scoring match share, late-goal trend
+  if supported, timeline/data coverage quality, season comparison table.
+- Visualizations: goals per match by season chart, cards per match by season
+  chart, 100% stacked result-share bars, high-scoring match share chart,
+  timeline coverage bars, season comparison table.
+- Backend: `/trends/seasons`.
+- Rule: match volume and season span are supporting context, not the main
+  content.
+
+### About
+
+- Required content: independent/not official note, source record vs
+  intelligence layer explanation, data pipeline summary, data-quality states,
+  maintainer/contact/social links, explanation of scoreline goals vs timeline
+  goals where relevant.
+- Backend: usually mostly static, with optional `/health` for freshness/status.

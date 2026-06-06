@@ -90,6 +90,132 @@ approval state and implementation queue decisions.
 
 ## Active Requests
 
+### Request: Intelligence-Layer API Client Sync
+
+Status: approved
+
+Area: frontend API contract, types, request helpers
+
+Request:
+
+Sync the frontend client and TypeScript models with the upgraded backend
+intelligence-layer responses.
+
+Why it matters:
+
+The frontend should consume the richer backend shapes directly instead of
+rebuilding durable intelligence logic in React.
+
+Data/API needs:
+
+- `GET /trends/seasons`
+- `GET /overview/intelligence`
+- `GET /matches/intelligence`
+- `GET /matches/{match_id}`
+- `GET /teams`
+- `GET /teams/{team_slug}/profile`
+- `GET /players`
+- `GET /players/leaderboards`
+- `GET /players/{player_slug}`
+- `GET /seasons/overview`
+
+Implementation notes:
+
+- Add or extend TypeScript types for the new backend response fields.
+- Add API client methods for the new intelligence endpoints.
+- Preserve the existing methods so older pages keep working during the
+  transition.
+- Keep fallback handling explicit for optional or partial fields.
+
+Acceptance criteria:
+
+- `frontend/src/api/types.ts` matches the backend contract closely enough for
+  the next page pass.
+- `frontend/src/api/client.ts` exposes the new intelligence endpoints.
+- Existing overview, match, team, and player client calls still work.
+
+### Request: Reusable Intelligence Visual Components
+
+Status: needs_review
+
+Area: charts, signals, data-quality display, shared page modules
+
+Request:
+
+Create reusable frontend components for the intelligence-layer pages so the
+new backend shapes can be rendered consistently.
+
+Why it matters:
+
+The product needs a small shared vocabulary for signals, comparisons, and
+caveats before the page upgrades can land cleanly.
+
+Data/API needs:
+
+- Existing intelligence endpoint responses from the API contract
+
+Implementation notes:
+
+- Add components such as `MiniBarChart`, `HorizontalComparisonBar`,
+  `ScatterPlot`, `StackedBar`, `TimelineRail`, `FormStrip`, `SignalChip`, and
+  `DataQualityNote`.
+- Keep the components small, composable, and consistent with the current
+  Editorial Light design system.
+- Prefer readable football labels over raw database terms.
+
+Acceptance criteria:
+
+- The page upgrades can reuse the same visual language for signals,
+  comparisons, and caveats.
+- The components work on mobile and desktop without needing page-specific
+  rewrites.
+
+### Request: Intelligence-Layer Page Upgrades
+
+Status: approved
+
+Area: Overview, Teams, Matches, Players, detail pages, About
+
+Request:
+
+Upgrade the core product pages so they present intelligence-layer modules
+instead of archive-first tables.
+
+Why it matters:
+
+This is the product shift that turns UPL Lens from a source browser into a
+football intelligence layer.
+
+Data/API needs:
+
+- `GET /trends/seasons`
+- `GET /overview/intelligence`
+- `GET /matches/intelligence`
+- `GET /matches/{match_id}`
+- `GET /teams`
+- `GET /teams/{team_slug}/profile`
+- `GET /players/leaderboards`
+- `GET /players/{player_slug}`
+- `GET /seasons/overview`
+
+Implementation notes:
+
+- Trends is the first page to rebuild.
+- Then upgrade Teams and Team Detail.
+- Then upgrade Matches and Match Detail.
+- Then upgrade Players and Player Detail.
+- Finish with Overview and About polish.
+
+Acceptance criteria:
+
+- Trends reads as a league evolution page.
+- Teams reads as a team intelligence board and dossier.
+- Matches reads as match intelligence triage and briefs.
+- Players reads as contribution boards and profiles.
+- Overview surfaces season pulse, things to notice, signal matches, and trust
+  cues.
+- About clearly explains the source record vs intelligence layer boundary.
+
 These requests translate the approved mockup direction into specific frontend
 work. The goal is one cohesive League Overview screen: compact, football-native,
 dashboard-like, readable on mobile, and powered only by existing FastAPI JSON
@@ -544,6 +670,9 @@ Implemented entries stay intentionally short.
 - App shell navigation, search, brand, favicon, and global utility polish were implemented.
 - Shared loading, iconography, and public-facing text formatting refinements were implemented.
 - Public app workflows were reviewed against the source-record vs intelligence-layer philosophy.
+- Routine intelligence API endpoints were added for Trends, Teams, Team Profile,
+  Matches, Match Detail, Players, Player Detail, and Overview. See
+  [API_INTELLIGENCE_ENDPOINTS.md](API_INTELLIGENCE_ENDPOINTS.md).
 
 ## Implementation Notes
 

@@ -102,6 +102,26 @@ UPL Lens is a public football intelligence product built on official Uganda Prem
 - Do not rebuild official match pages, raw timelines, plain fixtures, full
   lineups, or officials lists unless UPL Lens adds a clear analytical layer.
 
+## Page Roles
+
+The core pages should read as distinct football-intelligence surfaces:
+
+- Overview = editorial control room
+- Matches = match intelligence triage
+- Match Detail = match intelligence brief
+- Teams = team intelligence board
+- Team Detail = team dossier
+- Players = player contribution board
+- Player Detail = player contribution profile
+- Insights = promoted research library
+- Trends = league evolution
+- About = trust and methodology
+
+Normal pages can contain routine intelligence modules such as signal labels,
+profile labels, comparison bars, and data-quality notes. Those modules do not
+turn a page into a promoted insight. Promoted insights remain the notebook ->
+validation -> API -> frontend outputs that live under `/insights`.
+
 - ## Drilldowns over clutter
 
 - The Overview page should not try to show everything. It should act as a launchpad into deeper product areas.

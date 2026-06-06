@@ -171,7 +171,7 @@ export function buildMatchBriefCards(match: MatchBriefSource) {
     match.is_administrative_result || match.is_source_anomaly
       ? "The source record needs explicit context before treating the result as an ordinary played match."
       : match.timeline_status === "complete" || hasTimelineEvidence(match)
-        ? "UPL Lens has enough timeline evidence here to move beyond the raw result line."
+        ? "UPL Lens has enough timeline evidence here to move beyond the source result line."
         : match.timeline_status === "partial"
           ? match.timeline_note ?? "Only part of the event record is available for this brief."
           : "This brief leans more heavily on the scoreline and source metadata than a full event record.";

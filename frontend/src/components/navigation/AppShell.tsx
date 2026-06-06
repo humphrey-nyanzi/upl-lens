@@ -5,7 +5,7 @@ import type { LoadState } from "../../app/types";
 import type { HealthResponse, MatchSummary, PlayerSummary, SeasonResponse, TeamResponse } from "../../api/types";
 import { SeasonControls } from "../season/SeasonControls";
 import { BrandLockup } from "./BrandLockup";
-import { Home, List, Users, BarChart2, TrendingUp, Info, Search, User, Menu, Github, Linkedin, Newspaper, Twitter } from "lucide-react";
+import { Home, List, Users, BarChart2, TrendingUp, Info, Search, User, Menu, Github, Newspaper, Twitter } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDate, formatScoreline } from "../../utils/format";
 import { MatchStatusPill, TeamName } from "../common/EditorialRows";
@@ -44,10 +44,9 @@ const primaryMobilePages = ["overview", "insights", "trends"] as const;
 const secondaryPages = ["matches", "teams", "players", "about"] as const;
 
 const socialLinks = [
-  { href: "https://x.com", icon: <Twitter size={15} />, label: "X" },
-  { href: "https://github.com", icon: <Github size={15} />, label: "GitHub" },
+  { href: "https://x.com/phreyn", icon: <Twitter size={15} />, label: "X" },
+  { href: "https://github.com/humphrey-nyanzi", icon: <Github size={15} />, label: "GitHub" },
   { href: "https://humphreyn-substack.com", icon: <Newspaper size={15} />, label: "Substack" },
-  { href: "https://www.linkedin.com", icon: <Linkedin size={15} />, label: "LinkedIn" },
 ];
 
 function formatFreshness(health: HealthResponse | null, apiOnline: boolean) {

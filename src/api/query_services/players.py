@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from src.api.intelligence import build_player_profile_labels, safe_rate
 from src.api.query_services.common import DEFAULT_LIMIT, _fetch_all, clamp_pagination
 
 
-PlayerSort = Literal["goals", "assists", "appearances", "starts", "cards", "name"]
+PlayerSort = Literal["goals", "assists", "appearances", "starts", "cards", "goal_contributions", "bench_impact", "name"]
 
 _PLAYER_SLUG_SQL = "trim(both '-' from regexp_replace(lower(trim(%s)), '[^a-z0-9]+', '-', 'g'))"
 _SORT_COLUMNS: dict[str, str] = {
@@ -15,7 +16,9 @@ _SORT_COLUMNS: dict[str, str] = {
     "assists": "assists DESC, goals DESC, appearances DESC, player_name",
     "appearances": "appearances DESC, starts DESC, goals DESC, player_name",
     "starts": "starts DESC, appearances DESC, goals DESC, player_name",
+    "goal_contributions": "(goals + assists) DESC, goals DESC, appearances DESC, player_name",
     "cards": "(yellow_cards + red_cards) DESC, red_cards DESC, player_name",
+    "bench_impact": "substitutions_on DESC, (goals + assists) DESC, appearances DESC, player_name",
     "name": "player_name",
 }
 
@@ -40,7 +43,7 @@ def list_players(
     player_like = f"%{player.strip()}%" if player is not None and player.strip() else None
     order_by = _safe_sort(sort)
 
-    return _fetch_all(
+    rows = _fetch_all(
         f"""
         WITH lineup_rows AS (
             SELECT
@@ -196,6 +199,7 @@ def list_players(
             "offset": safe_offset,
         },
     )
+    return [_enrich_player_row(row) for row in rows]
 
 
 def get_player(player_slug: str, season: str | None = None) -> dict[str, Any] | None:
@@ -208,7 +212,55 @@ def get_player(player_slug: str, season: str | None = None) -> dict[str, Any] | 
 
     summary["season_breakdown"] = _get_player_seasons(player_slug, season=season)
     summary["recent_matches"] = _get_player_recent_matches(player_slug, season=season)
+    summary["assists_per_appearance"] = safe_rate(summary["assists"], summary["appearances"])
+    summary["cards_per_appearance"] = safe_rate(summary["cards"], summary["appearances"])
+    summary["season_trend"] = [
+        {
+            "season": row["season"],
+            "appearances": row["appearances"],
+            "starts": row["starts"],
+            "goals": row["goals"],
+            "assists": row["assists"],
+            "goal_contributions": row["goals"] + row["assists"],
+            "yellow_cards": row["yellow_cards"],
+            "red_cards": row["red_cards"],
+        }
+        for row in summary["season_breakdown"]
+    ]
+    summary["data_quality_note"] = "Player data depends on available lineups and parsed event timelines."
     return summary
+
+
+def get_player_leaderboards(season: str | None = None, limit: int = 10) -> dict[str, Any]:
+    """Return grouped player leaderboard slices for the Players page."""
+
+    safe_limit, _ = clamp_pagination(limit, 0)
+    return {
+        "season": season,
+        "goals": list_players(season=season, sort="goals", limit=safe_limit),
+        "assists": list_players(season=season, sort="assists", limit=safe_limit),
+        "appearances": list_players(season=season, sort="appearances", limit=safe_limit),
+        "starts": list_players(season=season, sort="starts", limit=safe_limit),
+        "goal_contributions": list_players(season=season, sort="goal_contributions", limit=safe_limit),
+        "cards": list_players(season=season, sort="cards", limit=safe_limit),
+        "bench_impact": list_players(season=season, sort="bench_impact", limit=safe_limit),
+        "data_quality_note": "Player leaderboards depend on available lineups and parsed event timelines.",
+    }
+
+
+def _enrich_player_row(row: dict[str, Any]) -> dict[str, Any]:
+    goal_contributions = row["goals"] + row["assists"]
+    cards = row["yellow_cards"] + row["red_cards"]
+    enriched = {
+        **row,
+        "goal_contributions": goal_contributions,
+        "cards": cards,
+        "goals_per_appearance": safe_rate(row["goals"], row["appearances"]),
+        "goal_contributions_per_appearance": safe_rate(goal_contributions, row["appearances"]),
+        "starts_share": safe_rate(row["starts"], row["appearances"]),
+    }
+    enriched["profile_labels"] = build_player_profile_labels(enriched)
+    return enriched
 
 
 def _get_player_seasons(player_slug: str, season: str | None = None) -> list[dict[str, Any]]:

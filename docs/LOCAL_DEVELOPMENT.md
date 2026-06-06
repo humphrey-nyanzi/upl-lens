@@ -1,7 +1,8 @@
 # Local Development
 
-This guide is the practical developer-experience path for running, checking, and
-debugging UPL Match Intelligence on a local machine.
+This guide is the practical developer-experience path for running, checking,
+and debugging the UPL Lens product and the broader UPL Match Intelligence repo
+on a local machine.
 
 Use [START_HERE.md](START_HERE.md) for project orientation and
 [CHANGELOG.md](CHANGELOG.md) when you need quick recent context before digging

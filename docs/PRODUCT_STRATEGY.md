@@ -123,6 +123,40 @@ signals such as timing, momentum, cards, trend fit, anomalies, or team context.
 If UPL Lens cannot add that layer yet, show only compact supporting facts and a
 clear official-source link.
 
+## Routine Intelligence Modules
+
+Routine intelligence modules are reusable backend-supported features that can
+appear on normal product pages without becoming promoted research insights.
+
+Examples include:
+
+- team profile labels
+- match signal labels
+- trends charts
+- scoring and carding rates
+- data coverage indicators
+- form strips
+- attack/defence comparisons
+- player contribution categories
+
+These modules should live on overview, match, team, player, and trends pages
+when they help users interpret the league. They should be built as ordinary
+page intelligence, not as featured research products.
+
+## Featured Insights
+
+Featured insights are promoted research products that move through the
+notebook -> validation -> API -> frontend workflow.
+
+Examples include:
+
+- Goal Timing
+- future Discipline insight, if researched and promoted
+- future Home Advantage insight, if researched and promoted
+
+Do not force routine page intelligence into `/insights`. Do not replace
+featured insights with shallow dashboard widgets.
+
 ## Target Audiences
 
 ### Primary Audience

@@ -1,7 +1,7 @@
 # Operations
 
-This is the source of truth for Data Reliability & Operations work in UPL Match
-Intelligence.
+This is the source of truth for Data Reliability & Operations work in the UPL
+Match Intelligence repo and the UPL Lens production pipeline.
 
 It combines:
 

@@ -154,12 +154,15 @@ flowchart TD
     subgraph API["⚡ FastAPI — api/"]
         direction LR
         DIRECT["Read queries\nsrc/api/query_services/*\nqueries.py facade\nGET /seasons\nGET /matches\nGET /teams (analytics)\nGET /events\nGET /officials"]
+        INTEL_EP["Routine intelligence endpoints\nGET /trends/seasons\nGET /overview/intelligence\nGET /matches/intelligence\nGET /teams/{slug}/profile\nGET /players/leaderboards\nSee docs/API_CONTRACT.md"]
         INS_EP["Insight endpoints\nGET /insights/goal-timing"]
         HEALTH["GET /health\ndb ping\nlatest_staging_completed_at"]
     end
 
     PGSTAGE -->|"SQL queries\nvia SQLAlchemy"| DIRECT
     PGANALYTICS -->|"precomputed team summaries"| DIRECT
+    PGSTAGE -->|"signals + caveats"| INTEL_EP
+    PGANALYTICS -->|"team profile summaries"| INTEL_EP
     INSIGHTS -->|"SQL query"| INS_EP
     PGSTAGE -->|"latest run check"| HEALTH
 
@@ -181,6 +184,7 @@ flowchart TD
     end
 
     DIRECT -->|"JSON :8000"| CLIENT
+    INTEL_EP -->|"JSON :8000"| CLIENT
     INS_EP -->|"JSON :8000"| CLIENT
     HEALTH -->|"JSON :8000"| CLIENT
 
@@ -216,7 +220,7 @@ flowchart TD
     class R1,R2,R3,R4 rawdb
     class S1,S2,S3,S4 stagedb
     class NB,RB,PP,REG,INSIGHTS research
-    class DIRECT,INS_EP,HEALTH,API api
+    class DIRECT,INTEL_EP,INS_EP,HEALTH,API api
     class CLIENT,HOOKS,SHELL,PAGES,COMPONENTS frontend
     class NOTE1,NOTE2,NOTE3,NOTE4,NOTE5,NOTE6 warning
     class GA,RENDER,SUPABASE infra

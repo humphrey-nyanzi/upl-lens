@@ -1,126 +1,250 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { apiClient } from "../api/client";
-import type { MatchSummary } from "../api/types";
+import type { MatchIntelligenceSummary, MatchSignal } from "../api/types";
 import type { PageProps } from "../app/types";
-import { EditorialTable, EditorialTableHeader } from "../components/common/EditorialTable";
 import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
-import { MatchRow } from "../components/matches/MatchRow";
-import { hasMatchBriefSignal } from "../utils/matchBriefs";
+import { TeamMarker } from "../components/common/TeamMarker";
+import {
+  DataQualityNote,
+  MetricDelta,
+  SignalChipGroup,
+  StackedShareBar,
+  type DataQualityTone,
+  type ShareSegment,
+  type SignalChipItem,
+} from "../components/intelligence";
+import { formatDate, formatScoreline, formatSeason } from "../utils/format";
 import { toApiSeason } from "../utils/seasonScope";
 
-const resultOptions = [
-  { label: "All matches", value: "all" },
-  { label: "Completed matches", value: "completed" },
-  { label: "Draws", value: "draw" },
-];
+type IntelligenceLoadState = "loading" | "success" | "error";
 
 const signalOptions = [
-  { label: "All briefs", value: "all" },
-  { label: "Timeline backed", value: "timeline_backed" },
+  { label: "All signals", value: "all" },
   { label: "Goal-heavy", value: "goal_heavy" },
-  { label: "Discipline notes", value: "discipline" },
-  { label: "Result notes", value: "result_note" },
+  { label: "High scoring", value: "high_scoring" },
+  { label: "Late drama", value: "late_drama" },
+  { label: "Final-15 goal", value: "final_15_goal" },
+  { label: "Red card", value: "red_card" },
+  { label: "Discipline signal", value: "discipline_signal" },
+  { label: "Timeline complete", value: "timeline_complete" },
+  { label: "Partial timeline", value: "timeline_partial" },
+  { label: "Timeline unavailable", value: "timeline_unavailable" },
+  { label: "Administrative result", value: "administrative_result" },
+  { label: "Source caveat", value: "source_caveat" },
 ];
 
-export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeason }: PageProps) {
+const sortOptions = [
+  { label: "Most interesting", value: "interest" },
+  { label: "Latest", value: "latest" },
+  { label: "Most goals", value: "goals" },
+  { label: "Most events", value: "events" },
+  { label: "Most cards", value: "cards" },
+  { label: "Late drama", value: "late_drama" },
+];
+
+function formatNullableNumber(value: number | null) {
+  return value === null ? "-" : value.toLocaleString();
+}
+
+function asSignalItems(signals: MatchSignal[]): SignalChipItem[] {
+  return signals.map((signal) => ({
+    key: signal.key,
+    label: signal.label,
+    tone: signal.tone,
+  }));
+}
+
+function getTeamOptions(rows: MatchIntelligenceSummary[], fallbackMatches: PageProps["data"]["matches"]) {
+  const names = new Set<string>();
+  rows.forEach((match) => {
+    if (match.home_team) names.add(match.home_team);
+    if (match.away_team) names.add(match.away_team);
+  });
+  fallbackMatches.forEach((match) => {
+    if (match.home_team) names.add(match.home_team);
+    if (match.away_team) names.add(match.away_team);
+  });
+  return [...names].sort((left, right) => left.localeCompare(right));
+}
+
+function getTimelineTone(status: string | null): DataQualityTone {
+  if (status === "complete") return "good";
+  if (status === "partial") return "caution";
+  if (status === "unavailable") return "limited";
+  return "neutral";
+}
+
+function getTimelineLabel(status: string | null) {
+  if (status === "complete") return "Timeline complete";
+  if (status === "partial") return "Partial timeline";
+  if (status === "unavailable") return "Timeline unavailable";
+  if (status === "administrative_result") return "Administrative result";
+  return "Timeline status TBC";
+}
+
+function MatchSignalCard({ match }: { match: MatchIntelligenceSummary }) {
+  const homeTeam = match.home_team ?? "Home team TBC";
+  const awayTeam = match.away_team ?? "Away team TBC";
+  const noteTone = match.is_source_anomaly || match.is_administrative_result ? "risk" : getTimelineTone(match.timeline_status);
+
+  return (
+    <article className="match-intelligence-card">
+      <div className="match-card-main">
+        <div className="match-card-kicker">
+          <span>{formatDate(match.match_date)}</span>
+          {match.match_day !== null ? <span>Matchday {match.match_day}</span> : null}
+          {match.ground_name ? <span>{match.ground_name}</span> : null}
+        </div>
+        <div className="match-card-scoreboard">
+          <div className="match-card-team">
+            <TeamMarker label={homeTeam} size="small" />
+            <span>{homeTeam}</span>
+          </div>
+          <strong>{formatScoreline(match.home_score, match.away_score)}</strong>
+          <div className="match-card-team away">
+            <span>{awayTeam}</span>
+            <TeamMarker label={awayTeam} size="small" />
+          </div>
+        </div>
+        <div className="match-card-signals">
+          <strong>{match.primary_signal ?? "Evidence-led match"}</strong>
+          <SignalChipGroup items={asSignalItems(match.signal_labels)} emptyLabel="No major signal" maxVisible={4} size="small" />
+        </div>
+      </div>
+
+      <div className="match-card-metrics" aria-label="Match intelligence metrics">
+        <MetricDelta label="Interest" value={match.interest_score} context="Computed signal score" />
+        <MetricDelta label="Goals" value={match.goal_count} context={`${formatNullableNumber(match.total_goals)} from scoreline`} />
+        <MetricDelta label="Cards" value={match.yellow_card_count + match.red_card_count} context={`${match.red_card_count} red`} />
+        <MetricDelta label="Late goals" value={match.late_goal_count} context={`${match.final_15_goal_count} final-15`} />
+      </div>
+
+      <DataQualityNote
+        compact
+        note={match.data_quality_note}
+        tone={noteTone}
+        metrics={[
+          { label: "Events", value: match.event_count },
+          { label: "Evidence", value: getTimelineLabel(match.timeline_status) },
+        ]}
+      />
+
+      <Link className="text-button match-card-link" to={`/matches/${match.match_id}`}>
+        Open match brief
+      </Link>
+    </article>
+  );
+}
+
+export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps) {
   const [searchParams] = useSearchParams();
   const initialTeamFilter = searchParams.get("team") ?? "all";
   const [teamFilter, setTeamFilter] = useState(initialTeamFilter);
-  const [resultFilter, setResultFilter] = useState("all");
+  const [matchDayFilter, setMatchDayFilter] = useState("all");
   const [signalFilter, setSignalFilter] = useState("all");
-  const [serverFilteredMatches, setServerFilteredMatches] = useState<MatchSummary[] | null>(null);
-  const [serverFilterState, setServerFilterState] = useState<"idle" | "loading" | "success" | "error">("idle");
-
-  const teamOptions = useMemo(() => {
-    const names = new Set<string>();
-    data.matches.forEach((match) => {
-      if (match.home_team) names.add(match.home_team);
-      if (match.away_team) names.add(match.away_team);
-    });
-    return [...names].sort((left, right) => left.localeCompare(right));
-  }, [data.matches]);
+  const [sortKey, setSortKey] = useState("interest");
+  const [rows, setRows] = useState<MatchIntelligenceSummary[]>([]);
+  const [intelligenceState, setIntelligenceState] = useState<IntelligenceLoadState>("loading");
 
   useEffect(() => {
-    if (!selectedSeason || teamFilter === "all") {
-      setServerFilteredMatches(null);
-      setServerFilterState("idle");
-      return;
-    }
-
     let ignore = false;
-    setServerFilterState("loading");
     const apiSeason = toApiSeason(selectedSeason);
+    const matchDay = matchDayFilter === "all" ? undefined : Number(matchDayFilter);
 
+    setIntelligenceState("loading");
     apiClient
-      .getTeamMatches(apiSeason, teamFilter, 500)
+      .getMatchIntelligence(apiSeason, {
+        team: teamFilter === "all" ? undefined : teamFilter,
+        match_day: Number.isFinite(matchDay) ? matchDay : undefined,
+        signal: signalFilter === "all" ? undefined : signalFilter,
+        sort: sortKey,
+        limit: 120,
+      })
       .then((matches) => {
         if (!ignore) {
-          setServerFilteredMatches(matches);
-          setServerFilterState("success");
+          setRows(matches);
+          setIntelligenceState("success");
         }
       })
       .catch(() => {
         if (!ignore) {
-          setServerFilteredMatches(null);
-          setServerFilterState("error");
+          setRows([]);
+          setIntelligenceState("error");
         }
       });
 
     return () => {
       ignore = true;
     };
-  }, [selectedSeason, teamFilter]);
+  }, [matchDayFilter, selectedSeason, signalFilter, sortKey, teamFilter]);
 
-  const filteredMatches = useMemo(() => {
-    const sourceMatches = serverFilteredMatches ?? data.matches;
-    return [...sourceMatches]
-      .filter((match) => {
-        const matchesResult =
-          resultFilter === "all" ||
-          (resultFilter === "completed" ? match.result !== null : match.result === resultFilter);
-        const matchesSignal =
-          signalFilter === "all" || hasMatchBriefSignal(match, signalFilter as Parameters<typeof hasMatchBriefSignal>[1]);
-        return matchesResult && matchesSignal;
-      })
-      .sort((left, right) => (right.match_date ?? "").localeCompare(left.match_date ?? "") || right.match_id - left.match_id);
-  }, [data.matches, resultFilter, serverFilteredMatches, signalFilter]);
+  const teamOptions = useMemo(() => getTeamOptions(rows, data.matches), [data.matches, rows]);
+  const matchDayOptions = useMemo(() => {
+    const days = new Set<number>();
+    data.matches.forEach((match) => {
+      if (match.match_day !== null) days.add(match.match_day);
+    });
+    rows.forEach((match) => {
+      if (match.match_day !== null) days.add(match.match_day);
+    });
+    return [...days].sort((left, right) => left - right);
+  }, [data.matches, rows]);
 
-  const visibleMatches = filteredMatches.slice(0, 12);
-  const completedMatches = filteredMatches.filter((match) => match.result !== null).length;
-  const timelineBackedMatches = filteredMatches.filter((match) => hasMatchBriefSignal(match, "timeline_backed")).length;
-  const goalHeavyMatches = filteredMatches.filter((match) => hasMatchBriefSignal(match, "goal_heavy")).length;
-  const notedMatches = filteredMatches.filter((match) => hasMatchBriefSignal(match, "result_note")).length;
-  const averageGoals =
-    completedMatches > 0
-      ? filteredMatches.reduce((total, match) => total + (match.total_goals ?? 0), 0) / completedMatches
-      : 0;
-  const isTeamFilterLoading = teamFilter !== "all" && serverFilterState === "loading";
-  const matchCountContext =
-    teamFilter === "all"
-      ? "Season fixtures matching the current filters."
-      : serverFilterState === "error"
-        ? "Using loaded season data because the team-specific request failed."
-        : "Team fixtures loaded directly from the API before filtering.";
+  const summary = useMemo(
+    () => ({
+      administrativeOrSource: rows.filter((match) => match.is_administrative_result || match.is_source_anomaly).length,
+      highScoring: rows.filter((match) => match.goal_count >= 3 || (match.total_goals ?? 0) >= 3).length,
+      lateDrama: rows.filter((match) => match.late_goal_count > 0 || match.final_15_goal_count > 0).length,
+      redCards: rows.filter((match) => match.red_card_count > 0).length,
+      timelineBacked: rows.filter((match) => match.timeline_status === "complete").length,
+    }),
+    [rows],
+  );
+
+  const evidenceSegments: ShareSegment[] = [
+    { label: "Complete", value: rows.filter((match) => match.timeline_status === "complete").length, tone: "green" },
+    { label: "Partial", value: rows.filter((match) => match.timeline_status === "partial").length, tone: "gold" },
+    { label: "Unavailable", value: rows.filter((match) => match.timeline_status === "unavailable").length, tone: "muted" },
+    {
+      label: "Caveated",
+      value: rows.filter((match) => match.is_source_anomaly || match.is_administrative_result).length,
+      tone: "risk",
+    },
+  ];
+
+  const isLoading = intelligenceState === "loading";
+  const shownRows = rows.slice(0, 30);
 
   return (
-    <>
+    <div className="match-triage-page">
       <PageIntro
         eyebrow="Match intelligence"
-        title="Match Briefs"
-        text="Scan evidence-led match briefs built from recorded UPL results, then open the fixtures that deserve a closer read."
-      />
+        title="Matches"
+        text="Find UPL matches by football signal: scoring, late goals, discipline, result context, and evidence quality."
+      >
+        <div className="season-context-pill">{formatSeason(selectedSeason)}</div>
+      </PageIntro>
 
-      <section className="panel match-explorer-results">
+      <section className="metric-grid compact-metrics" aria-label="Match intelligence summary">
+        <KpiCard label="Matches found" value={isLoading ? "..." : rows.length} context="Matches in the current signal view." variant="compact" />
+        <KpiCard accent="gold" label="High scoring" value={isLoading ? "..." : summary.highScoring} context="Three or more captured goals." variant="compact" />
+        <KpiCard accent="green" label="Late drama" value={isLoading ? "..." : summary.lateDrama} context="Late or final-15 goal signal." variant="compact" />
+        <KpiCard accent="risk" label="Red-card matches" value={isLoading ? "..." : summary.redCards} context="Matches with a captured dismissal." variant="compact" />
+        <KpiCard label="Timeline backed" value={isLoading ? "..." : summary.timelineBacked} context="Complete timeline evidence." variant="compact" />
+        <KpiCard accent="risk" label="Source caveats" value={isLoading ? "..." : summary.administrativeOrSource} context="Administrative or source-anomaly notes." variant="compact" />
+      </section>
+
+      <section className="panel match-triage-filters">
         <ReportSectionHeader
-          title="Filter the evidence"
-          text="Start with a team, result type, or evidence signal, then narrow the set down to the fixtures worth reading as briefs."
+          title="Triage filters"
+          text="Use supported signals and sorting to surface matches worth opening, then narrow by team or matchday when needed."
         />
-        <div className="filter-grid" aria-label="Match filters">
+        <div className="filter-grid" aria-label="Match intelligence filters">
           <label>
             Team
             <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)}>
@@ -133,9 +257,20 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
             </select>
           </label>
           <label>
-            Result
-            <select value={resultFilter} onChange={(event) => setResultFilter(event.target.value)}>
-              {resultOptions.map((option) => (
+            Matchday
+            <select value={matchDayFilter} onChange={(event) => setMatchDayFilter(event.target.value)}>
+              <option value="all">All matchdays</option>
+              {matchDayOptions.map((day) => (
+                <option value={day} key={day}>
+                  Matchday {day}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Signal
+            <select value={signalFilter} onChange={(event) => setSignalFilter(event.target.value)}>
+              {signalOptions.map((option) => (
                 <option value={option.value} key={option.value}>
                   {option.label}
                 </option>
@@ -143,9 +278,9 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
             </select>
           </label>
           <label>
-            Brief signal
-            <select value={signalFilter} onChange={(event) => setSignalFilter(event.target.value)}>
-              {signalOptions.map((option) => (
+            Sort
+            <select value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
+              {sortOptions.map((option) => (
                 <option value={option.value} key={option.value}>
                   {option.label}
                 </option>
@@ -155,69 +290,63 @@ export function MatchExplorerPage({ data, loadState, onPageChange, selectedSeaso
         </div>
       </section>
 
-      <section className="metric-grid compact-metrics" aria-label="Match explorer summary">
-        <KpiCard
-          label="Briefs found"
-          value={isTeamFilterLoading ? "..." : filteredMatches.length}
-          context={matchCountContext}
-          variant="compact"
-        />
-        <KpiCard
-          accent="green"
-          label="Timeline backed"
-          value={timelineBackedMatches}
-          context="Briefs with event evidence beyond the final scoreline."
-          variant="compact"
-        />
-        <KpiCard
-          accent="gold"
-          label="Goal-heavy"
-          value={goalHeavyMatches}
-          context="Matches in this set with at least five total goals."
-          variant="compact"
-        />
-        <KpiCard
-          accent="risk"
-          label="Result notes"
-          value={notedMatches}
-          context="Administrative outcomes or source issues that need extra reading care."
-          variant="compact"
-        />
-        <KpiCard
-          label="Average goals"
-          value={averageGoals.toFixed(1)}
-          context="Goals per completed brief in this filtered set."
-          variant="compact"
-        />
-      </section>
-
-      <section className="panel">
-        <ReportSectionHeader
-          title="Latest briefs"
-          text="Showing the latest 12 matches from the current filter set with scoreline, brief signal, and a route into the fuller match evidence page."
-        >
-          <button className="text-button" type="button" onClick={() => onPageChange("about")}>
-            View data notes
-          </button>
-        </ReportSectionHeader>
-        <EditorialTable className="match-table-shell">
-          <EditorialTableHeader
-            className="match-table-header"
-            columns={[
-              { label: "Date & fixture" },
-              { align: "center", label: "Status" },
-              { align: "right", label: "Action" },
-            ]}
+      <section className="match-triage-layout">
+        <div className="panel">
+          <ReportSectionHeader
+            title="Signal-led matches"
+            text="Cards lead with the football reason to open the match, then show the supporting counts and evidence caveats."
           />
-          <div className="match-list match-explorer-list">
-            {visibleMatches.length > 0 ? (
-              visibleMatches.map((match) => <MatchRow key={match.match_id} match={match} />)
+          <div className="match-intelligence-list">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, index) => (
+                <div className="skeleton-card match-intelligence-card-skeleton" key={`match-card-skeleton-${index}`}>
+                  <span className="skeleton-line short"></span>
+                  <span className="skeleton-line title"></span>
+                  <span className="skeleton-line"></span>
+                  <span className="skeleton-line medium"></span>
+                </div>
+              ))
+            ) : shownRows.length > 0 ? (
+              shownRows.map((match) => <MatchSignalCard key={match.match_id} match={match} />)
             ) : (
-              <EmptyState message={loadState === "loading" ? "Loading matches." : "No matches fit the current filters."} />
+              <EmptyState
+                title={intelligenceState === "error" ? "Match intelligence unavailable" : "No matches found"}
+                message={
+                  intelligenceState === "error"
+                    ? "Match intelligence did not respond. Try refreshing or changing the season."
+                    : "No matches found for the selected signal and filters. Try changing the team, matchday, or signal filter."
+                }
+              />
             )}
           </div>
-        </EditorialTable>
+        </div>
+
+        <aside className="panel match-evidence-summary">
+          <ReportSectionHeader
+            eyebrow="Evidence quality"
+            title="Coverage context"
+            text="Timeline coverage and source caveats shape how much weight to place on event-led signals."
+          />
+          <StackedShareBar label="Returned matches" segments={evidenceSegments} />
+          <DataQualityNote
+            tone={summary.administrativeOrSource > 0 ? "caution" : "neutral"}
+            note="UPL Lens uses these evidence notes to separate analytical signals from the official source record."
+            metrics={[
+              { label: "Complete", value: summary.timelineBacked },
+              { label: "Partial/unavailable", value: evidenceSegments[1].value + evidenceSegments[2].value },
+              { label: "Caveats", value: summary.administrativeOrSource },
+            ]}
+          />
+        </aside>
       </section>
-    </>
+
+      {loadState === "error" && intelligenceState === "success" ? (
+        <DataQualityNote
+          tone="caution"
+          note="The dashboard bootstrap data had an issue, but match intelligence loaded directly from the API."
+          compact
+        />
+      ) : null}
+    </div>
   );
 }

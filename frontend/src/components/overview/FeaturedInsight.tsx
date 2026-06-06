@@ -43,7 +43,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
         goalTiming ? (
           <div className="overview-goal-preview compact">
             <div className="overview-goal-summary" aria-label="Peak goal timing summary">
-              <strong>{peakInterval ? formatPercent(peakInterval.share) : "N/A"}</strong>
+              <strong>{peakInterval ? formatPercent(peakInterval.share) : "Unavailable"}</strong>
               <p>
                 of all goals scored in{" "}
                 <span>{peakInterval?.interval ?? "the peak interval"}</span>

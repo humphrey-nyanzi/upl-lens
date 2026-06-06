@@ -1,9 +1,30 @@
 # Changelog
 
-This changelog records high-signal repo changes for UPL Match Intelligence.
+This changelog records high-signal repo changes for the UPL Lens repo and its
+UPL Match Intelligence history.
 
 It is intentionally concise. Use it to understand what changed recently before
 you start editing code or docs.
+
+## 2026-06-06
+
+### Intelligence-layer docs sync
+
+- Added a frontend-facing API contract at `docs/API_CONTRACT.md` and linked it
+  from the main docs entrypoints.
+- Documented the new backend intelligence-layer page roles, endpoint mapping,
+  and page-by-page upgrade order.
+- Added the frontend UX request group for API client sync, reusable intelligence
+  components, and page upgrades.
+
+### Docs naming and launch-precedence sync
+
+- Clarified the repository devex and workflow docs so they speak to UPL Lens as
+  the public product while keeping UPL Match Intelligence as repo history.
+- Reinforced the UPL Lens frontend launch precedence in the Copilot
+  instructions for public UI work.
+- Added an AGENTS rule that requires frontend work to consult the
+  `frontend-app-builder`, `impeccable`, and `tufte-viz` skills.
 
 ## 2026-06-05
 

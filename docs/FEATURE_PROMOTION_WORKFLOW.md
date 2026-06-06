@@ -1,6 +1,8 @@
 # Feature Promotion Workflow
 
-This document is the research playbook for UPL Match Intelligence.
+This document is the research playbook for the repository's Research &
+Football Intelligence lane and the product surfaces that now ship as UPL
+Lens.
 
 It is the single source of truth for:
 

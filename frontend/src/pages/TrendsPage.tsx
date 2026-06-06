@@ -1,283 +1,457 @@
-import { useMemo } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight, BarChartBig, CalendarRange, Clock3, Flag, LineChart, SplitSquareVertical, Trophy } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { apiClient } from "../api/client";
+import type { DataQualityStatus, SeasonTrendRow, SeasonTrendsResponse } from "../api/types";
 import type { PageProps } from "../app/types";
-import { EmptyState } from "../components/common/EmptyState";
-import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
+import {
+  DataQualityNote,
+  InsightEmptyState,
+  MetricDelta,
+  MiniBarChart,
+  SignalChip,
+  StackedShareBar,
+} from "../components/intelligence";
+import type { DataQualityTone } from "../components/intelligence/DataQualityNote";
+import type { SignalTone } from "../components/intelligence/SignalChip";
 import { formatDate, formatPercent, formatSeason } from "../utils/format";
-import { getSelectedSeasonLabel } from "../utils/seasonScope";
 
-function getSeasonSpanInDays(firstMatchDate: string | null, lastMatchDate: string | null) {
-  if (!firstMatchDate || !lastMatchDate) return null;
+type TrendLoadState = "loading" | "success" | "error";
 
-  const first = new Date(firstMatchDate);
-  const last = new Date(lastMatchDate);
-  const millisecondsPerDay = 1000 * 60 * 60 * 24;
-  return Math.max(1, Math.round((last.getTime() - first.getTime()) / millisecondsPerDay) + 1);
+const statusPriority: Record<DataQualityStatus, number> = {
+  good: 0,
+  caution: 1,
+  limited: 2,
+};
+
+function sortSeasonsAscending(rows: SeasonTrendRow[]) {
+  return [...rows].sort((left, right) => left.season.localeCompare(right.season));
 }
 
-export function TrendsPage({ data, featuredGoalTiming, loadState, selectedSeason, selectedSeasonInfo }: PageProps) {
-  const sortedSeasons = useMemo(() => {
-    return [...data.seasons].sort((left, right) => right.season.localeCompare(left.season));
-  }, [data.seasons]);
+function formatNumber(value: number | null | undefined) {
+  if (value === null || value === undefined) return "Unavailable";
+  return value.toLocaleString();
+}
 
-  const latestSeason = sortedSeasons[0];
-  const earliestSeason = sortedSeasons.at(-1);
-  const totalMatches = sortedSeasons.reduce((total, season) => total + season.match_count, 0);
-  const averageMatches = sortedSeasons.length > 0 ? Math.round(totalMatches / sortedSeasons.length) : 0;
-  const maxMatchCount = sortedSeasons.reduce((maximum, season) => Math.max(maximum, season.match_count), 0);
-  const maxSeasonSpan = sortedSeasons.reduce((maximum, season) => {
-    return Math.max(maximum, getSeasonSpanInDays(season.first_match_date, season.last_match_date) ?? 0);
-  }, 0);
-  const selectedPeakShare = featuredGoalTiming?.intervals.find((interval) => interval.rank === 1)?.share ?? null;
-  const selectedSeasonLabel = getSelectedSeasonLabel(selectedSeason, selectedSeasonInfo);
+function formatRate(value: number | null | undefined) {
+  if (value === null || value === undefined) return "Unavailable";
+  return value.toFixed(2);
+}
 
-  const seasonRows = sortedSeasons.map((season) => {
-    const spanDays = getSeasonSpanInDays(season.first_match_date, season.last_match_date);
-    const matchesPerTeam = season.team_count > 0 ? season.match_count / season.team_count : null;
-    const matchShare = maxMatchCount > 0 ? season.match_count / maxMatchCount : 0;
-    const seasonSpanShare = maxSeasonSpan > 0 && spanDays ? spanDays / maxSeasonSpan : 0;
+function formatShare(value: number | null | undefined) {
+  if (value === null || value === undefined) return "Unavailable";
+  return formatPercent(value);
+}
 
-    return {
-      ...season,
-      matchShare,
-      matchesPerTeam,
-      seasonSpanShare,
-      spanDays,
-    };
-  });
+function formatStatus(status: DataQualityStatus) {
+  if (status === "good") return "Good";
+  if (status === "caution") return "Caution";
+  return "Limited";
+}
+
+function signalToneForStatus(status: DataQualityStatus): SignalTone {
+  if (status === "good") return "positive";
+  if (status === "caution") return "warning";
+  return "muted";
+}
+
+function qualityToneForStatus(status: DataQualityStatus): DataQualityTone {
+  if (status === "good") return "good";
+  if (status === "caution") return "caution";
+  return "limited";
+}
+
+function getOverallStatus(rows: SeasonTrendRow[]): DataQualityStatus {
+  return rows.reduce<DataQualityStatus>((current, row) => {
+    return statusPriority[row.data_quality_status] > statusPriority[current] ? row.data_quality_status : current;
+  }, "good");
+}
+
+function getSeasonRange(summary: SeasonTrendsResponse["summary"], rows: SeasonTrendRow[]) {
+  const earliest = summary.earliest_season ?? rows[0]?.season ?? null;
+  const latest = summary.latest_season ?? rows.at(-1)?.season ?? null;
+
+  if (!earliest || !latest) return "Across available seasons";
+  if (earliest === latest) return formatSeason(earliest);
+
+  return `${formatSeason(earliest)} to ${formatSeason(latest)}`;
+}
+
+function TrendsLoadingState() {
+  return (
+    <div className="trends-page" aria-busy="true" aria-label="Loading season trends">
+      <section className="page-intro skeleton-panel">
+        <span className="skeleton-line short" />
+        <span className="skeleton-line title" />
+        <span className="skeleton-line medium" />
+      </section>
+      <section className="trends-summary-grid">
+        {Array.from({ length: 6 }, (_, index) => (
+          <article className="metric-delta skeleton-card" key={index}>
+            <span className="skeleton-line short" />
+            <span className="skeleton-line number" />
+            <span className="skeleton-line medium" />
+          </article>
+        ))}
+      </section>
+      <section className="trends-chart-grid">
+        {Array.from({ length: 4 }, (_, index) => (
+          <article className="panel trends-chart-panel skeleton-panel" key={index}>
+            <span className="skeleton-line medium" />
+            <span className="skeleton-line" />
+            <span className="trends-chart-skeleton" />
+          </article>
+        ))}
+      </section>
+      <section className="panel trends-table-panel skeleton-panel">
+        <span className="skeleton-line medium" />
+        <span className="skeleton-line" />
+        <span className="skeleton-line" />
+        <span className="skeleton-line" />
+      </section>
+    </div>
+  );
+}
+
+export function TrendsPage({ onRefresh }: PageProps) {
+  const [trendData, setTrendData] = useState<SeasonTrendsResponse | null>(null);
+  const [loadState, setLoadState] = useState<TrendLoadState>("loading");
+  const [errorMessage, setErrorMessage] = useState("Could not load season trends.");
+
+  const loadTrends = useCallback(async () => {
+    setLoadState("loading");
+    try {
+      const response = await apiClient.getSeasonTrends();
+      setTrendData(response);
+      setLoadState("success");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Could not load season trends.");
+      setTrendData(null);
+      setLoadState("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTrends();
+  }, [loadTrends]);
+
+  const rows = useMemo(() => sortSeasonsAscending(trendData?.seasons ?? []), [trendData]);
+  const summary = trendData?.summary;
+
+  const chartRows = rows;
+  const tableRows = useMemo(() => [...rows].reverse(), [rows]);
+
+  const goalsData = chartRows
+    .filter((row) => row.goals_per_match !== null)
+    .map((row) => ({
+      key: row.season,
+      label: formatSeason(row.season),
+      value: row.goals_per_match ?? 0,
+      secondaryValue: row.scoreline_goal_count,
+      tone: "green" as const,
+    }));
+
+  const cardsData = chartRows
+    .filter((row) => row.cards_per_match !== null)
+    .map((row) => ({
+      key: row.season,
+      label: formatSeason(row.season),
+      value: row.cards_per_match ?? 0,
+      secondaryValue: row.total_card_count,
+      tone: row.red_card_count > 0 ? ("gold" as const) : ("green" as const),
+    }));
+
+  const highScoringData = chartRows
+    .filter((row) => row.high_scoring_match_share !== null)
+    .map((row) => ({
+      key: row.season,
+      label: formatSeason(row.season),
+      value: row.high_scoring_match_share ?? 0,
+      secondaryValue: row.high_scoring_match_count,
+      tone: "gold" as const,
+    }));
+
+  const coverageTotals = rows.reduce(
+    (totals, row) => ({
+      complete: totals.complete + row.timeline_complete_match_count,
+      partial: totals.partial + row.timeline_partial_match_count,
+      unavailable: totals.unavailable + row.timeline_unavailable_match_count,
+      sourceAnomalies: totals.sourceAnomalies + row.source_anomaly_count,
+      administrativeResults: totals.administrativeResults + row.administrative_result_count,
+    }),
+    {
+      complete: 0,
+      partial: 0,
+      unavailable: 0,
+      sourceAnomalies: 0,
+      administrativeResults: 0,
+    },
+  );
+
+  const coverageTotal =
+    coverageTotals.complete + coverageTotals.partial + coverageTotals.unavailable;
+  const coverageShare = coverageTotal > 0 ? coverageTotals.complete / coverageTotal : null;
+  const overallStatus = rows.length > 0 ? getOverallStatus(rows) : "limited";
+  const seasonRange = summary ? getSeasonRange(summary, rows) : "Across available seasons";
+  const qualityNotes = tableRows.filter((row) => row.data_quality_note);
+  const timelineGoalGap =
+    summary && summary.total_scoreline_goals !== summary.total_timeline_goals
+      ? Math.abs(summary.total_scoreline_goals - summary.total_timeline_goals)
+      : 0;
+
+  const handleRetry = () => {
+    onRefresh();
+    void loadTrends();
+  };
+
+  if (loadState === "loading") {
+    return <TrendsLoadingState />;
+  }
+
+  if (loadState === "error") {
+    return (
+      <section className="error-panel trends-error-panel" role="alert">
+        <h2>Could not load season trends.</h2>
+        <p>{errorMessage}</p>
+        <button className="text-button" type="button" onClick={handleRetry}>
+          Retry trends
+        </button>
+      </section>
+    );
+  }
+
+  if (!trendData || rows.length === 0 || !summary) {
+    return (
+      <InsightEmptyState
+        title="Historical trend data is not available yet."
+        message="UPL Lens will show season comparisons here once trend rows are returned by the data service."
+      />
+    );
+  }
 
   return (
-    <>
+    <div className="trends-page">
       <PageIntro
-        eyebrow="Historical context"
+        eyebrow="League evolution"
         title="Trends"
-        text="Season-level comparisons, coverage notes, and compact visual summaries that help place the current season inside a broader UPL story."
+        text={`Track how the Uganda Premier League changes across available seasons: scoring levels, card patterns, result balance, and data coverage. ${seasonRange}.`}
       />
 
-      <section className="metric-grid compact-metrics" aria-label="Trends summary">
-        <KpiCard
-          accent="green"
-          icon={<CalendarRange size={18} />}
-          label="Seasons tracked"
-          value={sortedSeasons.length}
-          context={
-            earliestSeason && latestSeason
-              ? `${formatSeason(earliestSeason.season)} to ${formatSeason(latestSeason.season)}`
-              : "Season range unavailable"
-          }
-          variant="compact"
+      <section className="trends-summary-grid" aria-label="Season trends summary">
+        <MetricDelta
+          label="Seasons covered"
+          value={summary.season_count}
+          context={seasonRange}
+          tone="positive"
         />
-        <KpiCard
-          accent="gold"
-          icon={<BarChartBig size={18} />}
-          label="Matches recorded"
-          value={totalMatches}
-          context="Total matches across available seasons."
-          variant="compact"
+        <MetricDelta
+          label="Matches analysed"
+          value={summary.total_matches}
+          context="Recorded matches across the trend window."
+          tone="neutral"
         />
-        <KpiCard
-          icon={<Flag size={18} />}
-          label="Average per season"
-          value={averageMatches}
-          context="Approximate match count per recorded season."
-          variant="compact"
+        <MetricDelta
+          label="Goals per match"
+          value={formatRate(summary.average_goals_per_match)}
+          context="Based on scoreline goals for fair season comparison."
+          tone="positive"
+        />
+        <MetricDelta
+          label="Cards per match"
+          value={formatRate(summary.average_cards_per_match)}
+          context="Yellow and red cards where event data is available."
+          tone={overallStatus === "good" ? "neutral" : "warning"}
+        />
+        <MetricDelta
+          label="Latest season"
+          value={summary.latest_season ? formatSeason(summary.latest_season) : "Unavailable"}
+          context="Newest season included in the trend view."
+          tone="neutral"
+        />
+        <MetricDelta
+          label="Timeline coverage"
+          value={formatShare(coverageShare)}
+          context="Complete event timelines across trend rows."
+          tone={overallStatus === "good" ? "positive" : "warning"}
         />
       </section>
 
-      <section className="trends-discovery-grid" aria-label="Trends discovery">
-        <article className="trends-card trends-card-featured trends-discovery-feature">
-          <div className="trends-card-featured-content">
-            <span className="eyebrow">League context</span>
-            <div className="trends-card-icon" aria-hidden="true">
-              <LineChart size={18} />
-            </div>
-            <strong>Read this season against the rest of the archive.</strong>
-            <p>
-              UPL Lens can already compare season coverage, match volume, and calendar span across the recorded league
-              seasons. This gives every insight a stronger frame before we layer in richer trend modules.
-            </p>
-            <div className="insight-feature-stat-grid trends-feature-stats" aria-label="Trend highlights">
-              <div className="insight-feature-stat">
-                <span>Latest season</span>
-                <strong>{latestSeason ? formatSeason(latestSeason.season) : "N/A"}</strong>
-              </div>
-              <div className="insight-feature-stat">
-                <span>Coverage span</span>
-                <strong>{earliestSeason && latestSeason ? `${sortedSeasons.length} seasons` : "N/A"}</strong>
-              </div>
-              <div className="insight-feature-stat">
-                <span>Total matches</span>
-                <strong>{totalMatches.toLocaleString()}</strong>
-              </div>
+      <section className="trends-chart-grid" aria-label="League trend charts">
+        <article className="panel trends-chart-panel">
+          <MiniBarChart
+            data={goalsData}
+            description="Goals per match helps compare seasons more fairly than total goals alone."
+            emptyLabel="Scoring-rate trend data is not available yet."
+            height="regular"
+            title="Scoring over time"
+            valueFormatter={(value) => value.toFixed(2)}
+          />
+          <p className="trends-panel-note">
+            The available match data suggests scoring levels varied across seasons. Scoreline goals are the primary
+            scoring source here.
+          </p>
+        </article>
+
+        <article className="panel trends-chart-panel">
+          <MiniBarChart
+            data={cardsData}
+            description="Card trends should be read with event coverage in mind."
+            emptyLabel="Card-rate trend data is not available yet."
+            height="regular"
+            title="Discipline over time"
+            valueFormatter={(value) => value.toFixed(2)}
+          />
+          <p className="trends-panel-note">
+            Yellow and red cards are compared as a rate so seasons with different match counts can still be read
+            together.
+          </p>
+        </article>
+
+        <article className="panel trends-chart-panel trends-chart-panel-wide">
+          <div className="section-heading compact">
+            <div>
+              <h2>Result balance</h2>
+              <p>Home wins, draws, and away wins show how results were distributed across available seasons.</p>
             </div>
           </div>
-          <div className="trends-card-featured-graph" aria-hidden="true">
-            <BarChartBig size={168} />
+          <div className="trends-stacked-list">
+            {chartRows.map((row) => (
+              <StackedShareBar
+                key={row.season}
+                label={formatSeason(row.season)}
+                segments={[
+                  { label: "Home wins", value: row.home_wins, tone: "green" },
+                  { label: "Draws", value: row.draws, tone: "muted" },
+                  { label: "Away wins", value: row.away_wins, tone: "gold" },
+                ]}
+                valueFormatter={(value, share) => `${value.toLocaleString()} (${formatPercent(share)})`}
+              />
+            ))}
           </div>
         </article>
 
-        <article className="panel trends-discovery-note">
-          <div className="trends-discovery-note-icon" aria-hidden="true">
-            <SplitSquareVertical size={18} />
-          </div>
-          <div className="trends-discovery-note-copy">
-            <strong>What you can compare today</strong>
-            <p>
-              Season windows, match volume, team field size, and the shape of currently promoted scoring trends can be
-              read together without leaving this page.
-            </p>
-          </div>
-        </article>
-
-        <article className="panel trends-discovery-note">
-          <div className="trends-discovery-note-icon" aria-hidden="true">
-            <Trophy size={18} />
-          </div>
-          <div className="trends-discovery-note-copy">
-            <strong>Current promoted angle</strong>
-            <p>
-              {featuredGoalTiming
-                ? `Goal Timing is currently framed across ${featuredGoalTiming.season_count} season${featuredGoalTiming.season_count === 1 ? "" : "s"}, while your active dashboard selection is ${selectedSeasonLabel.toLowerCase()}. The leading window share in the featured insight is ${selectedPeakShare !== null ? formatPercent(selectedPeakShare) : "N/A"}.`
-                : "Goal Timing will appear here once the current promoted insight is available."}
-            </p>
-            {featuredGoalTiming ? (
-              <Link className="text-button subtle" to="/insights/goal-timing">
-                Open featured insight
-              </Link>
-            ) : null}
-          </div>
+        <article className="panel trends-chart-panel">
+          <MiniBarChart
+            data={highScoringData}
+            description="This highlights seasons where open or goal-heavy matches were more common."
+            emptyLabel="High-scoring match share is not available yet."
+            height="regular"
+            title="High-scoring match share"
+            valueFormatter={(value) => formatPercent(value)}
+          />
+          <p className="trends-panel-note">The chart uses the share of matches with three or more goals.</p>
         </article>
       </section>
 
-      <section className="panel">
+      <section className="panel trends-coverage-panel">
+        <div className="section-heading compact">
+          <div>
+            <h2>Data coverage</h2>
+            <p>Coverage matters because some comparisons depend on event timelines, not only scorelines.</p>
+          </div>
+          <SignalChip label={formatStatus(overallStatus)} size="small" tone={signalToneForStatus(overallStatus)} />
+        </div>
+
+        <div className="trends-coverage-grid">
+          <div className="trends-coverage-bars">
+            <StackedShareBar
+              label="Timeline availability"
+              segments={[
+                { label: "Complete", value: coverageTotals.complete, tone: "green" },
+                { label: "Partial", value: coverageTotals.partial, tone: "gold" },
+                { label: "Unavailable", value: coverageTotals.unavailable, tone: "muted" },
+              ]}
+              valueFormatter={(value, share) => `${value.toLocaleString()} (${formatPercent(share)})`}
+            />
+          </div>
+          <DataQualityNote
+            title="Trend reading note"
+            tone={qualityToneForStatus(overallStatus)}
+            note={
+              timelineGoalGap > 0
+                ? `Scoreline goals and timeline goals differ by ${timelineGoalGap.toLocaleString()} across the available seasons, so event-timeline comparisons should be read with coverage in mind.`
+                : "Scoreline trends are the safest comparison. Timeline-dependent readings should still account for complete, partial, and unavailable event coverage."
+            }
+            metrics={[
+              { label: "Complete timelines", value: coverageTotals.complete.toLocaleString() },
+              { label: "Partial timelines", value: coverageTotals.partial.toLocaleString() },
+              { label: "Unavailable timelines", value: coverageTotals.unavailable.toLocaleString() },
+              { label: "Source anomalies", value: coverageTotals.sourceAnomalies.toLocaleString() },
+              { label: "Admin results", value: coverageTotals.administrativeResults.toLocaleString() },
+            ]}
+          />
+        </div>
+
+        {qualityNotes.length > 0 ? (
+          <div className="trends-quality-note-list" aria-label="Season data quality notes">
+            {qualityNotes.map((row) => (
+              <article key={row.season}>
+                <SignalChip
+                  label={formatSeason(row.season)}
+                  size="small"
+                  tone={signalToneForStatus(row.data_quality_status)}
+                />
+                <p>{row.data_quality_note}</p>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="panel trends-table-panel">
         <div className="section-heading compact">
           <div>
             <h2>Season comparison</h2>
-            <p>Coverage, match volume, and season span from the metadata currently loaded into the public app.</p>
+            <p>A compact reference table for the trend rows behind the charts.</p>
           </div>
         </div>
 
-        {sortedSeasons.length > 0 ? (
-          <div className="trend-table-shell">
-            <div className="trend-table-header" aria-hidden="true">
-              <span>Season</span>
-              <span>Matches</span>
-              <span>Teams</span>
-              <span>Span</span>
-              <span>Window</span>
-            </div>
-            <div className="trend-table-list">
-              {seasonRows.map((season) => (
-                <article className="trend-table-row" key={season.season}>
-                  <div className="trend-table-primary">
-                    <strong>{formatSeason(season.season)}</strong>
-                    <small>
-                      {formatDate(season.first_match_date)} to {formatDate(season.last_match_date)}
-                    </small>
-                  </div>
-                  <div className="trend-table-metric">
-                    <strong>{season.match_count.toLocaleString()}</strong>
-                    <small>matches</small>
-                  </div>
-                  <div className="trend-table-metric">
-                    <strong>{season.team_count.toLocaleString()}</strong>
-                    <small>teams</small>
-                  </div>
-                  <div className="trend-table-metric">
-                    <strong>{season.spanDays ? `${season.spanDays} days` : "N/A"}</strong>
-                    <small>
-                      {season.matchesPerTeam !== null
-                        ? `${season.matchesPerTeam.toFixed(1)} matches per team`
-                        : "Per-team rate unavailable"}
-                    </small>
-                  </div>
-                  <div className="trend-table-bar-stack" aria-label={`Season coverage bars for ${season.season}`}>
-                    <div className="trend-table-bar-row">
-                      <span>Volume</span>
-                      <div className="trend-table-bar-track">
-                        <div
-                          className="trend-table-bar-fill is-green"
-                          style={{ width: `${season.matchShare > 0 ? Math.max(12, season.matchShare * 100) : 0}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="trend-table-bar-row">
-                      <span>Span</span>
-                      <div className="trend-table-bar-track">
-                        <div
-                          className="trend-table-bar-fill is-gold"
-                          style={{ width: `${season.seasonSpanShare > 0 ? Math.max(12, season.seasonSpanShare * 100) : 0}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </article>
+        <div className="trends-season-table">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Season</th>
+                <th scope="col">Matches</th>
+                <th scope="col">Teams</th>
+                <th scope="col">Goals/match</th>
+                <th scope="col">Cards/match</th>
+                <th scope="col">Home / Draw / Away</th>
+                <th scope="col">High-scoring</th>
+                <th scope="col">Timeline coverage</th>
+                <th scope="col">Data status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row) => (
+                <tr key={row.season}>
+                  <td data-label="Season">
+                    <strong>{formatSeason(row.season)}</strong>
+                    <span>
+                      {formatDate(row.first_match_date)} to {formatDate(row.last_match_date)}
+                    </span>
+                  </td>
+                  <td data-label="Matches">{formatNumber(row.match_count)}</td>
+                  <td data-label="Teams">{formatNumber(row.team_count)}</td>
+                  <td data-label="Goals/match">{formatRate(row.goals_per_match)}</td>
+                  <td data-label="Cards/match">{formatRate(row.cards_per_match)}</td>
+                  <td data-label="Home / Draw / Away">
+                    {row.home_wins.toLocaleString()} / {row.draws.toLocaleString()} / {row.away_wins.toLocaleString()}
+                  </td>
+                  <td data-label="High-scoring">{formatShare(row.high_scoring_match_share)}</td>
+                  <td data-label="Timeline coverage">{formatShare(row.timeline_coverage_share)}</td>
+                  <td data-label="Data status">
+                    <SignalChip
+                      label={formatStatus(row.data_quality_status)}
+                      size="small"
+                      tone={signalToneForStatus(row.data_quality_status)}
+                    />
+                  </td>
+                </tr>
               ))}
-            </div>
-          </div>
-        ) : (
-          <EmptyState
-            message={loadState === "loading" ? "Loading season trend summaries." : "No season trend data available yet."}
-          />
-        )}
+            </tbody>
+          </table>
+        </div>
       </section>
-
-      <section className="trends-grid" aria-label="Trend reading notes">
-        <article className="trends-card">
-          <div className="trends-card-icon" aria-hidden="true">
-            <Clock3 size={18} />
-          </div>
-          <div className="trends-card-content">
-            <strong>Season windows</strong>
-            <p>
-              Use the first and last recorded match dates to understand whether a season snapshot covers a compact run
-              or a longer competition window.
-            </p>
-          </div>
-        </article>
-        <article className="trends-card">
-          <div className="trends-card-icon" aria-hidden="true">
-            <Flag size={18} />
-          </div>
-          <div className="trends-card-content">
-            <strong>Match volume</strong>
-            <p>
-              Match totals show how complete each season looks in the current archive and give a quick sense of sample
-              depth before you compare findings.
-            </p>
-          </div>
-        </article>
-        <article className="trends-card">
-          <div className="trends-card-icon" aria-hidden="true">
-            <CalendarRange size={18} />
-          </div>
-          <div className="trends-card-content">
-            <strong>Team field size</strong>
-            <p>
-              Team counts help explain why some seasons may need careful reading before you compare totals or rate-like
-              signals directly.
-            </p>
-          </div>
-        </article>
-        <article className="trends-card">
-          <div className="trends-card-icon" aria-hidden="true">
-            <ArrowRight size={18} />
-          </div>
-          <div className="trends-card-content">
-            <strong>Next step</strong>
-            <p>
-              Move from this archive view into the promoted insight, then back to matches or teams to check how the
-              league-level pattern shows up in specific reports.
-            </p>
-          </div>
-          <Link className="trends-card-action" to={featuredGoalTiming ? "/insights/goal-timing" : "/matches"}>
-            {featuredGoalTiming ? "Open goal timing" : "Browse matches"}
-          </Link>
-        </article>
-      </section>
-    </>
+    </div>
   );
 }

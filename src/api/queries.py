@@ -18,8 +18,10 @@ from src.api.query_services.common import (
 from src.api.query_services.events import list_events
 from src.api.query_services.health import get_health_status
 from src.api.query_services.insights import get_goal_timing_insight
-from src.api.query_services.matches import get_match, list_matches
+from src.api.query_services.matches import get_match, list_match_intelligence, list_matches
 from src.api.query_services.officials import list_officials
-from src.api.query_services.players import get_player, list_players
+from src.api.query_services.overview import get_overview_intelligence
+from src.api.query_services.players import get_player, get_player_leaderboards, list_players
 from src.api.query_services.seasons import _event_type_label, get_season_overview, list_seasons
-from src.api.query_services.teams import list_teams
+from src.api.query_services.teams import get_team_profile, list_teams
+from src.api.query_services.trends import get_season_trends

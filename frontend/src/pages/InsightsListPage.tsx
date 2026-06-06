@@ -33,7 +33,7 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
         <KpiCard
           accent="gold"
           label="Peak window share"
-          value={peakShare !== null ? formatPercent(peakShare) : "N/A"}
+          value={peakShare !== null ? formatPercent(peakShare) : "Unavailable"}
           context="Top regular-time scoring share from the featured insight scope."
           variant="compact"
         />
@@ -69,7 +69,7 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
                   </div>
                   <div className="insight-feature-stat">
                     <span>Peak share</span>
-                    <strong>{peakShare !== null ? formatPercent(peakShare) : "N/A"}</strong>
+                    <strong>{peakShare !== null ? formatPercent(peakShare) : "Unavailable"}</strong>
                   </div>
                   <div className="insight-feature-stat">
                     <span>Intervals</span>

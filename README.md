@@ -34,6 +34,29 @@ a fixtures clone or developer-portfolio landing page.
 The backend runs on a free Render service, so the first API request after an
 idle period can be slow while the service wakes up.
 
+## Intelligence-layer API
+
+The backend now supports routine intelligence modules for the public frontend,
+so UPL Lens can show football meaning instead of only archive records.
+
+These endpoints support season trend charts, attack/defence comparison, team
+profile signals, match interest scoring, key moments, player contribution
+leaderboards, and visible data-quality caveats:
+
+- `GET /trends/seasons`
+- `GET /teams/{team_slug}/profile`
+- `GET /matches/intelligence`
+- `GET /players/leaderboards`
+- `GET /teams`
+- `GET /matches/{match_id}`
+- `GET /players/{player_slug}`
+- `GET /overview/intelligence`
+- `GET /seasons/overview`
+
+For the current frontend-facing contract, see
+[docs/API_CONTRACT.md](docs/API_CONTRACT.md). The higher-level intelligence
+endpoint note remains in [docs/API_INTELLIGENCE_ENDPOINTS.md](docs/API_INTELLIGENCE_ENDPOINTS.md).
+
 ## What It Shows
 
 UPL Lens is built to answer football questions that are difficult
@@ -161,6 +184,7 @@ Use these docs instead of trying to learn the whole repository from the README:
 | Operations, logs, tests, validation, escalation | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 | Notebook-to-product feature workflow | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
 | Research ideas, feature status, and promotion rules | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
+| Intelligence-layer API contract | [docs/API_CONTRACT.md](docs/API_CONTRACT.md) |
 | UPL Lens frontend redesign entrypoint | [docs/UPL_LENS_FRONTEND_START_HERE.md](docs/UPL_LENS_FRONTEND_START_HERE.md) |
 | Frontend UX requests and approved design rules | [docs/FRONTEND_UX_REQUESTS.md](docs/FRONTEND_UX_REQUESTS.md), [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md) |
 | Deployment and operations notes | [docs/OPERATIONS.md](docs/OPERATIONS.md) |

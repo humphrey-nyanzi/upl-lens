@@ -361,6 +361,11 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   [docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md),
   [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md), any relevant developer
   or feature guide, and the current files related to the task.
+- When doing frontend work, consult and follow the installed
+  `build-web-apps:frontend-app-builder`, `impeccable`, and `tufte-viz` skills
+  as applicable. Use `frontend-app-builder` for new frontend surfaces or
+  redesigns, `impeccable` for UI shaping, audit, and polish passes, and
+  `tufte-viz` for chart and data-visualization choices.
 - Explain work systematically and beginner-consciously. For each implementation
   step, briefly state what is being changed, why it matters, and how to run or
   verify it.

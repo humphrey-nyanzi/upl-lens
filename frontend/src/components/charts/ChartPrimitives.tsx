@@ -125,7 +125,11 @@ export function InsightChartCard({
 }
 
 export function ChartEmptyState({ message = "No chart data available yet." }: { message?: string }) {
-  return <div className="chart-empty-state">{message}</div>;
+  return (
+    <div className="chart-empty-state" role="status">
+      {message}
+    </div>
+  );
 }
 
 export function ChartLegend({ items }: { items: LegendItem[] }) {
