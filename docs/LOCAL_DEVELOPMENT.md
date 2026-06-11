@@ -1,12 +1,10 @@
-# Local Development
+# Local Development And Operations
 
-This guide is the practical developer-experience path for running, checking,
-and debugging the UPL Lens product and the broader UPL Match Intelligence repo
-on a local machine.
+This guide is the practical path for running, checking, refreshing, validating,
+and debugging the UPL Lens product and the broader UPL Match Intelligence repo.
 
-Use [START_HERE.md](START_HERE.md) for project orientation and
-[CHANGELOG.md](CHANGELOG.md) when you need quick recent context before digging
-deeper.
+Use [START_HERE.md](START_HERE.md) for project orientation and current
+high-signal history before digging deeper.
 
 ## First 30 Minutes
 
@@ -220,6 +218,148 @@ npm run build
 If the build still fails, read the TypeScript error first. Most frontend build
 failures are caused by changed response types, missing fields, or import paths.
 
+## Operations Model
+
+Operations owns the path from source refresh to app-safe tables:
+
+```text
+Official UPL site
+  -> scrape current season
+  -> write raw season CSVs
+  -> load raw.* Postgres tables
+  -> verify raw counts
+  -> rebuild staging.*
+  -> verify staging outputs
+  -> expose app-safe data through FastAPI
+```
+
+The normal orchestration command is:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
+```
+
+Routine refreshes skip migrations by default because scheduled jobs should use
+a least-privilege loader role. Schema changes belong to a separate admin path.
+
+## Routine Versus Admin Paths
+
+| Path | Purpose | Permissions |
+|------|---------|-------------|
+| Routine refresh | Update raw, staging, and analytics-safe data | least-privilege loader role |
+| Admin migration work | Apply schema or permission changes | admin-capable credential |
+
+Routine weekly refresh defaults:
+
+```text
+season_scope=current
+run_type=routine-refresh
+apply_migrations=false
+use_cache=false
+force_full_scrape=false
+```
+
+Use `--force-full-scrape` only when you intentionally need a whole-season
+scrape. Full mode otherwise uses Postgres change detection so completed matches
+do not get re-fetched unnecessarily.
+
+## Hosted Workflow Modes
+
+The GitHub workflow exposes operator-level choices:
+
+| Input | Normal value | Meaning |
+|------|--------------|---------|
+| `season_scope` | `current` | Use `current`, `all`, or `custom`. |
+| `season` | `2025-26` | Only used when `season_scope=custom`; pass comma-separated seasons. |
+| `run_type` | `routine-refresh` | Use `routine-refresh`, `rebuild-from-existing-raw`, or `artifact-only`. |
+| `apply_migrations` | `false` | Apply schema migrations before data work. |
+| `use_cache` | `false` | Allow cached scraper HTML or checkpoints. |
+| `force_full_scrape` | `false` | Scrape every calendar match instead of using change detection. |
+
+After admin SQL has already been handled separately, the safest hosted catch-up
+run is:
+
+```text
+season_scope=all
+run_type=rebuild-from-existing-raw
+apply_migrations=false
+use_cache=false
+force_full_scrape=false
+```
+
+Use an admin-capable credential only when schema migrations must run. After the
+migration setup is complete, switch secrets back to the least-privilege loader
+role.
+
+## Logs And Run Summaries
+
+Each operations run writes step logs under:
+
+```text
+outputs/automation/<season>/
+```
+
+Typical files:
+
+```text
+<timestamp>_scrape_current_season.log
+<timestamp>_load_raw_to_postgres.log
+<timestamp>_verify_raw_postgres_counts.log
+<timestamp>_build_staging_from_raw.log
+<timestamp>_verify_staging_outputs.log
+<timestamp>_run_summary.json
+```
+
+Step logs answer what happened inside a stage. The JSON run summary records the
+final operational state: season, mode, migration behavior, verification status,
+remaining failed matches, raw row counts, loader counts, and step-log paths.
+
+In GitHub Actions, upload both raw files and `outputs/automation/` logs as
+artifacts even when a run fails.
+
+## Severity And Escalation
+
+Use this severity language consistently:
+
+```text
+INFO    Normal progress, such as loaded row counts.
+WARNING Odd or incomplete, but not blocking.
+ERROR   A stage failed or data quality is unsafe.
+FATAL   The run cannot continue.
+```
+
+Use this escalation ladder:
+
+```text
+Level 0: Record only
+Level 1: Warn in logs or summaries
+Level 2: Record a validation issue
+Level 3: Fail the automation run
+Level 4: Require manual/admin intervention
+```
+
+Escalate to a failed run when a required stage exits with an error, raw loaded
+counts disagree with CSV counts, staging verification reports error-level
+issues, or remaining failed matches were configured to block the run.
+
+Escalate to manual or admin intervention when routine automation needs schema
+permissions, a migration must be applied, database roles need changes, or
+secrets may have been exposed.
+
+## Hosted Troubleshooting
+
+Do not put hosted Supabase credentials in the repository. Use GitHub Actions
+logs as hosted evidence and local operations summaries as local evidence.
+
+Mirror-check command:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\verify_operations_log_sync.py --season 2025-26 --latest-github-run --run-local-update
+```
+
+That command compares the latest successful hosted workflow with a local
+current-season run and writes a sync report under `outputs/sync/`.
+
 ### Current-season refresh asks for too much database permission
 
 Routine refreshes should not need admin migration privileges. Use:
@@ -229,15 +369,13 @@ Routine refreshes should not need admin migration privileges. Use:
 ```
 
 Schema changes belong to an admin or migration path. See
-[OPERATIONS.md](OPERATIONS.md).
+[the operations model above](#operations-model).
 
 ## Where To Go Next
 
-- [OPERATIONS.md](OPERATIONS.md) for logs, validation, run summaries, and
-  escalation.
 - [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) for notebook
   research promotion.
-- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) for planned UI/UX work.
 - [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for approved frontend
-  behavior and design rules.
-- [CHANGELOG.md](CHANGELOG.md) for recent repo changes.
+  behavior, API contracts, page requirements, and planned UI/UX work.
+- [diagram_collection.md](diagram_collection.md) for architecture and workflow
+  diagrams.

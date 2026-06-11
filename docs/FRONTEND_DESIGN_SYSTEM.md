@@ -1,16 +1,18 @@
-# Frontend Design System
+# Frontend Design System And API Guide
 
-This document is the frontend playbook for the public product now known as
-UPL Lens (frontend). It documents durable visual and UX rules that should
-drive implementation. Historical references to "UPL Match Intelligence"
-remain for archival context; the active frontend source-of-truth for launch is
-the UPL Lens design guidance below and
-[UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md).
+This document is the single product implementation guide for the UPL Lens
+frontend. It now owns frontend design rules, launch decisions, API contract
+notes, page requirements, content wireframes, and the approved UI/UX request
+queue.
 
 This document is the single source of truth for:
 
 - approved visual direction
 - durable UI and UX rules
+- frontend-facing API contracts
+- intelligence-layer page requirements
+- text/content wireframes
+- approved and pending frontend work
 - layout, token, and component guidance
 - page templates and product-surface expectations
 - visual acceptance criteria for future frontend work
@@ -18,25 +20,41 @@ This document is the single source of truth for:
 Use this with:
 
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
-- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
-- [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md)
 
-## UPL Lens Launch Docs
+## Frontend Source Of Truth
 
-For the current public frontend relaunch, use these companion docs in this
-order:
+The former UPL Lens launch docs have been folded into this file. Use this
+order when frontend guidance conflicts:
 
-1. [UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md](UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md)
-2. [UPL_LENS_TEXT_WIREFRAMES.md](UPL_LENS_TEXT_WIREFRAMES.md)
-3. [UPL_LENS_PAGE_REQUIREMENTS.md](UPL_LENS_PAGE_REQUIREMENTS.md)
-4. [UPL_LENS_INFORMATION_ARCHITECTURE.md](UPL_LENS_INFORMATION_ARCHITECTURE.md)
-5. this design system
-6. [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
+1. High-fidelity launch decisions in this file
+2. Intelligence-layer page requirements in this file
+3. API contract notes in this file
+4. Text/content wireframes in this file
+5. Durable design tokens and component rules in this file
+6. Active request queue in this file
+7. Older roadmap/history docs
 
-Use this file for durable implementation rules and accepted standards. If a
-launch-specific UPL Lens artifact carries an explicit exception, follow that
-artifact and then fold the durable part back into this file once implemented.
+If a future design decision becomes durable, fold it into this document instead
+of creating a new sibling doc.
+
+## Current Frontend Implementation Phase
+
+The backend has been upgraded for intelligence-layer frontend work. The next
+implementation order is:
+
+1. Sync `frontend/src/api/client.ts` and `frontend/src/api/types.ts` with the
+   current backend responses.
+2. Build reusable visual components for charts, signal chips, form strips,
+   timeline rails, and data-quality notes.
+3. Upgrade the Trends page first.
+4. Upgrade Teams and Team Detail.
+5. Upgrade Matches and Match Detail.
+6. Upgrade Players and Player Detail.
+7. Refine Overview and About.
+
+Do not begin page redesigns before checking the API contract and the page
+requirements below.
 
 ## Product Architecture Rule
 
@@ -55,6 +73,48 @@ React must not read:
 
 If the UI needs new data, add or extend the FastAPI and query layer instead of
 bypassing it.
+
+## Frontend API Contract
+
+Use this section when syncing `frontend/src/api/client.ts` and
+`frontend/src/api/types.ts`, planning page upgrades, or checking whether a page
+should use routine intelligence or a promoted insight.
+
+Routine intelligence modules belong on normal pages. Promoted notebook-backed
+insights belong in `/insights`.
+
+| Endpoint | Purpose | Pages | Important fields | Status |
+|---|---|---|---|---|
+| `GET /health` | API and database health | Shell, About, Methodology | `status`, `database`, `latest_staging_completed_at` | existing |
+| `GET /seasons` | Available seasons and coverage | Overview, filters, detail pages | `season`, `match_count`, `first_match_date`, `last_match_date`, `team_count` | existing |
+| `GET /seasons/overview` | Season aggregate summary | Overview, Methodology | `match_count`, `team_count`, `timeline_goal_count`, `scoreline_goal_count`, `event_breakdown` | extended |
+| `GET /overview/intelligence` | Editorial overview modules | Overview | `season_pulse`, `things_to_notice`, `recent_signal_matches`, `team_signals`, `data_quality` | new |
+| `GET /trends/seasons` | Season trend charts and comparison table | Trends, Overview teasers | `goals_per_match`, `cards_per_match`, `home_win_share`, `draw_share`, `high_scoring_match_share`, `timeline_coverage_share`, `data_quality_status` | new |
+| `GET /matches` | Basic match list | Simple match lists and fallbacks | `match_id`, `home_team`, `away_team`, `result`, `timeline_status`, `match_url` | existing |
+| `GET /matches/intelligence` | Match triage with computed signals | Matches, Overview signal cards | `interest_score`, `primary_signal`, `signal_labels`, `event_count`, `late_goal_count`, `final_15_goal_count` | new |
+| `GET /matches/{match_id}` | Match intelligence brief | Match Detail | `intelligence_summary`, `key_moments`, `event_phase_summary`, `score_progression`, `events`, `officials`, `stats` | extended |
+| `GET /teams` | Team index with rate fields | Teams, Overview team signals | `goal_difference`, `goals_per_match`, `conceded_per_match`, `win_rate`, `points_per_match`, `profile_labels` | extended |
+| `GET /teams/{team_slug}/profile` | Team dossier | Team Detail | `home_record`, `away_record`, `form`, `goal_timing`, `discipline_summary`, `data_quality` | new |
+| `GET /players` | Player index with rates | Players, player links | `goal_contributions`, `starts_share`, `cards`, `profile_labels` | extended |
+| `GET /players/leaderboards` | Grouped contribution leaderboards | Players | `goals`, `assists`, `appearances`, `starts`, `goal_contributions`, `cards`, `bench_impact`, `data_quality_note` | new |
+| `GET /players/{player_slug}` | Player contribution profile | Player Detail | `season_breakdown`, `recent_matches`, `season_trend`, `data_quality_note` | extended |
+| `GET /events` | Event browse/supporting data | Secondary detail views, debugging | `event_type`, `minute_total`, `minute_period`, `team_name`, `player_name` | existing |
+| `GET /officials` | Officials browse/supporting data | Match Detail, debugging | `role`, `official_name`, `match_id` | existing |
+| `GET /insights/goal-timing` | Promoted Feature 1 insight | Insights, Goal Timing, Overview | `intervals`, `peak_interval`, `total_regular_time_goals`, `scope_key` | existing |
+
+Frontend rules:
+
+- Use `/overview/intelligence` and `/matches/intelligence` for richer overview
+  and triage pages.
+- Use `/teams/{team_slug}/profile` and `/players/leaderboards` to avoid
+  rebuilding backend logic in React.
+- Use `/matches/{match_id}` for match briefs, but show `key_moments` and
+  `intelligence_summary` before any full event list.
+- Use `data_quality_note`, `timeline_status`, `source_anomaly_reason`, and
+  similar fields as visible caveats.
+- When the backend contract changes, update this section,
+  `frontend/src/api/types.ts`, `frontend/src/api/client.ts`, and the affected
+  page guidance below.
 
 ## Source Record Vs Intelligence Layer
 
@@ -159,6 +219,154 @@ These surfaces are approved as part of the public product direction:
 The current deployed app is still a pilot. It proves the architecture, but the
 long-term direction is a richer analytical product.
 
+## Page Roles And Requirements
+
+These roles replace the older split launch-doc structure:
+
+- Overview = editorial control room
+- Matches = match intelligence triage
+- Match Detail = match intelligence brief
+- Teams = team intelligence board
+- Team Detail = team dossier
+- Players = player contribution board
+- Player Detail = player contribution profile
+- Insights = promoted research library
+- Trends = league evolution
+- About = trust and methodology
+
+Normal pages can contain routine intelligence modules such as signal labels,
+profile labels, comparison bars, form strips, and data-quality notes. Those
+modules do not turn a page into a promoted insight. Promoted insights remain
+the notebook -> validation -> API -> frontend outputs that live under
+`/insights`.
+
+### Overview
+
+- Required sections: Season Pulse, Things to Notice, Recent Signal Matches,
+  Team Signals, Featured Insight, Data Quality / Freshness Note.
+- Visual slots: compact gauge bars, event breakdown strip, match signal cards,
+  trend teaser mini-chart.
+- Backend: `/seasons/overview`, `/overview/intelligence`,
+  `/matches/intelligence`, `/teams`, `/insights/goal-timing`.
+
+### Matches
+
+- Required sections: signal filter panel, match intelligence summary strip,
+  match-type filters, interest-based sorting, evidence quality summary, match
+  signal cards/list.
+- Supported filters when available: latest, interest, goals, events, cards,
+  late_drama, goal_heavy, red_card, administrative_result, timeline_complete,
+  timeline_partial, timeline_unavailable.
+- Backend: `/matches/intelligence`, `/matches/{match_id}`. Use `/matches` only
+  for basic list fallback.
+
+### Match Detail
+
+- Required sections: match signal summary, key moments, event timeline rail,
+  score progression, event phase summary, compact source metadata, data
+  completeness note, official source link.
+- Do not lead with a raw event dump. Key moments and analytical framing come
+  first.
+- Backend: `/matches/{match_id}` with `intelligence_summary`, `key_moments`,
+  `event_phase_summary`, and `score_progression`.
+
+### Teams
+
+- Required sections: team summary strip, attack vs defence comparison, points
+  vs goal difference comparison, team archetype/profile labels, team signal
+  rankings, team card/list.
+- Visual slots: attack vs defence scatter, points vs goal difference scatter,
+  horizontal comparison bars.
+- Backend: `/teams`.
+
+### Team Detail
+
+- Required sections: team identity panel, record summary, attack/defence
+  profile, home/away split, recent form strip, recent goals for/against visual,
+  team goal timing mini-chart, discipline/event summary, data quality note.
+- Backend: `/teams/{team_slug}/profile`.
+
+### Players
+
+- Required sections: grouped leaderboards, player filters/search/sort,
+  contribution categories, data-quality caveat.
+- Visual slots: goals vs starts scatter, contribution bars, leaderboard cards.
+- Backend: `/players`, `/players/leaderboards`.
+
+### Player Detail
+
+- Required sections: contribution identity, output rates, starts share, season
+  trend, recent involvement, data-quality note.
+- Backend: `/players/{player_slug}` with `goal_contributions`,
+  `goals_per_appearance`, `assists_per_appearance`,
+  `goal_contributions_per_appearance`, `starts_share`,
+  `cards_per_appearance`, `profile_labels`, `season_trend`, and
+  `data_quality_note`.
+
+### Trends
+
+- Required sections: trends summary cards, scoring over time, discipline over
+  time, home/draw/away result trend, high-scoring match share, late-goal trend
+  if supported, timeline/data coverage quality, season comparison table.
+- Visual slots: goals per match by season chart, cards per match by season
+  chart, 100% stacked result-share bars, high-scoring match share chart,
+  timeline coverage bars, season comparison table.
+- Backend: `/trends/seasons`.
+- Match volume and season span are supporting context, not the main content.
+
+### About
+
+- Required content: independent/not official note, source record vs
+  intelligence layer explanation, data pipeline summary, data-quality states,
+  maintainer/contact/social links, explanation of scoreline goals vs timeline
+  goals where relevant.
+- Backend: mostly static, with optional `/health` for freshness/status.
+
+## Content Wireframe Summary
+
+Wireframes are intentionally low-fidelity: they describe what appears on each
+page, what the user sees first, how sections relate, what actions are
+available, and how desktop/mobile layouts differ. They do not define final
+colors, typography, spacing, or animations.
+
+Desktop app shell:
+
+```text
+Sidebar | Top Controls
+        | Page Header
+        | Primary Intelligence Modules
+        | Supporting Detail
+        | Footer Strip
+```
+
+Mobile app shell:
+
+```text
+Top Header
+Primary Nav / Menu
+Season / Data Status
+Stacked Page Sections
+Footer
+```
+
+Page-specific wireframe slots:
+
+- Overview: header, season pulse, things to notice, signal matches, team
+  signals, featured insight, data quality.
+- Matches: header, signal filters, intelligence summary, match signal list,
+  evidence note.
+- Match Detail: signal summary, key moments, timeline rail, score progression,
+  phase summary, source link.
+- Teams: summary strip, scatter/comparison slots, profile labels, team list.
+- Team Detail: identity, record, splits, form, timing mini-chart, discipline,
+  data note.
+- Players: leaderboard groups, filters, contribution categories, caveat.
+- Player Detail: identity, output rates, starts share, season trend, recent
+  involvement.
+- Trends: summary cards, season charts, result-share bars, coverage bars,
+  comparison table.
+- About: independence note, source boundary, pipeline, quality states, links.
+
 ## Current Implementation Baseline
 
 The current frontend implementation baseline and the approved launch
@@ -178,7 +386,7 @@ direction are aligned as follows:
 - FastAPI-backed hooks and client calls
 
 The first mockup-aligned redesign pass is complete. Future frontend work should
-come from [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) or explicit user
+come from the active request queue in this document or explicit user
 instruction.
 
 ## Approved Visual Direction
@@ -607,14 +815,41 @@ mockup direction. The goal is close product feel, not pixel-perfect copying.
 - Green and gold accents remain purposeful: action/selection/positive emphasis
   for green, peak timing or attention moments for gold.
 
+## Active Frontend Request Queue
+
+Only implement request work marked `approved`, unless the user explicitly says
+to work on another status.
+
+| Request group | Status | Endpoint/data owner | Acceptance signal |
+|---|---|---|---|
+| Intelligence-layer API client sync | approved | `/trends/seasons`, `/overview/intelligence`, `/matches/intelligence`, `/teams/{team_slug}/profile`, `/players/leaderboards` | `frontend/src/api/types.ts` and `frontend/src/api/client.ts` match the backend contract while existing methods keep working. |
+| Reusable intelligence visual components | needs_review | Existing intelligence endpoint responses | Shared components exist for mini charts, comparison bars, scatter plots, stacked bars, timeline rails, form strips, signal chips, and data-quality notes. |
+| Intelligence-layer page upgrades | approved | Current API contract above | Trends, Teams, Matches, Players, Overview, and About present intelligence modules instead of archive-first records. |
+| Cross-season aggregation and fixed featured-insight framing | approved | Season-aware API responses and promoted insight scope | All Seasons support is clear, while featured insights keep their research scope. |
+| Improve Insights Library and insight exploration surfaces | approved | Existing insight endpoint plus static registry until more insight metadata exists | Insights reads as a promoted research library, not a sparse placeholder. |
+| Expand Trends into a multi-visualization surface | approved | `/trends/seasons` | Trends shows scoring, discipline, result share, high-scoring match share, and data coverage across seasons. |
+
+Implementation order:
+
+1. API client/types sync
+2. reusable intelligence components
+3. Trends rebuild
+4. Teams and Team Detail
+5. Matches and Match Detail
+6. Players and Player Detail
+7. Overview and About polish
+
+Use the installed `build-web-apps:frontend-app-builder`, `impeccable`, and
+`tufte-viz` skills for substantial frontend work, with `tufte-viz` guiding
+chart choice, graphical integrity, and chartjunk removal.
+
 ## Update Rules
 
 Only add guidance here when one of these is true:
 
-- a request in [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) was approved
-  and implemented
+- a frontend request was approved and implemented
 - the user explicitly approved a frontend behavior or design decision
 - an existing implementation was accepted as the durable standard
 
-Keep brainstorm notes and unapproved requests out of this file. Those belong in
-[FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md).
+Keep brainstorm notes and unapproved requests out of this file unless they are
+part of the maintained request queue above.

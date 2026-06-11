@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { apiClient } from "../api/client";
@@ -8,20 +8,35 @@ import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
+import { ShowMoreList } from "../components/common/ShowMoreList";
 import { TeamMarker } from "../components/common/TeamMarker";
-import {
-  DataQualityNote,
-  MetricDelta,
-  SignalChipGroup,
-  StackedShareBar,
-  type DataQualityTone,
-  type ShareSegment,
-  type SignalChipItem,
-} from "../components/intelligence";
+import { DataQualityNote, type DataQualityTone } from "../components/intelligence/DataQualityNote";
+import { MetricDelta } from "../components/intelligence/MetricDelta";
+import { SignalChipGroup, type SignalChipItem } from "../components/intelligence/SignalChip";
+import { StackedShareBar, type ShareSegment } from "../components/intelligence/ComparisonBars";
 import { formatDate, formatScoreline, formatSeason } from "../utils/format";
 import { toApiSeason } from "../utils/seasonScope";
 
 type IntelligenceLoadState = "loading" | "success" | "error";
+
+type MatchIntelligenceViewState = {
+  requestKey: string;
+  rows: MatchIntelligenceSummary[];
+  status: Exclude<IntelligenceLoadState, "loading">;
+};
+
+type MatchExplorerFilters = {
+  matchDayFilter: string;
+  signalFilter: string;
+  sortKey: string;
+  teamFilter: string;
+};
+
+type MatchExplorerFilterAction =
+  | { type: "matchDay"; value: string }
+  | { type: "signal"; value: string }
+  | { type: "sort"; value: string }
+  | { type: "team"; value: string };
 
 const signalOptions = [
   { label: "All signals", value: "all" },
@@ -47,6 +62,18 @@ const sortOptions = [
   { label: "Late drama", value: "late_drama" },
 ];
 
+const emptyMatchRows: MatchIntelligenceSummary[] = [];
+
+function matchExplorerFilterReducer(
+  filters: MatchExplorerFilters,
+  action: MatchExplorerFilterAction,
+): MatchExplorerFilters {
+  if (action.type === "matchDay") return { ...filters, matchDayFilter: action.value };
+  if (action.type === "signal") return { ...filters, signalFilter: action.value };
+  if (action.type === "sort") return { ...filters, sortKey: action.value };
+  return { ...filters, teamFilter: action.value };
+}
+
 function formatNullableNumber(value: number | null) {
   return value === null ? "-" : value.toLocaleString();
 }
@@ -69,7 +96,7 @@ function getTeamOptions(rows: MatchIntelligenceSummary[], fallbackMatches: PageP
     if (match.home_team) names.add(match.home_team);
     if (match.away_team) names.add(match.away_team);
   });
-  return [...names].sort((left, right) => left.localeCompare(right));
+  return Array.from(names).toSorted((left, right) => left.localeCompare(right));
 }
 
 function getTimelineTone(status: string | null): DataQualityTone {
@@ -144,19 +171,24 @@ function MatchSignalCard({ match }: { match: MatchIntelligenceSummary }) {
 export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps) {
   const [searchParams] = useSearchParams();
   const initialTeamFilter = searchParams.get("team") ?? "all";
-  const [teamFilter, setTeamFilter] = useState(initialTeamFilter);
-  const [matchDayFilter, setMatchDayFilter] = useState("all");
-  const [signalFilter, setSignalFilter] = useState("all");
-  const [sortKey, setSortKey] = useState("interest");
-  const [rows, setRows] = useState<MatchIntelligenceSummary[]>([]);
-  const [intelligenceState, setIntelligenceState] = useState<IntelligenceLoadState>("loading");
+  const [{ matchDayFilter, signalFilter, sortKey, teamFilter }, updateFilters] = useReducer(matchExplorerFilterReducer, {
+    matchDayFilter: "all",
+    signalFilter: "all",
+    sortKey: "interest",
+    teamFilter: initialTeamFilter,
+  });
+  const requestKey = `${selectedSeason}|${teamFilter}|${matchDayFilter}|${signalFilter}|${sortKey}`;
+  const [viewState, setViewState] = useState<MatchIntelligenceViewState>({
+    requestKey: "",
+    rows: [],
+    status: "success",
+  });
 
   useEffect(() => {
     let ignore = false;
     const apiSeason = toApiSeason(selectedSeason);
     const matchDay = matchDayFilter === "all" ? undefined : Number(matchDayFilter);
 
-    setIntelligenceState("loading");
     apiClient
       .getMatchIntelligence(apiSeason, {
         team: teamFilter === "all" ? undefined : teamFilter,
@@ -167,21 +199,22 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
       })
       .then((matches) => {
         if (!ignore) {
-          setRows(matches);
-          setIntelligenceState("success");
+          setViewState({ requestKey, rows: matches, status: "success" });
         }
       })
       .catch(() => {
         if (!ignore) {
-          setRows([]);
-          setIntelligenceState("error");
+          setViewState({ requestKey, rows: [], status: "error" });
         }
       });
 
     return () => {
       ignore = true;
     };
-  }, [matchDayFilter, selectedSeason, signalFilter, sortKey, teamFilter]);
+  }, [matchDayFilter, requestKey, selectedSeason, signalFilter, sortKey, teamFilter]);
+
+  const intelligenceState: IntelligenceLoadState = viewState.requestKey === requestKey ? viewState.status : "loading";
+  const rows = viewState.requestKey === requestKey ? viewState.rows : emptyMatchRows;
 
   const teamOptions = useMemo(() => getTeamOptions(rows, data.matches), [data.matches, rows]);
   const matchDayOptions = useMemo(() => {
@@ -192,7 +225,7 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
     rows.forEach((match) => {
       if (match.match_day !== null) days.add(match.match_day);
     });
-    return [...days].sort((left, right) => left - right);
+    return Array.from(days).toSorted((left, right) => left - right);
   }, [data.matches, rows]);
 
   const summary = useMemo(
@@ -218,7 +251,6 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
   ];
 
   const isLoading = intelligenceState === "loading";
-  const shownRows = rows.slice(0, 30);
 
   return (
     <div className="match-triage-page">
@@ -247,7 +279,7 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
         <div className="filter-grid" aria-label="Match intelligence filters">
           <label>
             Team
-            <select value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)}>
+            <select value={teamFilter} onChange={(event) => updateFilters({ type: "team", value: event.target.value })}>
               <option value="all">All teams</option>
               {teamOptions.map((team) => (
                 <option value={team} key={team}>
@@ -258,7 +290,7 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
           </label>
           <label>
             Matchday
-            <select value={matchDayFilter} onChange={(event) => setMatchDayFilter(event.target.value)}>
+            <select value={matchDayFilter} onChange={(event) => updateFilters({ type: "matchDay", value: event.target.value })}>
               <option value="all">All matchdays</option>
               {matchDayOptions.map((day) => (
                 <option value={day} key={day}>
@@ -269,7 +301,7 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
           </label>
           <label>
             Signal
-            <select value={signalFilter} onChange={(event) => setSignalFilter(event.target.value)}>
+            <select value={signalFilter} onChange={(event) => updateFilters({ type: "signal", value: event.target.value })}>
               {signalOptions.map((option) => (
                 <option value={option.value} key={option.value}>
                   {option.label}
@@ -279,7 +311,7 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
           </label>
           <label>
             Sort
-            <select value={sortKey} onChange={(event) => setSortKey(event.target.value)}>
+            <select value={sortKey} onChange={(event) => updateFilters({ type: "sort", value: event.target.value })}>
               {sortOptions.map((option) => (
                 <option value={option.value} key={option.value}>
                   {option.label}
@@ -296,29 +328,36 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
             title="Signal-led matches"
             text="Cards lead with the football reason to open the match, then show the supporting counts and evidence caveats."
           />
-          <div className="match-intelligence-list">
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, index) => (
+          {isLoading ? (
+            <div className="match-intelligence-list">
+              {Array.from({ length: 4 }).map((_, index) => (
                 <div className="skeleton-card match-intelligence-card-skeleton" key={`match-card-skeleton-${index}`}>
                   <span className="skeleton-line short"></span>
                   <span className="skeleton-line title"></span>
                   <span className="skeleton-line"></span>
                   <span className="skeleton-line medium"></span>
                 </div>
-              ))
-            ) : shownRows.length > 0 ? (
-              shownRows.map((match) => <MatchSignalCard key={match.match_id} match={match} />)
-            ) : (
-              <EmptyState
-                title={intelligenceState === "error" ? "Match intelligence unavailable" : "No matches found"}
-                message={
-                  intelligenceState === "error"
-                    ? "Match intelligence did not respond. Try refreshing or changing the season."
-                    : "No matches found for the selected signal and filters. Try changing the team, matchday, or signal filter."
-                }
-              />
-            )}
-          </div>
+              ))}
+            </div>
+          ) : rows.length > 0 ? (
+            <ShowMoreList
+              className="match-intelligence-list"
+              getKey={(match) => match.match_id}
+              initialCount={8}
+              itemNoun="match"
+              items={rows}
+              renderItem={(match) => <MatchSignalCard match={match} />}
+            />
+          ) : (
+            <EmptyState
+              title={intelligenceState === "error" ? "Match intelligence unavailable" : "No matches found"}
+              message={
+                intelligenceState === "error"
+                  ? "Match intelligence did not respond. Try refreshing or changing the season."
+                  : "No matches found for the selected signal and filters. Try changing the team, matchday, or signal filter."
+              }
+            />
+          )}
         </div>
 
         <aside className="panel match-evidence-summary">

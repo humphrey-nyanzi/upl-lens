@@ -3,17 +3,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient } from "../api/client";
 import type { DataQualityStatus, SeasonTrendRow, SeasonTrendsResponse } from "../api/types";
 import type { PageProps } from "../app/types";
+import { DisclosureSection } from "../components/common/DisclosureSection";
 import { PageIntro } from "../components/common/PageIntro";
-import {
-  DataQualityNote,
-  InsightEmptyState,
-  MetricDelta,
-  MiniBarChart,
-  SignalChip,
-  StackedShareBar,
-} from "../components/intelligence";
-import type { DataQualityTone } from "../components/intelligence/DataQualityNote";
-import type { SignalTone } from "../components/intelligence/SignalChip";
+import { ShowMoreList } from "../components/common/ShowMoreList";
+import { DataQualityNote, type DataQualityTone } from "../components/intelligence/DataQualityNote";
+import { InsightEmptyState } from "../components/intelligence/InsightEmptyState";
+import { MetricDelta } from "../components/intelligence/MetricDelta";
+import { MiniBarChart } from "../components/intelligence/MiniBarChart";
+import { SignalChip, type SignalTone } from "../components/intelligence/SignalChip";
+import { StackedShareBar } from "../components/intelligence/ComparisonBars";
 import { formatDate, formatPercent, formatSeason } from "../utils/format";
 
 type TrendLoadState = "loading" | "success" | "error";
@@ -25,7 +23,7 @@ const statusPriority: Record<DataQualityStatus, number> = {
 };
 
 function sortSeasonsAscending(rows: SeasonTrendRow[]) {
-  return [...rows].sort((left, right) => left.season.localeCompare(right.season));
+  return rows.toSorted((left, right) => left.season.localeCompare(right.season));
 }
 
 function formatNumber(value: number | null | undefined) {
@@ -110,6 +108,216 @@ function TrendsLoadingState() {
         <span className="skeleton-line" />
       </section>
     </div>
+  );
+}
+
+function TrendsSummaryGrid({
+  coverageShare,
+  overallStatus,
+  seasonRange,
+  summary,
+}: {
+  coverageShare: number | null;
+  overallStatus: DataQualityStatus;
+  seasonRange: string;
+  summary: SeasonTrendsResponse["summary"];
+}) {
+  return (
+    <section className="trends-summary-grid" aria-label="Season trends summary">
+      <MetricDelta label="Seasons covered" value={summary.season_count} context={seasonRange} tone="positive" />
+      <MetricDelta label="Matches analysed" value={summary.total_matches} context="Recorded matches across the trend window." tone="neutral" />
+      <MetricDelta label="Goals per match" value={formatRate(summary.average_goals_per_match)} context="Based on scoreline goals for fair season comparison." tone="positive" />
+      <MetricDelta label="Cards per match" value={formatRate(summary.average_cards_per_match)} context="Yellow and red cards where event data is available." tone={overallStatus === "good" ? "neutral" : "warning"} />
+      <MetricDelta label="Latest season" value={summary.latest_season ? formatSeason(summary.latest_season) : "Unavailable"} context="Newest season included in the trend view." tone="neutral" />
+      <MetricDelta label="Timeline coverage" value={formatShare(coverageShare)} context="Complete event timelines across trend rows." tone={overallStatus === "good" ? "positive" : "warning"} />
+    </section>
+  );
+}
+
+function TrendsChartGrid({
+  cardsData,
+  chartRows,
+  goalsData,
+  highScoringData,
+}: {
+  cardsData: Array<{ key: string; label: string; value: number; secondaryValue: number; tone: "gold" | "green" }>;
+  chartRows: SeasonTrendRow[];
+  goalsData: Array<{ key: string; label: string; value: number; secondaryValue: number; tone: "green" }>;
+  highScoringData: Array<{ key: string; label: string; value: number; secondaryValue: number; tone: "gold" }>;
+}) {
+  return (
+    <section className="trends-chart-grid" aria-label="League trend charts">
+      <article className="panel trends-chart-panel">
+        <MiniBarChart data={goalsData} description="Goals per match helps compare seasons more fairly than total goals alone." emptyLabel="Scoring-rate trend data is not available yet." height="regular" title="Scoring over time" valueFormatter={(value) => value.toFixed(2)} />
+        <p className="trends-panel-note">The available match data suggests scoring levels varied across seasons. Scoreline goals are the primary scoring source here.</p>
+      </article>
+
+      <article className="panel trends-chart-panel">
+        <MiniBarChart data={cardsData} description="Card trends should be read with event coverage in mind." emptyLabel="Card-rate trend data is not available yet." height="regular" title="Discipline over time" valueFormatter={(value) => value.toFixed(2)} />
+        <p className="trends-panel-note">Yellow and red cards are compared as a rate so seasons with different match counts can still be read together.</p>
+      </article>
+
+      <article className="panel trends-chart-panel trends-chart-panel-wide">
+        <div className="section-heading compact">
+          <div>
+            <h2>Result balance</h2>
+            <p>Home wins, draws, and away wins show how results were distributed across available seasons.</p>
+          </div>
+        </div>
+        <ShowMoreList
+          className="trends-stacked-list"
+          getKey={(row) => row.season}
+          initialCount={4}
+          itemNoun="season"
+          items={chartRows}
+          renderItem={(row) => (
+            <StackedShareBar
+              label={formatSeason(row.season)}
+              segments={[
+                { label: "Home wins", value: row.home_wins, tone: "green" },
+                { label: "Draws", value: row.draws, tone: "muted" },
+                { label: "Away wins", value: row.away_wins, tone: "gold" },
+              ]}
+              valueFormatter={(value, share) => `${value.toLocaleString()} (${formatPercent(share)})`}
+            />
+          )}
+        />
+      </article>
+
+      <article className="panel trends-chart-panel">
+        <MiniBarChart data={highScoringData} description="This highlights seasons where open or goal-heavy matches were more common." emptyLabel="High-scoring match share is not available yet." height="regular" title="High-scoring match share" valueFormatter={(value) => formatPercent(value)} />
+        <p className="trends-panel-note">The chart uses the share of matches with three or more goals.</p>
+      </article>
+    </section>
+  );
+}
+
+function TrendsCoveragePanel({
+  coverageTotals,
+  overallStatus,
+  qualityNotes,
+  timelineGoalGap,
+}: {
+  coverageTotals: {
+    administrativeResults: number;
+    complete: number;
+    partial: number;
+    sourceAnomalies: number;
+    unavailable: number;
+  };
+  overallStatus: DataQualityStatus;
+  qualityNotes: SeasonTrendRow[];
+  timelineGoalGap: number;
+}) {
+  return (
+    <section className="panel trends-coverage-panel">
+      <div className="section-heading compact">
+        <div>
+          <h2>Data coverage</h2>
+          <p>Coverage matters because some comparisons depend on event timelines, not only scorelines.</p>
+        </div>
+        <SignalChip label={formatStatus(overallStatus)} size="small" tone={signalToneForStatus(overallStatus)} />
+      </div>
+
+      <div className="trends-coverage-grid">
+        <div className="trends-coverage-bars">
+          <StackedShareBar
+            label="Timeline availability"
+            segments={[
+              { label: "Complete", value: coverageTotals.complete, tone: "green" },
+              { label: "Partial", value: coverageTotals.partial, tone: "gold" },
+              { label: "Unavailable", value: coverageTotals.unavailable, tone: "muted" },
+            ]}
+            valueFormatter={(value, share) => `${value.toLocaleString()} (${formatPercent(share)})`}
+          />
+        </div>
+        <DataQualityNote
+          title="Trend reading note"
+          tone={qualityToneForStatus(overallStatus)}
+          note={
+            timelineGoalGap > 0
+              ? `Scoreline goals and timeline goals differ by ${timelineGoalGap.toLocaleString()} across the available seasons, so event-timeline comparisons should be read with coverage in mind.`
+              : "Scoreline trends are the safest comparison. Timeline-dependent readings should still account for complete, partial, and unavailable event coverage."
+          }
+          metrics={[
+            { label: "Complete timelines", value: coverageTotals.complete.toLocaleString() },
+            { label: "Partial timelines", value: coverageTotals.partial.toLocaleString() },
+            { label: "Unavailable timelines", value: coverageTotals.unavailable.toLocaleString() },
+            { label: "Source anomalies", value: coverageTotals.sourceAnomalies.toLocaleString() },
+            { label: "Admin results", value: coverageTotals.administrativeResults.toLocaleString() },
+          ]}
+        />
+      </div>
+
+      {qualityNotes.length > 0 ? (
+        <ShowMoreList
+          className="trends-quality-note-list"
+          getKey={(row) => row.season}
+          initialCount={3}
+          itemNoun="note"
+          items={qualityNotes}
+          renderItem={(row) => (
+            <article>
+              <SignalChip label={formatSeason(row.season)} size="small" tone={signalToneForStatus(row.data_quality_status)} />
+              <p>{row.data_quality_note}</p>
+            </article>
+          )}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function TrendsSeasonTable({ tableRows }: { tableRows: SeasonTrendRow[] }) {
+  return (
+    <DisclosureSection
+      className="panel trends-table-panel"
+      description="Open the reference table when you need the exact trend rows behind the charts."
+      eyebrow="Reference"
+      title="Season comparison"
+    >
+      <div className="trends-season-table">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Season</th>
+              <th scope="col">Matches</th>
+              <th scope="col">Teams</th>
+              <th scope="col">Goals/match</th>
+              <th scope="col">Cards/match</th>
+              <th scope="col">Home / Draw / Away</th>
+              <th scope="col">High-scoring</th>
+              <th scope="col">Timeline coverage</th>
+              <th scope="col">Data status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tableRows.map((row) => (
+              <tr key={row.season}>
+                <td data-label="Season">
+                  <strong>{formatSeason(row.season)}</strong>
+                  <span>
+                    {formatDate(row.first_match_date)} to {formatDate(row.last_match_date)}
+                  </span>
+                </td>
+                <td data-label="Matches">{formatNumber(row.match_count)}</td>
+                <td data-label="Teams">{formatNumber(row.team_count)}</td>
+                <td data-label="Goals/match">{formatRate(row.goals_per_match)}</td>
+                <td data-label="Cards/match">{formatRate(row.cards_per_match)}</td>
+                <td data-label="Home / Draw / Away">
+                  {row.home_wins.toLocaleString()} / {row.draws.toLocaleString()} / {row.away_wins.toLocaleString()}
+                </td>
+                <td data-label="High-scoring">{formatShare(row.high_scoring_match_share)}</td>
+                <td data-label="Timeline coverage">{formatShare(row.timeline_coverage_share)}</td>
+                <td data-label="Data status">
+                  <SignalChip label={formatStatus(row.data_quality_status)} size="small" tone={signalToneForStatus(row.data_quality_status)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </DisclosureSection>
   );
 }
 
@@ -237,221 +445,10 @@ export function TrendsPage({ onRefresh }: PageProps) {
         text={`Track how the Uganda Premier League changes across available seasons: scoring levels, card patterns, result balance, and data coverage. ${seasonRange}.`}
       />
 
-      <section className="trends-summary-grid" aria-label="Season trends summary">
-        <MetricDelta
-          label="Seasons covered"
-          value={summary.season_count}
-          context={seasonRange}
-          tone="positive"
-        />
-        <MetricDelta
-          label="Matches analysed"
-          value={summary.total_matches}
-          context="Recorded matches across the trend window."
-          tone="neutral"
-        />
-        <MetricDelta
-          label="Goals per match"
-          value={formatRate(summary.average_goals_per_match)}
-          context="Based on scoreline goals for fair season comparison."
-          tone="positive"
-        />
-        <MetricDelta
-          label="Cards per match"
-          value={formatRate(summary.average_cards_per_match)}
-          context="Yellow and red cards where event data is available."
-          tone={overallStatus === "good" ? "neutral" : "warning"}
-        />
-        <MetricDelta
-          label="Latest season"
-          value={summary.latest_season ? formatSeason(summary.latest_season) : "Unavailable"}
-          context="Newest season included in the trend view."
-          tone="neutral"
-        />
-        <MetricDelta
-          label="Timeline coverage"
-          value={formatShare(coverageShare)}
-          context="Complete event timelines across trend rows."
-          tone={overallStatus === "good" ? "positive" : "warning"}
-        />
-      </section>
-
-      <section className="trends-chart-grid" aria-label="League trend charts">
-        <article className="panel trends-chart-panel">
-          <MiniBarChart
-            data={goalsData}
-            description="Goals per match helps compare seasons more fairly than total goals alone."
-            emptyLabel="Scoring-rate trend data is not available yet."
-            height="regular"
-            title="Scoring over time"
-            valueFormatter={(value) => value.toFixed(2)}
-          />
-          <p className="trends-panel-note">
-            The available match data suggests scoring levels varied across seasons. Scoreline goals are the primary
-            scoring source here.
-          </p>
-        </article>
-
-        <article className="panel trends-chart-panel">
-          <MiniBarChart
-            data={cardsData}
-            description="Card trends should be read with event coverage in mind."
-            emptyLabel="Card-rate trend data is not available yet."
-            height="regular"
-            title="Discipline over time"
-            valueFormatter={(value) => value.toFixed(2)}
-          />
-          <p className="trends-panel-note">
-            Yellow and red cards are compared as a rate so seasons with different match counts can still be read
-            together.
-          </p>
-        </article>
-
-        <article className="panel trends-chart-panel trends-chart-panel-wide">
-          <div className="section-heading compact">
-            <div>
-              <h2>Result balance</h2>
-              <p>Home wins, draws, and away wins show how results were distributed across available seasons.</p>
-            </div>
-          </div>
-          <div className="trends-stacked-list">
-            {chartRows.map((row) => (
-              <StackedShareBar
-                key={row.season}
-                label={formatSeason(row.season)}
-                segments={[
-                  { label: "Home wins", value: row.home_wins, tone: "green" },
-                  { label: "Draws", value: row.draws, tone: "muted" },
-                  { label: "Away wins", value: row.away_wins, tone: "gold" },
-                ]}
-                valueFormatter={(value, share) => `${value.toLocaleString()} (${formatPercent(share)})`}
-              />
-            ))}
-          </div>
-        </article>
-
-        <article className="panel trends-chart-panel">
-          <MiniBarChart
-            data={highScoringData}
-            description="This highlights seasons where open or goal-heavy matches were more common."
-            emptyLabel="High-scoring match share is not available yet."
-            height="regular"
-            title="High-scoring match share"
-            valueFormatter={(value) => formatPercent(value)}
-          />
-          <p className="trends-panel-note">The chart uses the share of matches with three or more goals.</p>
-        </article>
-      </section>
-
-      <section className="panel trends-coverage-panel">
-        <div className="section-heading compact">
-          <div>
-            <h2>Data coverage</h2>
-            <p>Coverage matters because some comparisons depend on event timelines, not only scorelines.</p>
-          </div>
-          <SignalChip label={formatStatus(overallStatus)} size="small" tone={signalToneForStatus(overallStatus)} />
-        </div>
-
-        <div className="trends-coverage-grid">
-          <div className="trends-coverage-bars">
-            <StackedShareBar
-              label="Timeline availability"
-              segments={[
-                { label: "Complete", value: coverageTotals.complete, tone: "green" },
-                { label: "Partial", value: coverageTotals.partial, tone: "gold" },
-                { label: "Unavailable", value: coverageTotals.unavailable, tone: "muted" },
-              ]}
-              valueFormatter={(value, share) => `${value.toLocaleString()} (${formatPercent(share)})`}
-            />
-          </div>
-          <DataQualityNote
-            title="Trend reading note"
-            tone={qualityToneForStatus(overallStatus)}
-            note={
-              timelineGoalGap > 0
-                ? `Scoreline goals and timeline goals differ by ${timelineGoalGap.toLocaleString()} across the available seasons, so event-timeline comparisons should be read with coverage in mind.`
-                : "Scoreline trends are the safest comparison. Timeline-dependent readings should still account for complete, partial, and unavailable event coverage."
-            }
-            metrics={[
-              { label: "Complete timelines", value: coverageTotals.complete.toLocaleString() },
-              { label: "Partial timelines", value: coverageTotals.partial.toLocaleString() },
-              { label: "Unavailable timelines", value: coverageTotals.unavailable.toLocaleString() },
-              { label: "Source anomalies", value: coverageTotals.sourceAnomalies.toLocaleString() },
-              { label: "Admin results", value: coverageTotals.administrativeResults.toLocaleString() },
-            ]}
-          />
-        </div>
-
-        {qualityNotes.length > 0 ? (
-          <div className="trends-quality-note-list" aria-label="Season data quality notes">
-            {qualityNotes.map((row) => (
-              <article key={row.season}>
-                <SignalChip
-                  label={formatSeason(row.season)}
-                  size="small"
-                  tone={signalToneForStatus(row.data_quality_status)}
-                />
-                <p>{row.data_quality_note}</p>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
-      <section className="panel trends-table-panel">
-        <div className="section-heading compact">
-          <div>
-            <h2>Season comparison</h2>
-            <p>A compact reference table for the trend rows behind the charts.</p>
-          </div>
-        </div>
-
-        <div className="trends-season-table">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Season</th>
-                <th scope="col">Matches</th>
-                <th scope="col">Teams</th>
-                <th scope="col">Goals/match</th>
-                <th scope="col">Cards/match</th>
-                <th scope="col">Home / Draw / Away</th>
-                <th scope="col">High-scoring</th>
-                <th scope="col">Timeline coverage</th>
-                <th scope="col">Data status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableRows.map((row) => (
-                <tr key={row.season}>
-                  <td data-label="Season">
-                    <strong>{formatSeason(row.season)}</strong>
-                    <span>
-                      {formatDate(row.first_match_date)} to {formatDate(row.last_match_date)}
-                    </span>
-                  </td>
-                  <td data-label="Matches">{formatNumber(row.match_count)}</td>
-                  <td data-label="Teams">{formatNumber(row.team_count)}</td>
-                  <td data-label="Goals/match">{formatRate(row.goals_per_match)}</td>
-                  <td data-label="Cards/match">{formatRate(row.cards_per_match)}</td>
-                  <td data-label="Home / Draw / Away">
-                    {row.home_wins.toLocaleString()} / {row.draws.toLocaleString()} / {row.away_wins.toLocaleString()}
-                  </td>
-                  <td data-label="High-scoring">{formatShare(row.high_scoring_match_share)}</td>
-                  <td data-label="Timeline coverage">{formatShare(row.timeline_coverage_share)}</td>
-                  <td data-label="Data status">
-                    <SignalChip
-                      label={formatStatus(row.data_quality_status)}
-                      size="small"
-                      tone={signalToneForStatus(row.data_quality_status)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <TrendsSummaryGrid coverageShare={coverageShare} overallStatus={overallStatus} seasonRange={seasonRange} summary={summary} />
+      <TrendsChartGrid cardsData={cardsData} chartRows={chartRows} goalsData={goalsData} highScoringData={highScoringData} />
+      <TrendsCoveragePanel coverageTotals={coverageTotals} overallStatus={overallStatus} qualityNotes={qualityNotes} timelineGoalGap={timelineGoalGap} />
+      <TrendsSeasonTable tableRows={tableRows} />
     </div>
   );
 }

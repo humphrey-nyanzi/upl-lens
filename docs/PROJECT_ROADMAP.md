@@ -295,9 +295,8 @@ Owns:
 - frontend API client and response types
 - browser-facing error handling for API offline states and free-tier cold starts
 - product navigation and UI/UX quality
-- frontend change requests in `docs/FRONTEND_UX_REQUESTS.md`
-- mockup-derived visual-system guidance in `docs/FRONTEND_DESIGN_SYSTEM.md`
-- approved frontend behavior in `docs/FRONTEND_DESIGN_SYSTEM.md`
+- frontend change requests, visual-system guidance, API contract notes, and
+  approved frontend behavior in `docs/FRONTEND_DESIGN_SYSTEM.md`
 
 Current strengths:
 
@@ -319,11 +318,9 @@ Known weaknesses:
 Next useful work:
 
 - redesign the frontend into real product pages
-- use `docs/FRONTEND_UX_REQUESTS.md` as the editable source of truth before
-  implementation
-- use `docs/FRONTEND_DESIGN_SYSTEM.md` when applying the approved visual system
-- keep approved durable frontend decisions in
-  `docs/FRONTEND_DESIGN_SYSTEM.md`
+- use `docs/FRONTEND_DESIGN_SYSTEM.md` as the editable source of truth for
+  frontend request queue, approved visual system, API/page requirements, and
+  durable frontend decisions before implementation
 - add stronger loading, empty, and error states
 - add API endpoints only when product features prove the need
 - create a visible path from summary views to match/team detail views
@@ -354,9 +351,9 @@ Current strengths:
 
 - the project has detailed docs for roadmap, automation, deployment, and feature
   promotion
-- `docs/START_HERE.md`, `docs/LOCAL_DEVELOPMENT.md`, and
-  `docs/CHANGELOG.md` give new readers a beginner-friendly entrypoint, a
-  runnable local setup guide, and a concise recent-history summary
+- `docs/START_HERE.md` and `docs/LOCAL_DEVELOPMENT.md` give new readers a
+  beginner-friendly entrypoint, a concise recent-history summary, and a
+  runnable local setup and operations guide
 - `docs/diagram_collection.md` gives maintainers and agents a visual overview
   of the codebase, data pipeline, database shape, API flow, and scraper
   lifecycle
@@ -378,7 +375,7 @@ Next useful work:
 - use `docs/START_HERE.md` as the doc navigation hub
 - maintain `docs/diagram_collection.md` when high-level codebase structure or
   known gaps change
-- use `docs/OPERATIONS.md` for log, summary, test, and escalation rules
+- use `docs/LOCAL_DEVELOPMENT.md` for log, summary, test, and escalation rules
 - keep README short and public-facing
 - keep this roadmap as the planning map
 - keep detailed automation/deployment/feature docs as references
@@ -831,9 +828,9 @@ Current foundation:
 - The workflow uses operator-level inputs such as `season_scope`, `run_type`,
   `apply_migrations`, `use_cache`, and `force_full_scrape`. Routine runs skip
   migrations by default so they can use the least-privilege loader role.
-- `docs/OPERATIONS.md` documents the working GitHub secrets, Supabase pooler
-  username pattern, artifact behavior, hosted deployment checks, and common
-  connection errors.
+- `docs/LOCAL_DEVELOPMENT.md` documents the working GitHub secrets, Supabase
+  pooler username pattern, artifact behavior, hosted deployment checks, and
+  common connection errors.
 - The workflow installs `requirements-automation.txt` with pip caching instead
   of installing the full notebook/API/developer `requirements.txt`.
 

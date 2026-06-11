@@ -5372,6 +5372,12 @@ p {
   gap: 8px;
 }
 
+.methodology-inline-panel {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
 .methodology-contact-list {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
@@ -5391,6 +5397,107 @@ p {
 .intelligence-empty-state h2 {
   color: var(--color-text-primary);
   font-size: 16px;
+}
+
+.show-more-region {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.show-more-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.show-more-actions .text-button {
+  min-height: 34px;
+}
+
+.disclosure-section {
+  padding: 0;
+}
+
+.disclosure-section details {
+  display: grid;
+  gap: 0;
+}
+
+.disclosure-section summary {
+  display: flex;
+  min-height: 58px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-radius: inherit;
+  color: var(--color-text-primary);
+  list-style: none;
+  padding: var(--space-4);
+}
+
+.disclosure-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-section summary::after {
+  content: "+";
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-row-gradient);
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.disclosure-section details[open] summary::after {
+  content: "-";
+}
+
+.disclosure-section summary:focus-visible {
+  outline: 2px solid var(--state-green-border-strong);
+  outline-offset: 3px;
+}
+
+.disclosure-section summary > span {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.disclosure-section summary small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.disclosure-section summary strong {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.disclosure-section summary em {
+  max-width: 68ch;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.disclosure-section-body {
+  display: grid;
+  gap: var(--space-3);
+  border-top: 1px solid var(--surface-border);
+  padding: 0 var(--space-4) var(--space-4);
 }
 
 .trends-page {
@@ -6950,6 +7057,18 @@ p {
 }
 
 @media (max-width: 860px) {
+  .overview-control-room,
+  .match-triage-page,
+  .match-brief-page,
+  .team-board-page,
+  .team-dossier-page,
+  .player-board-page,
+  .player-profile-page,
+  .trends-page,
+  .methodology-page {
+    gap: var(--space-3);
+  }
+
   .trends-chart-grid,
   .trends-coverage-grid,
   .team-comparison-grid,
@@ -6968,6 +7087,15 @@ p {
 
   .match-evidence-summary {
     position: static;
+  }
+
+  .disclosure-section summary {
+    min-height: 52px;
+    padding: var(--space-3);
+  }
+
+  .disclosure-section-body {
+    padding: 0 var(--space-3) var(--space-3);
   }
 
   .match-intelligence-card {

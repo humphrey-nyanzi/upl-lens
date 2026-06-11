@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { ApiRequestError, apiClient } from "../api/client";
@@ -12,21 +12,17 @@ import type {
   ScoreProgressionPoint as ApiScoreProgressionPoint,
 } from "../api/types";
 import type { PageProps } from "../app/types";
+import { DisclosureSection } from "../components/common/DisclosureSection";
 import { StatComparisonRow } from "../components/common/EditorialRows";
 import { EmptyState } from "../components/common/EmptyState";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
 import { TeamMarker } from "../components/common/TeamMarker";
-import {
-  DataQualityNote,
-  HorizontalComparisonBar,
-  MetricDelta,
-  ScoreProgression,
-  SignalChipGroup,
-  TimelineRail,
-  type DataQualityTone,
-  type SignalChipItem,
-  type TimelineRailEvent,
-} from "../components/intelligence";
+import { DataQualityNote, type DataQualityTone } from "../components/intelligence/DataQualityNote";
+import { HorizontalComparisonBar } from "../components/intelligence/ComparisonBars";
+import { MetricDelta } from "../components/intelligence/MetricDelta";
+import { ScoreProgression } from "../components/intelligence/ScoreProgression";
+import { SignalChipGroup, type SignalChipItem } from "../components/intelligence/SignalChip";
+import { TimelineRail, type TimelineRailEvent } from "../components/intelligence/TimelineRail";
 import { formatDate, formatResult, formatScoreline, formatSeason } from "../utils/format";
 import { slugify } from "../utils/slugs";
 
@@ -330,45 +326,44 @@ export default function MatchDetailPage(_props: PageProps) {
   const numericMatchId = Number(matchId);
   const [match, setMatch] = useState<MatchDetailResponse | null>(null);
   const [state, setState] = useState<MatchDetailState>("loading");
-  const [retryIndex, setRetryIndex] = useState(0);
 
-  useEffect(() => {
+  const loadMatchDetail = useCallback(async (ignore: () => boolean) => {
     if (!Number.isFinite(numericMatchId)) {
       setState("not_found");
       return;
     }
 
-    let ignore = false;
+    setState("loading");
 
-    async function loadMatchDetail() {
-      setState("loading");
+    try {
+      const detail = await apiClient.getMatchDetail(numericMatchId);
+      if (!ignore()) {
+        setMatch(detail);
+        setState("success");
+      }
+    } catch (error) {
+      if (ignore()) return;
 
-      try {
-        const detail = await apiClient.getMatchDetail(numericMatchId);
-        if (!ignore) {
-          setMatch(detail);
-          setState("success");
-        }
-      } catch (error) {
-        if (ignore) return;
-
-        setMatch(null);
-        if (error instanceof ApiRequestError && error.status === 404) {
-          setState("not_found");
-        } else if (error instanceof TypeError) {
-          setState("offline");
-        } else {
-          setState("error");
-        }
+      setMatch(null);
+      if (error instanceof ApiRequestError && error.status === 404) {
+        setState("not_found");
+      } else if (error instanceof TypeError) {
+        setState("offline");
+      } else {
+        setState("error");
       }
     }
+  }, [numericMatchId]);
 
-    void loadMatchDetail();
+  useEffect(() => {
+    let ignore = false;
+
+    void loadMatchDetail(() => ignore);
 
     return () => {
       ignore = true;
     };
-  }, [numericMatchId, retryIndex]);
+  }, [loadMatchDetail]);
 
   const timelineEvents = useMemo(() => (match ? toTimelineEvents(match) : []), [match]);
   const progressionPoints = useMemo(() => (match ? toProgressionPoints(match.score_progression) : []), [match]);
@@ -379,7 +374,7 @@ export default function MatchDetailPage(_props: PageProps) {
 
   if (state !== "success" || !match) {
     const errorState = state === "success" ? "error" : state;
-    return <MatchDetailError state={errorState} onRetry={() => setRetryIndex((current) => current + 1)} />;
+    return <MatchDetailError state={errorState} onRetry={() => void loadMatchDetail(() => false)} />;
   }
 
   const homeTeam = getSafeTeamName(match.home_team);
@@ -500,21 +495,19 @@ export default function MatchDetailPage(_props: PageProps) {
       </section>
 
       <div className="match-detail-lower-grid">
-        <section className="panel">
-          <ReportSectionHeader
-            eyebrow="Supporting stats"
-            title="Match stats comparison"
-            text="Stats sit below the brief as supporting source evidence for the recorded result."
-          />
+        <DisclosureSection
+          description="Stats sit below the brief as supporting source evidence for the recorded result."
+          eyebrow="Supporting stats"
+          title="Match stats comparison"
+        >
           <MatchStatsPanel stats={match.stats} />
-        </section>
+        </DisclosureSection>
 
-        <section className="panel">
-          <ReportSectionHeader
-            eyebrow="Source context"
-            title="Officials and recorded details"
-            text="Officials are listed as source context only until official/referee signals are supported by the intelligence layer."
-          />
+        <DisclosureSection
+          description="Officials and recorded details are source context. Open this when you need the audit trail."
+          eyebrow="Source context"
+          title="Officials and recorded details"
+        >
           <OfficialsPanel officials={match.officials} />
           <dl className="match-info-list compact">
             {metadataRows.map((row) => (
@@ -529,7 +522,7 @@ export default function MatchDetailPage(_props: PageProps) {
               Open official source
             </a>
           ) : null}
-        </section>
+        </DisclosureSection>
       </div>
 
       <section className="panel related-actions-panel">

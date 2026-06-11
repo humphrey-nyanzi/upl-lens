@@ -1,23 +1,17 @@
 # Start Here
 
 This is the first orientation document for the repository. The public frontend
-product formerly known as "UPL Match Intelligence" has been rebranded to
-**UPL Lens**. Backend, data-platform, and research workflows remain in this
-repo; frontend design direction and launch guidance live under
-[UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md).
+product formerly known as "UPL Match Intelligence" is now **UPL Lens**.
+Backend, data-platform, research, API, frontend, and operations work still live
+in this repository.
 
-Use this file when you are new to the repo, returning after a gap, or unsure
-which document owns a decision. If your work affects the public frontend
-experience, consult [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md) in addition to the
-docs listed below.
+The docs are now consolidated into seven maintained Markdown files. Do not add
+a new doc unless the topic cannot fit cleanly into one of these owners.
 
 ## The Project In One Minute
 
-This project turns official Uganda Premier League match pages into a
-football intelligence product. The public frontend product is published as
-**UPL Lens**.
-
-The production path is:
+UPL Lens turns official Uganda Premier League match pages into a football
+intelligence product.
 
 ```text
 Official UPL website
@@ -28,7 +22,7 @@ Official UPL website
   -> React dashboard
 ```
 
-The product rule is:
+The browser-facing contract is:
 
 ```text
 React UI -> FastAPI endpoint -> Postgres query/view -> JSON -> chart/table
@@ -37,9 +31,6 @@ React UI -> FastAPI endpoint -> Postgres query/view -> JSON -> chart/table
 React must not read CSV files, notebooks, exported notebook images, or local
 database files. Notebooks are the research lab. Postgres plus FastAPI is the
 production path.
-
-For product identity and positioning, read
-[PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md).
 
 ## Current Implementation Phase
 
@@ -56,8 +47,55 @@ implementation order is:
 6. Upgrade Players and Player Detail.
 7. Refine Overview and About.
 
-Do not begin page redesigns before checking the current API contract and the
-page requirements for that surface.
+Do not begin page redesigns before checking the current API contract and page
+requirements in [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md).
+
+## Seven-Doc Structure
+
+| Doc | Owner | Open it when |
+|-----|-------|--------------|
+| [START_HERE.md](START_HERE.md) | Orientation, doc map, current phase, recent history | You are new, returning, or deciding where work belongs. |
+| [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) | Product identity and decision rules | You are planning product-facing work or checking scope. |
+| [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Planning, milestones, strengths, gaps, priorities | You need the current implementation order or historical roadmap context. |
+| [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) | Research workflow and notebook-to-product promotion | You are working in notebooks or promoting a football insight. |
+| [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Local setup, verification, operations, automation, troubleshooting | You need to run, validate, refresh, deploy, or debug the system. |
+| [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) | Frontend design, API contract, page requirements, wireframes, UX request queue | You are changing UI, routes, frontend data flow, charts, or public product pages. |
+| [diagram_collection.md](diagram_collection.md) | Visual architecture reference | You need architecture, data-flow, API-flow, database, scraper, or frontend diagrams. |
+
+`visual_inspo.png` remains in `docs/` as a visual asset, not a standalone doc.
+
+## Reading Paths By Task
+
+If you want to run the project locally:
+
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
+- `.env.example`
+- `frontend/.env.example`
+
+If you want to refresh, validate, or troubleshoot data:
+
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
+- [diagram_collection.md](diagram_collection.md)
+
+If you want to add or promote a football insight:
+
+- [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
+- the relevant feature folder under `notebooks/features/`
+
+If you want to improve the app:
+
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
+- [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
+- `api/`
+- `src/api/`
+- `frontend/src/`
+
+If you want current priorities:
+
+- this file
+- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 
 ## Four Continuous Development Areas
 
@@ -74,34 +112,23 @@ flowchart TD
     E --> E1["onboarding, setup, commands, troubleshooting, doc clarity"]
 ```
 
-### 1. Data Reliability & Operations
+### Data Reliability & Operations
 
 Purpose: keep the source data, database, automation, and deployment
 trustworthy.
 
 Read first:
 
-- [OPERATIONS.md](OPERATIONS.md)
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
+- [diagram_collection.md](diagram_collection.md)
 
-Useful commands:
+Escalate when the scraper cannot parse source pages, raw counts disagree with
+Postgres rows, staging validation finds structural errors, the API would
+publish misleading data, routine automation needs admin privileges, or secrets
+are exposed.
 
-```powershell
-.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
-.venv\Scripts\python.exe scripts\data_platform\verify_raw_postgres_counts.py
-.venv\Scripts\python.exe scripts\data_platform\verify_staging_outputs.py
-```
-
-Escalate when:
-
-- the scraper cannot reach or parse source pages
-- raw counts no longer match loaded Postgres rows
-- staging validation finds structural errors
-- the API would publish misleading or incomplete data
-- routine automation needs admin database privileges
-- secrets, passwords, or admin credentials are exposed
-
-### 2. Research & Football Intelligence
+### Research & Football Intelligence
 
 Purpose: discover useful football questions and promote only validated
 insights.
@@ -111,53 +138,26 @@ Read first:
 - [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 
-Useful starting command:
+Escalate when a dashboard metric cannot be traced to a notebook, SQL query, or
+clear product plan.
 
-```powershell
-Copy-Item -Recurse notebooks\features\_feature_template notebooks\features\feature_02_card_trends
-```
-
-Escalate when:
-
-- a dashboard metric cannot be traced to a notebook, SQL query, or clear
-  product plan
-- a feature depends on raw data or CSVs without a documented reason
-- a finding looks interesting but the source-data caveats are too large to show
-  publicly without explanation
-
-### 3. Product Experience
+### Product Experience
 
 Purpose: turn trusted data and validated research into a useful public app.
 
 Read first:
 
 - [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
-- [API_CONTRACT.md](API_CONTRACT.md)
-- [API_INTELLIGENCE_ENDPOINTS.md](API_INTELLIGENCE_ENDPOINTS.md)
-- [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md)
 - [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
-- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
 - `api/routers/`
 - `src/api/query_services/`
 - `frontend/src/`
 
-Useful commands:
+Escalate when React needs data that no endpoint exposes cleanly, frontend logic
+starts duplicating durable backend logic, a response shape change can break the
+dashboard, or the UI hides caveats.
 
-```powershell
-.venv\Scripts\python.exe -m uvicorn api.main:app --reload
-cd frontend
-npm run dev
-npm run build
-```
-
-Escalate when:
-
-- React needs data that no API endpoint exposes cleanly
-- frontend logic starts duplicating durable SQL or backend query logic
-- an API response shape changes in a way that can break the dashboard
-- the UI hides important caveats or makes incomplete data look certain
-
-### 4. Developer Experience & Documentation
+### Developer Experience & Documentation
 
 Purpose: make the project understandable and repeatable for a junior developer,
 future contributor, reviewer, or AI agent.
@@ -166,161 +166,69 @@ Read first:
 
 - [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
 - [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
-- [CHANGELOG.md](CHANGELOG.md)
 - [../AGENTS.md](../AGENTS.md)
 
-Escalate when:
+Escalate when two docs give conflicting commands, a new developer cannot tell
+which doc to read first, a command depends on hidden local setup, or a feature
+decision exists in code but not in docs.
 
-- two docs give conflicting commands
-- a new developer cannot tell which doc to read first
-- a command works only because of hidden local setup
-- a feature or operational decision exists in code but not in the docs
+## Recent History
 
-## Current Docs
+### 2026-06-10
 
-This repo still prefers a small `docs/` surface, but the current frontend
-rebrand adds a temporary documentation exception for the UPL Lens launch
-package. Treat those extra frontend docs as implementation-specific companions,
-not as a new default pattern for splitting every topic into another file.
+- Consolidated the docs into seven maintained Markdown files.
+- Folded API, frontend launch, page requirement, wireframe, UX request,
+  operations, and changelog material into the owning docs.
+- Kept [diagram_collection.md](diagram_collection.md) as the visual system and
+  architecture reference.
 
-| Doc | Purpose | Open it when |
-|-----|---------|--------------|
-| [START_HERE.md](START_HERE.md) | Orientation and doc navigation | You are new, returning, or unsure where a task belongs. |
-| [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Local setup, commands, verification, troubleshooting | You want to run or debug the project locally. |
-| [OPERATIONS.md](OPERATIONS.md) | Data-refresh, automation, deployment, logs, escalation | You are touching scraping, loading, staging, hosting, or workflow health. |
-| [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) | Product identity and decision rules | You are planning product-facing work or checking scope. |
-| [API_CONTRACT.md](API_CONTRACT.md) | Frontend-facing API contract for intelligence-layer pages | You need the current route shapes, fields, caveats, and page owners. |
-| [API_INTELLIGENCE_ENDPOINTS.md](API_INTELLIGENCE_ENDPOINTS.md) | Routine intelligence API contracts | You are wiring Trends, Teams, Matches, Players, or Overview pages to backend-computed signals. |
-| [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Planning map, strengths, gaps, next priorities | You need project direction or milestone context. |
-| [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) | Research playbook: ideas, data access, promotion, analytics decisions | You are working in notebooks or promoting a football insight. |
-| [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) | Frontend playbook: visual system, product UI rules, page templates | You are designing or implementing frontend behavior. |
-| [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) | Proposed frontend changes and request workflow | You are capturing or implementing approved UI/UX requests. |
-| [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md) | UPL Lens frontend redesign entrypoint and precedence guide | You are implementing or reviewing the public frontend relaunch. |
-| [UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md](UPL_LENS_HIGH_FIDELITY_DESIGN_BRIEF.md) | Highest-priority visual and editorial frontend brief | You need the final launch design direction. |
-| [UPL_LENS_TEXT_WIREFRAMES.md](UPL_LENS_TEXT_WIREFRAMES.md) | Canonical text wireframes | You need page structure before implementation details. |
-| [UPL_LENS_PAGE_REQUIREMENTS.md](UPL_LENS_PAGE_REQUIREMENTS.md) | Page-by-page frontend functional requirements | You need page scope, states, and data needs. |
-| [UPL_LENS_INFORMATION_ARCHITECTURE.md](UPL_LENS_INFORMATION_ARCHITECTURE.md) | Navigation and content model for UPL Lens | You are shaping page hierarchy, navigation, or content relationships. |
-| [diagram_collection.md](diagram_collection.md) | Visual system overview | You need architecture, data-flow, API-flow, or scraper diagrams. |
-| [CHANGELOG.md](CHANGELOG.md) | High-signal project change history | You want recent context before editing. |
+### 2026-06-06
 
-## Reading Paths By Task
+- Added a frontend-facing API contract and linked it from the main docs
+  entrypoints.
+- Documented the backend intelligence-layer page roles, endpoint mapping, and
+  page-by-page upgrade order.
+- Added frontend work guidance for API client sync, reusable intelligence
+  components, and page upgrades.
+- Clarified docs and agent guidance around UPL Lens naming, launch precedence,
+  and frontend skills.
 
-If you want to run the project locally:
+### 2026-06-05
 
-- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
-- [CHANGELOG.md](CHANGELOG.md)
-- `.env.example`
-- `frontend/.env.example`
+- Updated roadmap and diagram public-product language so Product Experience
+  planning points at UPL Lens while preserving UPL Match Intelligence as the
+  broader repo, data-platform, research, API, and historical context.
 
-If you want to refresh or validate data:
+### 2026-05-31
 
-- [OPERATIONS.md](OPERATIONS.md)
-- [diagram_collection.md](diagram_collection.md)
+- Added the UPL Lens frontend launch package and `visual_inspo.png`.
+- Linked the launch material from central docs as a temporary exception to the
+  older doc cap. That temporary exception has now been folded into the seven-doc
+  structure.
 
-If you want to add a football insight:
+### 2026-05-26
 
-- [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md)
-- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
-- the relevant feature folder under `notebooks/features/`
-
-If you want to improve the app:
-
-- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
-- [API_CONTRACT.md](API_CONTRACT.md)
-- [API_INTELLIGENCE_ENDPOINTS.md](API_INTELLIGENCE_ENDPOINTS.md)
-- [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md)
-- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
-- [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
-- `api/`
-- `src/api/`
-- `frontend/src/`
-
-If you want a visual system overview:
-
-- [diagram_collection.md](diagram_collection.md)
-- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
-
-If you want current priorities before touching anything:
-
-- [CHANGELOG.md](CHANGELOG.md)
-- [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md)
-- [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
-
-## Logs, Tests, Validation, And Escalation
-
-Use this mental model:
-
-```text
-Logs = what happened during a real run.
-Tests = what should always be true when code changes.
-Validation = whether the current real data is safe and coherent.
-Escalation = what to do when logs, tests, or validation reveal risk.
-```
-
-Recommended severity ladder:
-
-```text
-INFO    Normal progress.
-WARNING Odd or incomplete, but not blocking.
-ERROR   A stage failed or data quality is unsafe.
-FATAL   The run cannot continue.
-```
-
-Recommended escalation ladder:
-
-```text
-Level 0: Record only
-Level 1: Warn in logs or summaries
-Level 2: Record a validation issue
-Level 3: Fail the automation run
-Level 4: Require manual/admin intervention
-```
-
-For the detailed version, use [OPERATIONS.md](OPERATIONS.md).
-
-## Where The Old Launch Phases Went
-
-The old launch phases are now historical context, not the main planning model.
-
-| Old launch phase | New continuous area |
-|------------------|---------------------|
-| Scraper stabilization | Data Reliability & Operations |
-| Postgres foundation | Data Reliability & Operations |
-| Cleaning, validation, analytics models | Data Reliability & Operations; Research & Football Intelligence |
-| FastAPI backend | Product Experience |
-| React frontend | Product Experience |
-| GitHub Actions automation | Data Reliability & Operations |
-| Notebook research promotion | Research & Football Intelligence; Product Experience |
-| Deployment and portfolio polish | Data Reliability & Operations; Developer Experience & Documentation |
-
-Use [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for the current planning model and
-[CHANGELOG.md](CHANGELOG.md) for a concise history of recent work.
+- Consolidated the earlier docs set, merged navigation guidance into
+  `START_HERE.md`, and established the small-doc-surface standard.
 
 ## Updating Docs Without Re-Creating Sprawl
 
-Use these rules:
-
-- Update [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) when setup, common
-  commands, verification steps, or local troubleshooting changes.
-- Update [OPERATIONS.md](OPERATIONS.md) when logs, tests, validation, GitHub
-  Actions behavior, hosted deployment steps, or escalation rules change.
-- Update [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) when
-  notebook workflow, research backlog, data-source rules, feature lifecycle, or
-  analytics-promotion rules change.
-- Update [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md) for proposed UI/UX
-  changes and request status.
-- Update [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for approved
-  frontend behavior, visual rules, component patterns, and page templates.
-- Update the `UPL_LENS_*` docs when the frontend rebrand artifacts themselves
-  change: precedence, wireframes, page requirements, information architecture,
-  or launch-specific editorial direction.
-- Update [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) only when the app's
-  identity, audience, positioning, or decision rules change.
+- Update [START_HERE.md](START_HERE.md) for navigation, current phase, doc
+  structure, and recent high-signal history.
+- Update [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) only when identity,
+  audience, positioning, or product decision rules change.
 - Update [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) for strengths, gaps,
-  near-term priorities, and major planning shifts.
+  milestones, and planning shifts.
+- Update [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) for
+  notebook workflow, data-source rules, feature lifecycle, or promotion rules.
+- Update [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for setup, commands,
+  verification, operations, GitHub Actions, hosted troubleshooting, and
+  escalation.
+- Update [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for API
+  contracts, frontend visual rules, UX requests, page requirements, wireframes,
+  and launch decisions.
 - Update [diagram_collection.md](diagram_collection.md) when architecture,
   workflows, endpoints, database shape, or known gaps change.
-- Update [CHANGELOG.md](CHANGELOG.md) when a meaningful repo change ships.
 
 Avoid creating a new doc just because a section is getting detailed. Prefer a
 clear section inside an existing source-of-truth file first.

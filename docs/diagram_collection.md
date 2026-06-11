@@ -10,8 +10,7 @@ code changes affect the architecture, major workflows, endpoints, database
 tables, or known gaps.
 
 Current planning home: use [START_HERE.md](START_HERE.md) for the four
-continuous development areas and [CHANGELOG.md](CHANGELOG.md) for concise
-recent-history context.
+continuous development areas and concise recent-history context.
 
 ---
 
@@ -154,7 +153,7 @@ flowchart TD
     subgraph API["⚡ FastAPI — api/"]
         direction LR
         DIRECT["Read queries\nsrc/api/query_services/*\nqueries.py facade\nGET /seasons\nGET /matches\nGET /teams (analytics)\nGET /events\nGET /officials"]
-        INTEL_EP["Routine intelligence endpoints\nGET /trends/seasons\nGET /overview/intelligence\nGET /matches/intelligence\nGET /teams/{slug}/profile\nGET /players/leaderboards\nSee docs/API_CONTRACT.md"]
+        INTEL_EP["Routine intelligence endpoints\nGET /trends/seasons\nGET /overview/intelligence\nGET /matches/intelligence\nGET /teams/{slug}/profile\nGET /players/leaderboards\nSee docs/FRONTEND_DESIGN_SYSTEM.md"]
         INS_EP["Insight endpoints\nGET /insights/goal-timing"]
         HEALTH["GET /health\ndb ping\nlatest_staging_completed_at"]
     end

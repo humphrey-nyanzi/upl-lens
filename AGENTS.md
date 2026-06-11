@@ -7,7 +7,7 @@ that historically shipped under the public name "UPL Match Intelligence".
 The frontend product has been redesigned and rebranded as **UPL Lens**.
 Keep historical operational and research guidance here; frontend design and
 launch direction should now follow the UPL Lens frontend docs (see
-`docs/UPL_LENS_FRONTEND_START_HERE.md`).
+`docs/FRONTEND_DESIGN_SYSTEM.md`).
 
 This repo continues to evolve the data platform and research workflows, while
 the UPL Lens frontend sets the public-facing product and visual direction.
@@ -359,13 +359,22 @@ GitHub Actions is the preferred automation path for portfolio visibility.
 
 - Before coding, check [docs/START_HERE.md](docs/START_HERE.md),
   [docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md),
-  [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md), any relevant developer
-  or feature guide, and the current files related to the task.
+  [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md), the relevant document
+  from the seven-doc structure, and the current files related to the task. For
+  frontend, API contract, page-requirement, wireframe, or UX-request work, use
+  [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md).
+- When creating, editing, consolidating, deleting, or relying on repository
+  documentation, consult and follow the installed `docs-steward` skill. Keep
+  docs current with code, commands, API contracts, workflows, diagrams, and
+  agent instructions.
 - When doing frontend work, consult and follow the installed
-  `build-web-apps:frontend-app-builder`, `impeccable`, and `tufte-viz` skills
+  `build-web-apps:frontend-app-builder`, `impeccable`, `tufte-viz`, and
+  `upl-react-doctor` skills
   as applicable. Use `frontend-app-builder` for new frontend surfaces or
   redesigns, `impeccable` for UI shaping, audit, and polish passes, and
-  `tufte-viz` for chart and data-visualization choices.
+  `tufte-viz` for chart and data-visualization choices. Use
+  `upl-react-doctor` when running React Doctor, improving its score, or
+  reevaluating older React patterns in `frontend/`.
 - Explain work systematically and beginner-consciously. For each implementation
   step, briefly state what is being changed, why it matters, and how to run or
   verify it.

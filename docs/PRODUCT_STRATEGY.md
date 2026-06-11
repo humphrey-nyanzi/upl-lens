@@ -3,8 +3,8 @@
 This document defines the product principles for the repository. NOTE: the
 public frontend product has been rebranded to **UPL Lens**. This strategy
 document continues to describe product priorities and should be read together
-with [UPL_LENS_FRONTEND_START_HERE.md](UPL_LENS_FRONTEND_START_HERE.md) for
-frontend-specific design and launch direction.
+with [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for frontend,
+API-contract, page-requirement, and launch direction.
 
 Use this document before major UI, API, research-promotion, or documentation
 changes. It should help a human contributor or AI agent understand the kind of
@@ -527,7 +527,6 @@ Before coding product-facing work, an AI agent should check:
 
 For frontend work, also check:
 
-- [FRONTEND_UX_REQUESTS.md](FRONTEND_UX_REQUESTS.md)
 - [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md)
 
 For research promotion work, also check:

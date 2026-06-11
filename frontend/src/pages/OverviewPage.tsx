@@ -15,16 +15,12 @@ import { ErrorPanel } from "../components/common/ErrorPanel";
 import { EmptyState } from "../components/common/EmptyState";
 import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
+import { ShowMoreList } from "../components/common/ShowMoreList";
 import { TeamMarker } from "../components/common/TeamMarker";
-import {
-  DataQualityNote,
-  MetricDelta,
-  MiniBarChart,
-  SignalChipGroup,
-  type DataQualityTone,
-  type MiniBarDatum,
-  type SignalChipItem,
-} from "../components/intelligence";
+import { DataQualityNote, type DataQualityTone } from "../components/intelligence/DataQualityNote";
+import { MetricDelta } from "../components/intelligence/MetricDelta";
+import { MiniBarChart, type MiniBarDatum } from "../components/intelligence/MiniBarChart";
+import { SignalChipGroup, type SignalChipItem } from "../components/intelligence/SignalChip";
 import { formatDate, formatPercent, formatScoreline } from "../utils/format";
 import { getPeakRegularTimeInterval, getRegularTimeIntervals } from "../utils/goalTiming";
 import { getSelectedSeasonLabel, toApiSeason } from "../utils/seasonScope";
@@ -37,6 +33,12 @@ type OverviewModules = {
   leaderboards: PlayerLeaderboardsResponse | null;
   matches: MatchIntelligenceSummary[];
   trends: SeasonTrendsResponse | null;
+};
+
+type OverviewModulesViewState = {
+  modules: OverviewModules;
+  requestKey: string;
+  status: Exclude<IntelligenceState, "loading">;
 };
 
 const emptyModules: OverviewModules = {
@@ -97,11 +99,33 @@ function toSignalItems(items: Array<{ key?: string; label: string; tone?: Signal
 }
 
 function topByNumber<T>(rows: T[], getter: (row: T) => number | null | undefined) {
-  return [...rows].sort((left, right) => (getter(right) ?? Number.NEGATIVE_INFINITY) - (getter(left) ?? Number.NEGATIVE_INFINITY))[0];
+  let topRow: T | undefined;
+  let topValue = Number.NEGATIVE_INFINITY;
+
+  for (const row of rows) {
+    const value = getter(row) ?? Number.NEGATIVE_INFINITY;
+    if (value > topValue) {
+      topRow = row;
+      topValue = value;
+    }
+  }
+
+  return topRow;
 }
 
 function lowByNumber<T>(rows: T[], getter: (row: T) => number | null | undefined) {
-  return [...rows].sort((left, right) => (getter(left) ?? Number.POSITIVE_INFINITY) - (getter(right) ?? Number.POSITIVE_INFINITY))[0];
+  let lowRow: T | undefined;
+  let lowValue = Number.POSITIVE_INFINITY;
+
+  for (const row of rows) {
+    const value = getter(row) ?? Number.POSITIVE_INFINITY;
+    if (value < lowValue) {
+      lowRow = row;
+      lowValue = value;
+    }
+  }
+
+  return lowRow;
 }
 
 function getFallbackNotices(teams: TeamResponse[], signalMatches: MatchIntelligenceSummary[]): OverviewNotice[] {
@@ -216,14 +240,17 @@ export function OverviewPage({
   selectedSeason,
   selectedSeasonInfo,
 }: PageProps) {
-  const [modules, setModules] = useState<OverviewModules>(emptyModules);
-  const [moduleState, setModuleState] = useState<IntelligenceState>("loading");
+  const [modulesView, setModulesView] = useState<OverviewModulesViewState>({
+    modules: emptyModules,
+    requestKey: "",
+    status: "success",
+  });
   const seasonLabel = getSelectedSeasonLabel(selectedSeason, selectedSeasonInfo);
   const apiSeason = toApiSeason(selectedSeason);
+  const modulesRequestKey = selectedSeason;
 
   useEffect(() => {
     let ignore = false;
-    setModuleState("loading");
 
     Promise.allSettled([
       apiClient.getOverviewIntelligence(apiSeason),
@@ -241,14 +268,20 @@ export function OverviewPage({
       };
       const successCount = [overviewResult, matchesResult, trendsResult, leaderboardsResult].filter((result) => result.status === "fulfilled").length;
 
-      setModules(nextModules);
-      setModuleState(successCount === 4 ? "success" : successCount > 0 ? "partial" : "error");
+      setModulesView({
+        modules: nextModules,
+        requestKey: modulesRequestKey,
+        status: successCount === 4 ? "success" : successCount > 0 ? "partial" : "error",
+      });
     });
 
     return () => {
       ignore = true;
     };
-  }, [apiSeason]);
+  }, [apiSeason, modulesRequestKey]);
+
+  const moduleState: IntelligenceState = modulesView.requestKey === modulesRequestKey ? modulesView.status : "loading";
+  const modules = modulesView.requestKey === modulesRequestKey ? modulesView.modules : emptyModules;
 
   const trendForSeason = useMemo(
     () => modules.trends?.seasons.find((season) => season.season === selectedSeason || season.season === apiSeason) ?? null,
@@ -397,13 +430,18 @@ export function OverviewPage({
             title="Recent signal matches"
             text="Matches worth opening because scoring, late-goal, discipline, timeline, or caveat signals stand out."
           />
-          <div className="overview-signal-match-list">
-            {modules.matches.length > 0 ? (
-              modules.matches.slice(0, 6).map((match) => <SignalMatchCard key={match.match_id} match={match} />)
-            ) : (
-              <EmptyState message={moduleState === "loading" ? "Loading match signals." : "No signal matches are available for this season yet."} />
-            )}
-          </div>
+          {modules.matches.length > 0 ? (
+            <ShowMoreList
+              className="overview-signal-match-list"
+              getKey={(match) => match.match_id}
+              initialCount={3}
+              itemNoun="match"
+              items={modules.matches}
+              renderItem={(match) => <SignalMatchCard match={match} />}
+            />
+          ) : (
+            <EmptyState message={moduleState === "loading" ? "Loading match signals." : "No signal matches are available for this season yet."} />
+          )}
         </section>
 
         <section className="panel">

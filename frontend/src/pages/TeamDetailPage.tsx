@@ -13,20 +13,14 @@ import type {
 import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
+import { ShowMoreList } from "../components/common/ShowMoreList";
 import { TeamMarker } from "../components/common/TeamMarker";
-import {
-  DataQualityNote,
-  FormStrip,
-  HorizontalComparisonBar,
-  MetricDelta,
-  MiniBarChart,
-  SignalChip,
-  SignalChipGroup,
-  StackedShareBar,
-} from "../components/intelligence";
-import type { DataQualityTone } from "../components/intelligence/DataQualityNote";
-import type { FormStripItem } from "../components/intelligence/FormStrip";
-import type { SignalChipItem, SignalTone as ComponentSignalTone } from "../components/intelligence/SignalChip";
+import { DataQualityNote, type DataQualityTone } from "../components/intelligence/DataQualityNote";
+import { FormStrip, type FormStripItem } from "../components/intelligence/FormStrip";
+import { HorizontalComparisonBar, StackedShareBar } from "../components/intelligence/ComparisonBars";
+import { MetricDelta } from "../components/intelligence/MetricDelta";
+import { MiniBarChart } from "../components/intelligence/MiniBarChart";
+import { SignalChip, SignalChipGroup, type SignalChipItem, type SignalTone as ComponentSignalTone } from "../components/intelligence/SignalChip";
 import { formatDate, formatPercent, formatSeason } from "../utils/format";
 import { getSelectedSeasonLabel, toApiSeason } from "../utils/seasonScope";
 import { formatGoalDifference } from "../utils/teams";
@@ -200,9 +194,14 @@ function RecentMatchList({ matches }: { matches: TeamProfileMatch[] }) {
   }
 
   return (
-    <div className="team-dossier-match-list">
-      {matches.slice(0, 8).map((match) => (
-        <Link className="team-dossier-match-row" key={match.match_id} to={`/matches/${match.match_id}`}>
+    <ShowMoreList
+      className="team-dossier-match-list"
+      getKey={(match) => match.match_id}
+      initialCount={4}
+      itemNoun="match"
+      items={matches}
+      renderItem={(match) => (
+        <Link className="team-dossier-match-row" to={`/matches/${match.match_id}`}>
           <div>
             <span>{match.match_date ? formatDate(match.match_date) : `Matchday ${match.match_day ?? "TBC"}`}</span>
             <strong>{match.opponent ?? "Opponent TBC"}</strong>
@@ -222,8 +221,8 @@ function RecentMatchList({ matches }: { matches: TeamProfileMatch[] }) {
             />
           </div>
         </Link>
-      ))}
-    </div>
+      )}
+    />
   );
 }
 
@@ -295,15 +294,17 @@ export default function TeamDetailPage({ onRefresh, selectedSeason, selectedSeas
 
   const dataStatus = getDataQualityStatus(profile);
   const ppm = pointsPerMatch(profile);
-  const goalTimingData = profile.goal_timing
-    .filter((interval) => interval.goals > 0 || interval.share !== null)
-    .map((interval) => ({
+  const goalTimingData = profile.goal_timing.reduce<Array<{ key: string; label: string; value: number; secondaryValue: number | null; tone: "green" }>>((items, interval) => {
+    if (interval.goals <= 0 && interval.share === null) return items;
+    items.push({
       key: interval.interval,
       label: interval.interval,
       value: interval.goals,
       secondaryValue: interval.share,
       tone: "green" as const,
-    }));
+    });
+    return items;
+  }, []);
 
   return (
     <article className="team-dossier-page">
@@ -395,10 +396,14 @@ export default function TeamDetailPage({ onRefresh, selectedSeason, selectedSeas
             text="Recent scorelines show match-by-match scoring balance. Avoid overclaiming from short runs."
           />
           {recentGoalRows.length > 0 ? (
-            <div className="team-recent-goals-list">
-              {recentGoalRows.map(({ goals, match }) => (
+            <ShowMoreList
+              className="team-recent-goals-list"
+              getKey={({ match }) => match.match_id}
+              initialCount={4}
+              itemNoun="match"
+              items={recentGoalRows}
+              renderItem={({ goals, match }) => (
                 <HorizontalComparisonBar
-                  key={match.match_id}
                   label={match.opponent ?? `Match ${match.match_id}`}
                   segments={[
                     { label: "For", value: goals.for ?? 0, tone: "green" },
@@ -406,8 +411,8 @@ export default function TeamDetailPage({ onRefresh, selectedSeason, selectedSeas
                   ]}
                   valueFormatter={(value) => value.toLocaleString()}
                 />
-              ))}
-            </div>
+              )}
+            />
           ) : (
             <EmptyState message="No recent scoreline profile is available for this team in the selected season." />
           )}

@@ -49,6 +49,8 @@ const socialLinks = [
   { href: "https://humphreyn-substack.com", icon: <Newspaper size={15} />, label: "Substack" },
 ];
 
+const freshnessDateFormatter = new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" });
+
 function formatFreshness(health: HealthResponse | null, apiOnline: boolean) {
   if (!apiOnline) return "Data status unavailable";
   const latestUpdate = health?.latest_staging_completed_at;
@@ -57,32 +59,28 @@ function formatFreshness(health: HealthResponse | null, apiOnline: boolean) {
   const date = new Date(latestUpdate);
   if (Number.isNaN(date.getTime())) return "Data live";
 
-  return `Updated ${new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(date)}`;
+  return `Updated ${freshnessDateFormatter.format(date)}`;
 }
 
-export function AppShell({
-  apiOnline,
-  children,
-  health,
-  loadState,
-  onRefresh,
-  onSeasonChange,
-  seasons,
-  selectedSeason,
+function getSearchResultIndex(groupOffset: number, index: number) {
+  return groupOffset + index;
+}
+
+function GlobalSearch({
   matches,
-  teams,
   players,
-}: AppShellProps) {
+  teams,
+}: {
+  matches: MatchSummary[];
+  players: PlayerSummary[];
+  teams: TeamResponse[];
+}) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const path = location.pathname.replace(/^\//, "") || "overview";
-  const [moreOpen, setMoreOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const searchRegionRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const freshnessLabel = formatFreshness(health, apiOnline);
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearch.length >= 2;
 
@@ -134,17 +132,13 @@ export function AppShell({
   );
 
   const showSearchResults = searchOpen && hasSearchQuery;
-  const activeSearchResult = showSearchResults ? combinedSearchResults[activeSearchIndex] : undefined;
-  const activeSearchOptionId = activeSearchResult ? `search-result-${activeSearchResult.id}` : undefined;
-
-  useEffect(() => {
-    if (!showSearchResults || combinedSearchResults.length === 0) {
-      setActiveSearchIndex(-1);
-      return;
-    }
-
-    setActiveSearchIndex((currentIndex) => (currentIndex >= 0 && currentIndex < combinedSearchResults.length ? currentIndex : 0));
-  }, [combinedSearchResults.length, showSearchResults]);
+  const visibleActiveSearchIndex =
+    showSearchResults && combinedSearchResults.length > 0
+      ? activeSearchIndex >= 0 && activeSearchIndex < combinedSearchResults.length
+        ? activeSearchIndex
+        : 0
+      : -1;
+  const activeSearchResult = showSearchResults ? combinedSearchResults[visibleActiveSearchIndex] : undefined;
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -157,7 +151,6 @@ export function AppShell({
     function handlePageKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setSearchOpen(false);
-        setMoreOpen(false);
         setActiveSearchIndex(-1);
       }
     }
@@ -171,50 +164,31 @@ export function AppShell({
     };
   }, []);
 
-  useEffect(() => {
-    if (searchOpen) {
-      searchInputRef.current?.focus();
-    }
-  }, [searchOpen]);
-
-  function handleTeamSelect(teamName: string) {
-    setSearchOpen(false);
-    setSearchQuery("");
-    navigate(`/teams/${slugify(teamName)}`);
-  }
-
-  function handleMatchSelect(matchId: number) {
-    setSearchOpen(false);
-    setSearchQuery("");
-    navigate(`/matches/${matchId}`);
-  }
-
-  function handlePlayerSelect(playerSlug: string) {
-    setSearchOpen(false);
-    setSearchQuery("");
-    navigate(`/players/${playerSlug}`);
-  }
-
   function handleSearchResultSelect(result: SearchResult) {
+    setSearchOpen(false);
+    setSearchQuery("");
+
     if (result.type === "team") {
-      handleTeamSelect(result.teamName);
+      navigate(`/teams/${slugify(result.teamName)}`);
       return;
     }
 
     if (result.type === "player") {
-      handlePlayerSelect(result.playerSlug);
+      navigate(`/players/${result.playerSlug}`);
       return;
     }
 
-    handleMatchSelect(result.matchId);
+    navigate(`/matches/${result.matchId}`);
   }
 
-  function closeMoreMenu() {
-    setMoreOpen(false);
-  }
-
-  function getSearchResultIndex(groupOffset: number, index: number) {
-    return groupOffset + index;
+  function openSearchFromTrigger() {
+    setSearchOpen((isOpen) => {
+      const nextOpen = !isOpen;
+      if (nextOpen) {
+        window.requestAnimationFrame(() => searchInputRef.current?.focus());
+      }
+      return nextOpen;
+    });
   }
 
   function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
@@ -224,13 +198,8 @@ export function AppShell({
       return;
     }
 
-    if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") {
-      return;
-    }
-
-    if (!hasSearchQuery) {
-      return;
-    }
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") return;
+    if (!hasSearchQuery) return;
 
     if (event.key === "Enter") {
       if (showSearchResults && activeSearchResult) {
@@ -243,17 +212,217 @@ export function AppShell({
     event.preventDefault();
     setSearchOpen(true);
 
-    if (combinedSearchResults.length === 0) {
-      return;
-    }
+    if (combinedSearchResults.length === 0) return;
 
     setActiveSearchIndex((currentIndex) => {
       if (event.key === "ArrowDown") {
         return currentIndex < combinedSearchResults.length - 1 ? currentIndex + 1 : 0;
       }
-
       return currentIndex > 0 ? currentIndex - 1 : combinedSearchResults.length - 1;
     });
+  }
+
+  return (
+    <>
+      <button
+        className="mobile-search-trigger"
+        type="button"
+        aria-expanded={searchOpen}
+        aria-controls="global-search-results"
+        aria-label="Search teams, players, and matches"
+        onClick={openSearchFromTrigger}
+      >
+        <Search size={18} aria-hidden="true" />
+      </button>
+      <div
+        ref={searchRegionRef}
+        className={`shell-search-group${searchOpen ? " is-open" : ""}`}
+        onBlurCapture={(event) => {
+          const nextFocusTarget = event.relatedTarget;
+          if (nextFocusTarget instanceof Node && searchRegionRef.current?.contains(nextFocusTarget)) return;
+          setSearchOpen(false);
+          setActiveSearchIndex(-1);
+        }}
+      >
+        <div className="search-bar-container">
+          <Search size={14} className="search-icon" aria-hidden />
+          <input
+            ref={searchInputRef}
+            aria-label="Search teams, players, and matches"
+            aria-controls="global-search-results"
+            className="search-input"
+            onChange={(event) => {
+              setSearchQuery(event.target.value);
+              setSearchOpen(true);
+            }}
+            onFocus={() => setSearchOpen(true)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search teams, players, and matches"
+            type="text"
+            value={searchQuery}
+          />
+        </div>
+        {showSearchResults ? (
+          <SearchResultsPanel
+            matchResults={matchResults}
+            onActiveIndexChange={setActiveSearchIndex}
+            onSelect={handleSearchResultSelect}
+            playerResults={playerResults}
+            teamResults={teamResults}
+            visibleActiveSearchIndex={visibleActiveSearchIndex}
+          />
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function SearchResultsPanel({
+  matchResults,
+  onActiveIndexChange,
+  onSelect,
+  playerResults,
+  teamResults,
+  visibleActiveSearchIndex,
+}: {
+  matchResults: MatchSummary[];
+  onActiveIndexChange: (index: number) => void;
+  onSelect: (result: SearchResult) => void;
+  playerResults: PlayerSummary[];
+  teamResults: TeamResponse[];
+  visibleActiveSearchIndex: number;
+}) {
+  return (
+    <div className="search-results-panel" id="global-search-results" aria-label="Search results">
+      {teamResults.length > 0 ? (
+        <div className="search-results-group">
+          <span>Teams</span>
+          {teamResults.map((team, index) => {
+            const result: SearchResult = { id: `team-${slugify(team.team_name)}`, type: "team", teamName: team.team_name };
+            const isActive = visibleActiveSearchIndex === getSearchResultIndex(0, index);
+
+            return (
+              <button
+                aria-current={isActive ? "true" : undefined}
+                className={isActive ? "active" : undefined}
+                id={`search-result-${result.id}`}
+                key={team.team_name}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  onSelect(result);
+                }}
+                onMouseEnter={() => onActiveIndexChange(getSearchResultIndex(0, index))}
+                type="button"
+              >
+                <span className="search-result-topline">
+                  <TeamName className="search-team-name" label={team.team_name} size="small" />
+                  <span className="search-result-chip">Team</span>
+                </span>
+                <small>{team.wins}W {team.draws}D {team.losses}L · {team.goals_for} GF</small>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {playerResults.length > 0 ? (
+        <div className="search-results-group">
+          <span>Players</span>
+          {playerResults.map((player, index) => {
+            const resultIndex = getSearchResultIndex(teamResults.length, index);
+            const result: SearchResult = {
+              id: `player-${player.player_slug}`,
+              type: "player",
+              playerSlug: player.player_slug,
+              playerName: player.player_name,
+            };
+            const isActive = visibleActiveSearchIndex === resultIndex;
+
+            return (
+              <button
+                aria-current={isActive ? "true" : undefined}
+                className={isActive ? "active" : undefined}
+                id={`search-result-${result.id}`}
+                key={player.player_slug}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  onSelect(result);
+                }}
+                onMouseEnter={() => onActiveIndexChange(resultIndex)}
+                type="button"
+              >
+                <span className="search-result-topline">
+                  <strong>{player.player_name}</strong>
+                  <span className="search-result-chip">Player</span>
+                </span>
+                <small>
+                  <TeamName className="search-team-name" label={player.primary_team ?? "Team TBC"} size="small" /> · {player.goals} G · {player.assists} A · {player.appearances} apps
+                </small>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {matchResults.length > 0 ? (
+        <div className="search-results-group">
+          <span>Matches</span>
+          {matchResults.map((match, index) => {
+            const resultIndex = getSearchResultIndex(teamResults.length + playerResults.length, index);
+            const result: SearchResult = { id: `match-${match.match_id}`, type: "match", matchId: match.match_id };
+            const isActive = visibleActiveSearchIndex === resultIndex;
+
+            return (
+              <button
+                aria-current={isActive ? "true" : undefined}
+                className={isActive ? "active" : undefined}
+                id={`search-result-${result.id}`}
+                key={match.match_id}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  onSelect(result);
+                }}
+                onMouseEnter={() => onActiveIndexChange(resultIndex)}
+                type="button"
+              >
+                <span className="search-result-topline">
+                  <strong>{match.home_team ?? "Home"} {formatScoreline(match.home_score, match.away_score)} {match.away_team ?? "Away"}</strong>
+                  <MatchStatusPill match={match} />
+                </span>
+                <small>{formatDate(match.match_date)} · Match brief</small>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {teamResults.length === 0 && playerResults.length === 0 && matchResults.length === 0 ? (
+        <div className="search-results-empty">No teams, players, or matches found.</div>
+      ) : null}
+    </div>
+  );
+}
+
+export function AppShell({
+  apiOnline,
+  children,
+  health,
+  loadState,
+  onRefresh,
+  onSeasonChange,
+  seasons,
+  selectedSeason,
+  matches,
+  teams,
+  players,
+}: AppShellProps) {
+  const location = useLocation();
+  const path = location.pathname.replace(/^\//, "") || "overview";
+  const [moreOpen, setMoreOpen] = useState(false);
+  const freshnessLabel = formatFreshness(health, apiOnline);
+
+  function closeMoreMenu() {
+    setMoreOpen(false);
   }
 
   return (
@@ -314,164 +483,7 @@ export function AppShell({
               onSeasonChange={onSeasonChange}
               variant="shell"
             />
-            <button
-              className="mobile-search-trigger"
-              type="button"
-              aria-expanded={searchOpen}
-              aria-controls="global-search-results"
-              aria-label="Search teams, players, and matches"
-              onClick={() => setSearchOpen((isOpen) => !isOpen)}
-            >
-              <Search size={18} aria-hidden="true" />
-            </button>
-            <div
-              ref={searchRegionRef}
-              className={`shell-search-group${searchOpen ? " is-open" : ""}`}
-              onBlurCapture={(event) => {
-                const nextFocusTarget = event.relatedTarget;
-                if (nextFocusTarget instanceof Node && searchRegionRef.current?.contains(nextFocusTarget)) {
-                  return;
-                }
-                setSearchOpen(false);
-                setActiveSearchIndex(-1);
-              }}
-            >
-              <div className="search-bar-container">
-                <Search size={14} className="search-icon" aria-hidden />
-                <input
-                  ref={searchInputRef}
-                  aria-activedescendant={activeSearchOptionId}
-                  aria-label="Search teams, players, and matches"
-                  aria-controls="global-search-results"
-                  aria-expanded={showSearchResults}
-                  aria-haspopup="listbox"
-                  className="search-input"
-                  onChange={(event) => {
-                    setSearchQuery(event.target.value);
-                    setSearchOpen(true);
-                  }}
-                  onFocus={() => setSearchOpen(true)}
-                  onKeyDown={handleSearchKeyDown}
-                  placeholder="Search teams, players, and matches"
-                  role="combobox"
-                  type="text"
-                  value={searchQuery}
-                />
-              </div>
-              {showSearchResults ? (
-                <div className="search-results-panel" id="global-search-results" role="listbox" aria-label="Search results">
-                  {teamResults.length > 0 ? (
-                    <div className="search-results-group">
-                      <span>Teams</span>
-                      {teamResults.map((team, index) => {
-                        const result: SearchResult = { id: `team-${slugify(team.team_name)}`, type: "team", teamName: team.team_name };
-                        const isActive = activeSearchIndex === getSearchResultIndex(0, index);
-
-                        return (
-                          <button
-                            aria-selected={isActive}
-                            className={isActive ? "active" : undefined}
-                            id={`search-result-${result.id}`}
-                            key={team.team_name}
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              handleSearchResultSelect(result);
-                            }}
-                            onMouseEnter={() => setActiveSearchIndex(getSearchResultIndex(0, index))}
-                            role="option"
-                            type="button"
-                          >
-                            <span className="search-result-topline">
-                              <TeamName className="search-team-name" label={team.team_name} size="small" />
-                              <span className="search-result-chip">Team</span>
-                            </span>
-                            <small>
-                              {team.wins}W {team.draws}D {team.losses}L · {team.goals_for} GF
-                            </small>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                  {playerResults.length > 0 ? (
-                    <div className="search-results-group">
-                      <span>Players</span>
-                      {playerResults.map((player, index) => {
-                        const resultIndex = getSearchResultIndex(teamResults.length, index);
-                        const result: SearchResult = {
-                          id: `player-${player.player_slug}`,
-                          type: "player",
-                          playerSlug: player.player_slug,
-                          playerName: player.player_name,
-                        };
-                        const isActive = activeSearchIndex === resultIndex;
-
-                        return (
-                          <button
-                            aria-selected={isActive}
-                            className={isActive ? "active" : undefined}
-                            id={`search-result-${result.id}`}
-                            key={player.player_slug}
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              handleSearchResultSelect(result);
-                            }}
-                            onMouseEnter={() => setActiveSearchIndex(resultIndex)}
-                            role="option"
-                            type="button"
-                          >
-                            <span className="search-result-topline">
-                              <strong>{player.player_name}</strong>
-                              <span className="search-result-chip">Player</span>
-                            </span>
-                            <small>
-                              <TeamName className="search-team-name" label={player.primary_team ?? "Team TBC"} size="small" /> · {player.goals} G · {player.assists} A · {player.appearances} apps
-                            </small>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                  {matchResults.length > 0 ? (
-                    <div className="search-results-group">
-                      <span>Matches</span>
-                      {matchResults.map((match, index) => {
-                        const resultIndex = getSearchResultIndex(teamResults.length + playerResults.length, index);
-                        const result: SearchResult = { id: `match-${match.match_id}`, type: "match", matchId: match.match_id };
-                        const isActive = activeSearchIndex === resultIndex;
-
-                        return (
-                          <button
-                            aria-selected={isActive}
-                            className={isActive ? "active" : undefined}
-                            id={`search-result-${result.id}`}
-                            key={match.match_id}
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              handleSearchResultSelect(result);
-                            }}
-                            onMouseEnter={() => setActiveSearchIndex(resultIndex)}
-                            role="option"
-                            type="button"
-                          >
-                            <span className="search-result-topline">
-                              <strong>
-                                {match.home_team ?? "Home"} {formatScoreline(match.home_score, match.away_score)} {match.away_team ?? "Away"}
-                              </strong>
-                              <MatchStatusPill match={match} />
-                            </span>
-                            <small>{formatDate(match.match_date)} · Match brief</small>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                  {teamResults.length === 0 && playerResults.length === 0 && matchResults.length === 0 ? (
-                    <div className="search-results-empty">No teams, players, or matches found.</div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
+            <GlobalSearch matches={matches} players={players} teams={teams} />
             <div className={`data-status-indicator${apiOnline ? " is-live" : " is-waking"}`} title={freshnessLabel}>
               <span className="status-dot" aria-hidden="true"></span>
               <span className="status-text">{freshnessLabel}</span>

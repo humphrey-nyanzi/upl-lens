@@ -1,16 +1,7 @@
-import {
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Scatter,
-  ScatterChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 
-import { ChartEmptyState, ChartTooltip } from "../charts/ChartPrimitives";
+import { ChartEmptyState } from "../charts/ChartPrimitives";
 import type { IntelligenceTone } from "./ComparisonBars";
 
 export type ScatterDatum = {
@@ -34,13 +25,30 @@ export type ScatterComparisonPlotProps = {
   emptyLabel?: string;
 };
 
-const scatterColors: Record<IntelligenceTone, string> = {
-  gold: "var(--color-accent-gold)",
-  green: "var(--color-green)",
-  muted: "rgba(15, 23, 32, 0.3)",
-  navy: "var(--color-text)",
-  risk: "var(--color-risk)",
-};
+const ScatterComparisonChart = lazy(() =>
+  import("./ScatterComparisonChart").then((module) => ({ default: module.ScatterComparisonChart })),
+);
+
+function PointLabel({
+  item,
+  xFormatter,
+  yFormatter,
+}: {
+  item: ScatterDatum;
+  xFormatter?: (value: number) => string;
+  yFormatter?: (value: number) => string;
+}) {
+  const value = `${xFormatter ? xFormatter(item.x) : item.x.toLocaleString()} / ${
+    yFormatter ? yFormatter(item.y) : item.y.toLocaleString()
+  }`;
+
+  return (
+    <>
+      <span>{item.label}</span>
+      <strong>{value}</strong>
+    </>
+  );
+}
 
 export function ScatterComparisonPlot({
   data,
@@ -55,12 +63,6 @@ export function ScatterComparisonPlot({
   const chartData = data.filter((item) => Number.isFinite(item.x) && Number.isFinite(item.y));
   const formatPointValue = (item: ScatterDatum) =>
     `${xFormatter ? xFormatter(item.x) : item.x.toLocaleString()} / ${yFormatter ? yFormatter(item.y) : item.y.toLocaleString()}`;
-  const renderPointLabel = (item: ScatterDatum) => (
-    <>
-      <span>{item.label}</span>
-      <strong>{formatPointValue(item)}</strong>
-    </>
-  );
 
   return (
     <section className="scatter-comparison-plot" aria-label={title}>
@@ -73,31 +75,15 @@ export function ScatterComparisonPlot({
       {chartData.length ? (
         <>
           <div className="scatter-chart-canvas">
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ bottom: 14, left: -18, right: 16, top: 16 }}>
-                <CartesianGrid stroke="var(--color-chart-grid)" strokeDasharray="3 6" />
-                <XAxis
-                  dataKey="x"
-                  name={xLabel}
-                  tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
-                  tickFormatter={(value) => (xFormatter ? xFormatter(Number(value)) : String(value))}
-                  type="number"
-                />
-                <YAxis
-                  dataKey="y"
-                  name={yLabel}
-                  tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
-                  tickFormatter={(value) => (yFormatter ? yFormatter(Number(value)) : String(value))}
-                  type="number"
-                />
-                <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--color-chart-grid)" }} />
-                <Scatter data={chartData} name={`${xLabel} / ${yLabel}`}>
-                  {chartData.map((item) => (
-                    <Cell fill={scatterColors[item.tone ?? "green"]} key={item.id} />
-                  ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<ChartEmptyState message="Loading comparison chart." />}>
+              <ScatterComparisonChart
+                chartData={chartData}
+                xFormatter={xFormatter}
+                xLabel={xLabel}
+                yFormatter={yFormatter}
+                yLabel={yLabel}
+              />
+            </Suspense>
           </div>
           <div className="scatter-axis-labels" aria-hidden="true">
             <span>{xLabel}</span>
@@ -108,10 +94,10 @@ export function ScatterComparisonPlot({
               <li key={item.id}>
                 {item.href ? (
                   <Link to={item.href} aria-label={`Open ${item.label}: ${formatPointValue(item)}`}>
-                    {renderPointLabel(item)}
+                    <PointLabel item={item} xFormatter={xFormatter} yFormatter={yFormatter} />
                   </Link>
                 ) : (
-                  renderPointLabel(item)
+                  <PointLabel item={item} xFormatter={xFormatter} yFormatter={yFormatter} />
                 )}
               </li>
             ))}

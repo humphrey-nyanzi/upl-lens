@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useReducer, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { apiClient } from "../api/client";
@@ -9,16 +9,13 @@ import { EmptyState } from "../components/common/EmptyState";
 import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
+import { ShowMoreList } from "../components/common/ShowMoreList";
 import { TeamName } from "../components/common/EditorialRows";
-import {
-  DataQualityNote,
-  HorizontalComparisonBar,
-  MetricDelta,
-  ScatterComparisonPlot,
-  SignalChipGroup,
-} from "../components/intelligence";
-import type { IntelligenceTone } from "../components/intelligence/ComparisonBars";
-import type { SignalTone } from "../components/intelligence/SignalChip";
+import { DataQualityNote } from "../components/intelligence/DataQualityNote";
+import { HorizontalComparisonBar, type IntelligenceTone } from "../components/intelligence/ComparisonBars";
+import { MetricDelta } from "../components/intelligence/MetricDelta";
+import { ScatterComparisonPlot } from "../components/intelligence/ScatterComparisonPlot";
+import { SignalChipGroup, type SignalTone } from "../components/intelligence/SignalChip";
 import { PlayerRow } from "../components/players/PlayerRow";
 import { formatPercent } from "../utils/format";
 import { getSelectedSeasonLabel, toApiSeason } from "../utils/seasonScope";
@@ -33,6 +30,25 @@ type LeaderboardKey =
   | "bench_impact";
 type SortKey = "goals" | "assists" | "goal_contributions" | "appearances" | "starts" | "cards" | "name";
 type LeaderboardState = "loading" | "success" | "error";
+
+type LeaderboardsViewState = {
+  requestKey: string;
+  leaderboards: PlayerLeaderboardsResponse | null;
+  status: Exclude<LeaderboardState, "loading">;
+};
+
+type PlayerBoardFilters = {
+  minimumAppearances: string;
+  searchTerm: string;
+  sortKey: SortKey;
+  teamFilter: string;
+};
+
+type PlayerBoardFilterAction =
+  | { type: "minimumAppearances"; value: string }
+  | { type: "search"; value: string }
+  | { type: "sort"; value: SortKey }
+  | { type: "team"; value: string };
 
 const sortOptions: Array<{ label: string; value: SortKey }> = [
   { label: "Goals", value: "goals" },
@@ -102,6 +118,16 @@ const leaderboardSections: Array<{
   },
 ];
 
+function playerBoardFilterReducer(
+  filters: PlayerBoardFilters,
+  action: PlayerBoardFilterAction,
+): PlayerBoardFilters {
+  if (action.type === "minimumAppearances") return { ...filters, minimumAppearances: action.value };
+  if (action.type === "search") return { ...filters, searchTerm: action.value };
+  if (action.type === "sort") return { ...filters, sortKey: action.value };
+  return { ...filters, teamFilter: action.value };
+}
+
 function formatStartsShare(value: number | null) {
   if (value === null || value === undefined) return "Starts share unavailable";
   return formatPercent(value);
@@ -122,7 +148,7 @@ function getSortValue(player: PlayerSummary, sortKey: SortKey) {
 }
 
 function sortPlayers(players: PlayerSummary[], sortKey: SortKey) {
-  return [...players].sort((left, right) => {
+  return players.toSorted((left, right) => {
     const leftValue = getSortValue(left, sortKey);
     const rightValue = getSortValue(right, sortKey);
 
@@ -231,28 +257,37 @@ function LeaderboardSection({
   return (
     <article className="panel player-board-panel">
       <ReportSectionHeader title={title} text={text} />
-      <div className="player-board-list">
-        {leaderboard.slice(0, 5).map((player) => (
+      <ShowMoreList
+        className="player-board-list"
+        getKey={(player) => player.player_slug}
+        initialCount={3}
+        itemNoun="player"
+        items={leaderboard}
+        renderItem={(player) => (
           <LeaderboardRow
-            key={player.player_slug}
             leaderboardKey={keyName}
             player={player}
             primaryLabel={primaryLabel}
             secondaryLabel={secondaryLabel}
           />
-        ))}
-      </div>
+        )}
+      />
     </article>
   );
 }
 
 export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInfo }: PageProps) {
-  const [leaderboards, setLeaderboards] = useState<PlayerLeaderboardsResponse | null>(null);
-  const [leaderboardState, setLeaderboardState] = useState<LeaderboardState>("loading");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [teamFilter, setTeamFilter] = useState("all");
-  const [sortKey, setSortKey] = useState<SortKey>("goal_contributions");
-  const [minimumAppearances, setMinimumAppearances] = useState("0");
+  const [leaderboardsView, setLeaderboardsView] = useState<LeaderboardsViewState>({
+    leaderboards: null,
+    requestKey: "",
+    status: "success",
+  });
+  const [{ minimumAppearances, searchTerm, sortKey, teamFilter }, updateFilters] = useReducer(playerBoardFilterReducer, {
+    minimumAppearances: "0",
+    searchTerm: "",
+    sortKey: "goal_contributions",
+    teamFilter: "all",
+  });
   const deferredSearchTerm = useDeferredValue(searchTerm);
 
   const players = data.players;
@@ -261,19 +296,16 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
   useEffect(() => {
     let ignore = false;
 
-    setLeaderboardState("loading");
     apiClient
       .getPlayerLeaderboards(toApiSeason(selectedSeason), 8)
       .then((response) => {
         if (!ignore) {
-          setLeaderboards(response);
-          setLeaderboardState("success");
+          setLeaderboardsView({ leaderboards: response, requestKey: selectedSeason, status: "success" });
         }
       })
       .catch(() => {
         if (!ignore) {
-          setLeaderboards(null);
-          setLeaderboardState("error");
+          setLeaderboardsView({ leaderboards: null, requestKey: selectedSeason, status: "error" });
         }
       });
 
@@ -282,13 +314,16 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
     };
   }, [selectedSeason]);
 
+  const leaderboardState: LeaderboardState = leaderboardsView.requestKey === selectedSeason ? leaderboardsView.status : "loading";
+  const leaderboards = leaderboardsView.requestKey === selectedSeason ? leaderboardsView.leaderboards : null;
+
   const teamOptions = useMemo(() => {
     const names = new Set<string>();
     players.forEach((player) => {
       player.teams.forEach((team) => names.add(team));
       if (player.primary_team) names.add(player.primary_team);
     });
-    return [...names].sort((left, right) => left.localeCompare(right));
+    return Array.from(names).toSorted((left, right) => left.localeCompare(right));
   }, [players]);
 
   const filteredPlayers = useMemo(() => {
@@ -403,7 +438,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
           <label>
             Search player
             <input
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => updateFilters({ type: "search", value: event.target.value })}
               placeholder="Search by player or team"
               type="search"
               value={searchTerm}
@@ -411,7 +446,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
           </label>
           <label>
             Team
-            <select onChange={(event) => setTeamFilter(event.target.value)} value={teamFilter}>
+            <select onChange={(event) => updateFilters({ type: "team", value: event.target.value })} value={teamFilter}>
               <option value="all">All teams</option>
               {teamOptions.map((team) => (
                 <option key={team} value={team}>
@@ -422,7 +457,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
           </label>
           <label>
             Sort by
-            <select onChange={(event) => setSortKey(event.target.value as SortKey)} value={sortKey}>
+            <select onChange={(event) => updateFilters({ type: "sort", value: event.target.value as SortKey })} value={sortKey}>
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -432,7 +467,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
           </label>
           <label>
             Minimum appearances
-            <select onChange={(event) => setMinimumAppearances(event.target.value)} value={minimumAppearances}>
+            <select onChange={(event) => updateFilters({ type: "minimumAppearances", value: event.target.value })} value={minimumAppearances}>
               <option value="0">Any</option>
               <option value="3">3+</option>
               <option value="5">5+</option>
@@ -462,11 +497,19 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
                 { align: "right", label: "Cards" },
               ]}
             />
-            <div className="player-list player-table-list" role="list">
-              {filteredPlayers.slice(0, 40).map((player) => (
-                <PlayerRow key={player.player_slug} player={player} />
-              ))}
-            </div>
+            <ShowMoreList
+              as="ul"
+              className="player-list player-table-list"
+              getKey={(player) => player.player_slug}
+              initialCount={18}
+              itemNoun="player"
+              items={filteredPlayers}
+              renderItem={(player) => (
+                <li>
+                  <PlayerRow player={player} />
+                </li>
+              )}
+            />
           </EditorialTable>
         ) : (
           <EmptyState message={loadState === "loading" ? "Loading player summaries." : "No players fit the current contribution filters."} />

@@ -18,9 +18,12 @@ features.
 
 Read `AGENTS.md`, `docs/START_HERE.md`, `docs/PRODUCT_STRATEGY.md`, and
 `docs/PROJECT_ROADMAP.md` before making large changes.
+When creating, editing, consolidating, deleting, or depending on project
+documentation, use the installed `docs-steward` skill to keep documentation
+accurate, non-redundant, linked, and aligned with agent guidance.
 If the task affects the public frontend relaunch, also read
-`docs/UPL_LENS_FRONTEND_START_HERE.md` first and treat it as the launch
-precedence guide for UPL Lens UI work.
+`docs/FRONTEND_DESIGN_SYSTEM.md` first and treat it as the frontend, API,
+page-requirements, and launch-precedence guide for UPL Lens UI work.
 
 ## Current Project State
 
@@ -195,8 +198,8 @@ notebook, API endpoint, or frontend view end to end.
 
 When command behavior changes, update the relevant docs instead of letting setup
 knowledge live only in chat or local machine history. Common command docs live
-in `README.md`, `docs/START_HERE.md`, `docs/OPERATIONS.md`, this file, and
-`AGENTS.md`.
+in `README.md`, `docs/START_HERE.md`, `docs/LOCAL_DEVELOPMENT.md`, this file,
+and `AGENTS.md`.
 
 Keep these commands current when their flags, requirements, or expected output
 change:

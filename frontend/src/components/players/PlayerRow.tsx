@@ -2,8 +2,7 @@ import { Link } from "react-router-dom";
 
 import type { PlayerSummary } from "../../api/types";
 import { StatCell, TeamName } from "../common/EditorialRows";
-import { SignalChipGroup } from "../intelligence";
-import type { SignalTone } from "../intelligence/SignalChip";
+import { SignalChipGroup, type SignalTone } from "../intelligence/SignalChip";
 
 function formatShare(value: number | null) {
   if (value === null || value === undefined) return "Starts share unavailable";

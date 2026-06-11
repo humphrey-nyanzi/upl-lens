@@ -39,7 +39,7 @@ When working in Research & Football Intelligence, read in this order:
 2. [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)
 3. this workflow doc
 4. the feature folder under `notebooks/features/`
-5. [CHANGELOG.md](CHANGELOG.md) if you need recent repo context
+5. [START_HERE.md](START_HERE.md) if you need recent repo context
 
 ## Feature Lifecycle
 

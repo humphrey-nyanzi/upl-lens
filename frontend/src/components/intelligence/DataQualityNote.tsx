@@ -22,9 +22,11 @@ const defaultTitles: Record<DataQualityTone, string> = {
   risk: "Data caveat",
 };
 
+const emptyMetrics: DataQualityMetric[] = [];
+
 export function DataQualityNote({
   compact = false,
-  metrics = [],
+  metrics = emptyMetrics,
   note,
   title,
   tone = "neutral",

@@ -32,7 +32,7 @@ export function ScoreProgression({
       </div>
       <ol>
         {points.map((point, index) => (
-          <li key={`${point.minuteText ?? point.minute ?? "tbc"}-${index}`}>
+          <li key={`${point.minuteText ?? point.minute ?? "tbc"}-${point.homeScore}-${point.awayScore}-${point.scoringTeam ?? "team-tbc"}-${point.eventType ?? "event"}`}>
             <span>{point.minuteText ?? (point.minute === null ? "Minute TBC" : `${point.minute}'`)}</span>
             <strong>
               {point.homeScore} - {point.awayScore}

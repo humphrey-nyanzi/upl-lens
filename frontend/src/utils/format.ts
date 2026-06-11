@@ -1,6 +1,8 @@
 import type { MatchSummary } from "../api/types";
 import { ALL_SEASONS_KEY } from "./seasonScope";
 
+const shortDateFormatter = new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" });
+
 export function formatSeason(season: string) {
   return season.replace("_", "/");
 }
@@ -18,9 +20,7 @@ export function formatSeasonScope(season: string, seasonCount?: number) {
 export function formatDate(value: string | null) {
   if (!value) return "Date TBC";
   const dateValue = value.includes("T") ? value : `${value}T00:00:00`;
-  return new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(
-    new Date(dateValue),
-  );
+  return shortDateFormatter.format(new Date(dateValue));
 }
 
 export function formatResult(result: string | null) {

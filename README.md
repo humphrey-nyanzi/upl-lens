@@ -54,8 +54,7 @@ leaderboards, and visible data-quality caveats:
 - `GET /seasons/overview`
 
 For the current frontend-facing contract, see
-[docs/API_CONTRACT.md](docs/API_CONTRACT.md). The higher-level intelligence
-endpoint note remains in [docs/API_INTELLIGENCE_ENDPOINTS.md](docs/API_INTELLIGENCE_ENDPOINTS.md).
+[docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md).
 
 ## What It Shows
 
@@ -177,17 +176,13 @@ Use these docs instead of trying to learn the whole repository from the README:
 |------|------------|
 | First orientation | [docs/START_HERE.md](docs/START_HERE.md) |
 | Product identity and strategy | [docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md) |
-| Local setup and common commands | [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) |
+| Local setup, common commands, and operations | [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) |
 | Visual codebase overview | [docs/diagram_collection.md](docs/diagram_collection.md) |
 | Which doc to open | [docs/START_HERE.md](docs/START_HERE.md) |
 | Roadmap and current priorities | [docs/PROJECT_ROADMAP.md](docs/PROJECT_ROADMAP.md) |
-| Operations, logs, tests, validation, escalation | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
 | Notebook-to-product feature workflow | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
 | Research ideas, feature status, and promotion rules | [docs/FEATURE_PROMOTION_WORKFLOW.md](docs/FEATURE_PROMOTION_WORKFLOW.md) |
-| Intelligence-layer API contract | [docs/API_CONTRACT.md](docs/API_CONTRACT.md) |
-| UPL Lens frontend redesign entrypoint | [docs/UPL_LENS_FRONTEND_START_HERE.md](docs/UPL_LENS_FRONTEND_START_HERE.md) |
-| Frontend UX requests and approved design rules | [docs/FRONTEND_UX_REQUESTS.md](docs/FRONTEND_UX_REQUESTS.md), [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md) |
-| Deployment and operations notes | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
+| Frontend, API contract, UX requests, and approved design rules | [docs/FRONTEND_DESIGN_SYSTEM.md](docs/FRONTEND_DESIGN_SYSTEM.md) |
 
 ## Data Note
 

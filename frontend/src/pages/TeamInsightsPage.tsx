@@ -6,15 +6,12 @@ import type { PageProps } from "../app/types";
 import { EmptyState } from "../components/common/EmptyState";
 import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
+import { ShowMoreList } from "../components/common/ShowMoreList";
 import { TeamMarker } from "../components/common/TeamMarker";
-import {
-  DataQualityNote,
-  MetricDelta,
-  ScatterComparisonPlot,
-  SignalChip,
-  SignalChipGroup,
-} from "../components/intelligence";
-import type { SignalChipItem, SignalTone as ComponentSignalTone } from "../components/intelligence/SignalChip";
+import { DataQualityNote } from "../components/intelligence/DataQualityNote";
+import { MetricDelta } from "../components/intelligence/MetricDelta";
+import { ScatterComparisonPlot } from "../components/intelligence/ScatterComparisonPlot";
+import { SignalChip, SignalChipGroup, type SignalChipItem, type SignalTone as ComponentSignalTone } from "../components/intelligence/SignalChip";
 import { formatPercent, formatSeason } from "../utils/format";
 import { getSelectedSeasonLabel } from "../utils/seasonScope";
 import { formatGoalDifference, getTeamFixtureNote, getTeamPoints, getTeamPointsNote, getTeamSlug } from "../utils/teams";
@@ -84,7 +81,7 @@ function compareNullableRate(
 }
 
 function sortTeamsForBoard(teams: TeamResponse[], sortKey: TeamBoardSortKey) {
-  return [...teams].sort((left, right) => {
+  return teams.toSorted((left, right) => {
     if (sortKey === "name") return left.team_name.localeCompare(right.team_name);
     if (sortKey === "points") {
       return getTeamPoints(right) - getTeamPoints(left) || right.goal_difference - left.goal_difference;
@@ -107,13 +104,19 @@ function getTopTeam(
   getValue: (team: TeamResponse) => number | null,
   direction: "asc" | "desc" = "desc",
 ) {
-  return teams
-    .filter((team) => getValue(team) !== null)
-    .sort((left, right) => {
-      const leftValue = getValue(left) ?? 0;
-      const rightValue = getValue(right) ?? 0;
-      return direction === "desc" ? rightValue - leftValue : leftValue - rightValue;
-    })[0] ?? null;
+  let selectedTeam: TeamResponse | null = null;
+  let selectedValue = direction === "desc" ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+
+  for (const team of teams) {
+    const value = getValue(team);
+    if (value === null) continue;
+    if ((direction === "desc" && value > selectedValue) || (direction === "asc" && value < selectedValue)) {
+      selectedTeam = team;
+      selectedValue = value;
+    }
+  }
+
+  return selectedTeam;
 }
 
 function TeamBoardSkeleton() {
@@ -262,27 +265,31 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
   const dataCaveatTeams = teams.filter(hasDataCaveat);
   const hasPointsPerMatch = teams.some((team) => team.points_per_match !== null);
 
-  const attackDefenceData = teams
-    .filter((team) => team.goals_per_match !== null && team.conceded_per_match !== null)
-    .map((team) => ({
+  const attackDefenceData = teams.reduce<Array<{ id: string; label: string; x: number; y: number; tone: "gold" | "green"; href: string }>>((points, team) => {
+    if (team.goals_per_match === null || team.conceded_per_match === null) return points;
+    points.push({
       id: team.team_slug ?? team.team_name,
       label: team.team_name,
-      x: team.goals_per_match ?? 0,
-      y: team.conceded_per_match ?? 0,
+      x: team.goals_per_match,
+      y: team.conceded_per_match,
       tone: hasDataCaveat(team) ? ("gold" as const) : ("green" as const),
       href: getTeamHref(team),
-    }));
+    });
+    return points;
+  }, []);
 
-  const pointsGoalDifferenceData = teams
-    .filter((team) => (hasPointsPerMatch ? team.points_per_match !== null : true))
-    .map((team) => ({
+  const pointsGoalDifferenceData = teams.reduce<Array<{ id: string; label: string; x: number; y: number; tone: "gold" | "navy"; href: string }>>((points, team) => {
+    if (hasPointsPerMatch && team.points_per_match === null) return points;
+    points.push({
       id: team.team_slug ?? team.team_name,
       label: team.team_name,
       x: team.goal_difference,
       y: hasPointsPerMatch ? team.points_per_match ?? 0 : getTeamPoints(team),
       tone: hasDataCaveat(team) ? ("gold" as const) : ("navy" as const),
       href: getTeamHref(team),
-    }));
+    });
+    return points;
+  }, []);
 
   const rankingSections: RankingSection[] = [
     {
@@ -489,11 +496,14 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
             </div>
 
             {filteredTeams.length > 0 ? (
-              <div className="team-board-card-list">
-                {filteredTeams.map((team, index) => (
-                  <TeamBoardCard key={team.team_name} rank={index + 1} team={team} />
-                ))}
-              </div>
+              <ShowMoreList
+                className="team-board-card-list"
+                getKey={(team) => team.team_name}
+                initialCount={8}
+                itemNoun="team"
+                items={filteredTeams}
+                renderItem={(team, index) => <TeamBoardCard rank={index + 1} team={team} />}
+              />
             ) : (
               <EmptyState message="No teams match the current search." />
             )}

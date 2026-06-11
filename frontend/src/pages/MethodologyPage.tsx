@@ -1,9 +1,12 @@
 import { Github, Newspaper, Twitter } from "lucide-react";
 
 import type { PageProps } from "../app/types";
+import { DisclosureSection } from "../components/common/DisclosureSection";
 import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
-import { DataQualityNote, MetricDelta, SignalChipGroup, type SignalChipItem } from "../components/intelligence";
+import { DataQualityNote } from "../components/intelligence/DataQualityNote";
+import { MetricDelta } from "../components/intelligence/MetricDelta";
+import { SignalChipGroup, type SignalChipItem } from "../components/intelligence/SignalChip";
 import { formatDate } from "../utils/format";
 import { getSelectedSeasonLabel, isAllSeasonsSelection } from "../utils/seasonScope";
 
@@ -140,8 +143,10 @@ export function MethodologyPage({ apiOnline, data, overview, selectedSeason, sel
         </ol>
       </section>
 
-      <section className="panel">
-        <ReportSectionHeader title="What the app transforms" text="The product is designed to add analytical meaning, not to recreate the official archive." />
+      <DisclosureSection
+        description="Open examples of how source records become match, team, player, season, and timeline intelligence."
+        title="What the app transforms"
+      >
         <div className="methodology-transform-grid">
           {transforms.map((item) => (
             <article key={item.title}>
@@ -150,7 +155,7 @@ export function MethodologyPage({ apiOnline, data, overview, selectedSeason, sel
             </article>
           ))}
         </div>
-      </section>
+      </DisclosureSection>
 
       <section className="methodology-two-column">
         <section className="panel">
@@ -186,8 +191,12 @@ export function MethodologyPage({ apiOnline, data, overview, selectedSeason, sel
         </div>
       </section>
 
+      <DisclosureSection
+        description="Open maintainer context and project links."
+        title="Maintainer and project links"
+      >
       <section className="methodology-two-column">
-        <section className="panel">
+        <section className="methodology-inline-panel">
           <ReportSectionHeader title="Maintainer" text="The project is maintained as a public football analytics product, with the technical system supporting the football questions." />
           <div className="methodology-maintainer">
             <strong>Built and maintained by Humphrey.</strong>
@@ -195,7 +204,7 @@ export function MethodologyPage({ apiOnline, data, overview, selectedSeason, sel
           </div>
         </section>
 
-        <section className="panel">
+        <section className="methodology-inline-panel">
           <ReportSectionHeader title="Find more" text="Follow the project, read longer notes, or inspect the public repository." />
           <div className="methodology-contact-list">
             {contactLinks.map((link) => (
@@ -207,6 +216,7 @@ export function MethodologyPage({ apiOnline, data, overview, selectedSeason, sel
           </div>
         </section>
       </section>
+      </DisclosureSection>
 
       <DataQualityNote
         title="Public interpretation"
