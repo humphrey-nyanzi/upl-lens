@@ -1,2 +1,3 @@
+/api/* https://upl-match-intelligence-api.onrender.com/:splat 200
 /health/live https://upl-match-intelligence-api.onrender.com/health/live 200
 /health https://upl-match-intelligence-api.onrender.com/health 200

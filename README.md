@@ -25,7 +25,8 @@ a fixtures clone or developer-portfolio landing page.
 ## Live Demo
 
 - Frontend: [UPL Lens](https://upl-lens.pages.dev/)
-- API: [UPL Lens API](https://upl-match-intelligence-api.onrender.com/)
+- App API proxy: [UPL Lens API via Cloudflare](https://upl-lens.pages.dev/api/health)
+- Backend API origin: [UPL Lens API on Render](https://upl-match-intelligence-api.onrender.com/)
 - API liveness check:
   [`/health/live`](https://upl-match-intelligence-api.onrender.com/health/live)
 - API/database health check:

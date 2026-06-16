@@ -42,7 +42,11 @@ export class ApiRequestError extends Error {
 }
 
 function buildUrl(path: string, params: Record<string, QueryValue> = {}) {
-  const url = new URL(path, API_BASE_URL);
+  const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
+  const normalizedBase = API_BASE_URL.endsWith("/") ? API_BASE_URL : `${API_BASE_URL}/`;
+  const url = API_BASE_URL.startsWith("http")
+    ? new URL(normalizedPath, normalizedBase)
+    : new URL(`${normalizedBase}${normalizedPath}`, window.location.origin);
 
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
