@@ -32,7 +32,7 @@ from src.config import RAW_TABLE_FILE_PREFIXES, season_key
 
 DEFAULT_LOG_DIR = PROJECT_ROOT / "outputs" / "automation"
 DEFAULT_REPORT_DIR = PROJECT_ROOT / "outputs" / "sync"
-DEFAULT_GITHUB_REPO = "humphrey-nyanzi/UPL-goal-timing"
+DEFAULT_GITHUB_REPO = "humphrey-nyanzi/upl-lens"
 DEFAULT_WORKFLOW = "current-season-update.yml"
 RAW_TABLES = (*RAW_TABLE_FILE_PREFIXES.keys(), "failed_matches")
 
@@ -551,7 +551,7 @@ def _comparison_payload(
 def _print_report(payload: dict[str, Any]) -> None:
     """Print a concise sync report."""
 
-    print("\nUPL Match Intelligence - Hosted/Local Operations Sync")
+    print("\nUPL Lens - Hosted/Local Operations Sync")
     print(f"Status: {payload['status']}")
     print(f"Mismatches: {payload['mismatch_count']}")
     print(f"Warnings: {payload['warning_count']}")

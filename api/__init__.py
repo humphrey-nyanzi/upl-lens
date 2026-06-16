@@ -1,2 +1,2 @@
-"""FastAPI application package for UPL Match Intelligence."""
+"""FastAPI application package for UPL Lens."""
 

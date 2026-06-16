@@ -2,8 +2,8 @@
 
 This document is the single product implementation guide for the UPL Lens
 frontend. It now owns frontend design rules, launch decisions, API contract
-notes, page requirements, content wireframes, and the approved UI/UX request
-queue.
+notes, page requirements, content wireframes, and seed issue guidance for
+approved UI/UX work.
 
 This document is the single source of truth for:
 
@@ -12,7 +12,7 @@ This document is the single source of truth for:
 - frontend-facing API contracts
 - intelligence-layer page requirements
 - text/content wireframes
-- approved and pending frontend work
+- seed issue guidance for approved frontend work
 - layout, token, and component guidance
 - page templates and product-surface expectations
 - visual acceptance criteria for future frontend work
@@ -32,7 +32,7 @@ order when frontend guidance conflicts:
 3. API contract notes in this file
 4. Text/content wireframes in this file
 5. Durable design tokens and component rules in this file
-6. Active request queue in this file
+6. Seed issue guidance in this file and `.github/ISSUE_DRAFTS/`
 7. Older roadmap/history docs
 
 If a future design decision becomes durable, fold it into this document instead
@@ -386,8 +386,8 @@ direction are aligned as follows:
 - FastAPI-backed hooks and client calls
 
 The first mockup-aligned redesign pass is complete. Future frontend work should
-come from the active request queue in this document or explicit user
-instruction.
+come from GitHub Issues, the seed drafts in `.github/ISSUE_DRAFTS/`, or
+explicit user instruction.
 
 ## Approved Visual Direction
 
@@ -815,10 +815,12 @@ mockup direction. The goal is close product feel, not pixel-perfect copying.
 - Green and gold accents remain purposeful: action/selection/positive emphasis
   for green, peak timing or attention moments for gold.
 
-## Active Frontend Request Queue
+## Frontend Seed Issue List
 
-Only implement request work marked `approved`, unless the user explicitly says
-to work on another status.
+Active frontend work now belongs in GitHub Issues. This section preserves the
+approved seed list that has been created as live Issues, with reusable local
+drafts kept in `.github/ISSUE_DRAFTS/`. Do not treat this table as the live
+task tracker.
 
 | Request group | Status | Endpoint/data owner | Acceptance signal |
 |---|---|---|---|
@@ -847,9 +849,10 @@ chart choice, graphical integrity, and chartjunk removal.
 
 Only add guidance here when one of these is true:
 
-- a frontend request was approved and implemented
+- a frontend Issue was approved and implemented
 - the user explicitly approved a frontend behavior or design decision
 - an existing implementation was accepted as the durable standard
 
-Keep brainstorm notes and unapproved requests out of this file unless they are
-part of the maintained request queue above.
+Keep brainstorm notes and unapproved requests out of this file. Use GitHub
+Issues for active requests and keep this document focused on durable frontend
+rules, API/page contracts, visual direction, and accepted product decisions.

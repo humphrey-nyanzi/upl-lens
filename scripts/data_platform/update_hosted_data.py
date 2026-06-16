@@ -271,7 +271,7 @@ def main() -> None:
     log_dir = args.log_dir / _scope_slug(args, seasons)
     step_logs: dict[str, str] = {}
 
-    print("UPL Match Intelligence - Hosted Data Update")
+    print("UPL Lens - Hosted Data Update")
     print(f"Season scope: {args.season_scope}")
     print(f"Run type: {args.run_type}")
     print(f"Target seasons: {', '.join(seasons)}")

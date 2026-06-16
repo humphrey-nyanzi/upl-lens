@@ -62,7 +62,7 @@ app = FastAPI(
 
 # The React pilot runs on Vite's local dev server, which is a different origin
 # from FastAPI. In production, set ALLOWED_ORIGINS to the deployed frontend
-# origin, for example: https://upl-match-intelligence.pages.dev.
+# origin, for example: https://upl-lens.pages.dev.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_allowed_origins(),

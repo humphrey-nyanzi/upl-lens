@@ -31,6 +31,12 @@ Postgres staging/analytics
 React must not read CSV files, notebook outputs, exported notebook images, or
 local database files directly.
 
+Active research work should be tracked as GitHub Issues when it moves beyond a
+quick note. Use the `Research / Football Intelligence` Issue template for
+notebook-first questions, including discipline questions such as goal-scoring
+patterns after red cards. This document owns the durable research lifecycle and
+feature registry; Issues own active work, comments, handoffs, and owner review.
+
 ## Reading Order
 
 When working in Research & Football Intelligence, read in this order:
@@ -44,6 +50,8 @@ When working in Research & Football Intelligence, read in this order:
 ## Feature Lifecycle
 
 Use these statuses consistently for research ideas and feature packages.
+These statuses describe the research feature itself. GitHub Project columns
+describe active workflow state across all work areas.
 
 | Status | Meaning | What usually happens next |
 |--------|---------|---------------------------|

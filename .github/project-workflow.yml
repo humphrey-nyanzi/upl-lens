@@ -1,0 +1,15 @@
+name: "UPL Lens Development"
+purpose: "Track active work while docs remain the source of durable system knowledge."
+columns:
+  - "Inbox"
+  - "Research"
+  - "Ready"
+  - "In Progress"
+  - "Review / QA"
+  - "Done"
+  - "Released"
+  - "Parked"
+rules:
+  - "Issues move the work; docs explain the system."
+  - "Use Issues for work that exceeds a small quick fix, needs planning, affects docs, or should be resumed by another agent."
+  - "Agents may comment, label, and propose status changes, but the owner closes important Issues and approves releases."

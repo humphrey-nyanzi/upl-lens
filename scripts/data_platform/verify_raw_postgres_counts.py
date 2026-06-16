@@ -195,7 +195,7 @@ def main() -> None:
     args = parse_args()
     target_seasons = resolve_seasons(args.seasons) if args.seasons else discover_available_seasons()
 
-    print("UPL Match Intelligence - Verify Raw CSV Counts Against Postgres")
+    print("UPL Lens - Verify Raw CSV Counts Against Postgres")
     print(f"Target seasons: {', '.join(target_seasons)}")
 
     csv_counts, contaminated_counts, spill_seasons_by_table = _csv_counts_by_season(target_seasons)

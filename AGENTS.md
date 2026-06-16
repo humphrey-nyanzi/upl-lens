@@ -1,16 +1,14 @@
-# AGENTS.md - UPL Match Intelligence (repo-level guidance)
+# AGENTS.md - UPL Lens (repo-level guidance)
 
 ## Project Direction
 
-This repository contains the data platform, research lab, API, and frontend
-that historically shipped under the public name "UPL Match Intelligence".
-The frontend product has been redesigned and rebranded as **UPL Lens**.
-Keep historical operational and research guidance here; frontend design and
-launch direction should now follow the UPL Lens frontend docs (see
-`docs/FRONTEND_DESIGN_SYSTEM.md`).
+This repository contains the **UPL Lens** data platform, research lab, API, and
+frontend. It began as a UPL goal-timing / UPL Match Intelligence project, but
+the unified project and product name is now **UPL Lens**.
 
-This repo continues to evolve the data platform and research workflows, while
-the UPL Lens frontend sets the public-facing product and visual direction.
+Keep historical operational and research context where it explains current
+decisions; current frontend design and launch direction should follow the UPL
+Lens frontend docs (see `docs/FRONTEND_DESIGN_SYSTEM.md`).
 
 The long-term goal is to collect official UPL match data, store it in Postgres,
 clean and model it for analysis, expose it through a FastAPI backend, and present
@@ -367,6 +365,20 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   documentation, consult and follow the installed `docs-steward` skill. Keep
   docs current with code, commands, API contracts, workflows, diagrams, and
   agent instructions.
+- When the user provides a GitHub Issue number or asks for issue-based work,
+  read the Issue, comments, labels, milestone, and acceptance criteria before
+  changing files. Report progress against the Issue and leave important Issue
+  closure and release approval to the project owner unless explicitly told
+  otherwise.
+- For meaningful Issue or Project work, create or use an Issue-specific branch
+  such as `codex/issue-8-red-card-research`. Do not push directly to `main`.
+  Commit scoped work to the branch, push it, and open a draft Pull Request by
+  default. Link the Issue, list verification, and do not merge unless explicitly
+  instructed.
+- GitHub network operations such as `gh issue`, `gh pr`, `gh project`,
+  `git push`, and creating remote branches may require running outside the
+  sandbox with approval. Use escalation for those operations when needed, while
+  keeping local file edits scoped to the workspace and avoiding unrelated files.
 - When doing frontend work, consult and follow the installed
   `build-web-apps:frontend-app-builder`, `impeccable`, `tufte-viz`, and
   `upl-react-doctor` skills
@@ -400,3 +412,6 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   deployment shape, or known gaps, check whether
   [docs/diagram_collection.md](docs/diagram_collection.md) needs an update.
 - Copilot instructions also exist at `.github/copilot-instructions.md`.
+- Shared production frontend URL: `https://upl-lens.pages.dev/`. The older
+  Cloudflare Pages URL may remain live as a fallback during the rename
+  transition, but do not present it as the primary product URL.

@@ -1,4 +1,4 @@
-# UPL Match Intelligence API dependencies
+# UPL Lens API dependencies
 #
 # This file is for the hosted FastAPI service. It intentionally stays smaller
 # than requirements.txt because the public API does not need notebooks,

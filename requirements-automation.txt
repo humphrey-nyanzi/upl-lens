@@ -1,4 +1,4 @@
-# UPL Match Intelligence automation dependencies
+# UPL Lens automation dependencies
 #
 # This smaller requirements file is for the GitHub Actions current-season
 # workflow. It intentionally skips notebooks, plotting, FastAPI, test tools, and
