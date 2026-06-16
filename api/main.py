@@ -1,4 +1,4 @@
-"""FastAPI entrypoint for the UPL Match Intelligence read backend."""
+"""FastAPI entrypoint for the UPL Lens read backend."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="UPL Match Intelligence API",
+    title="UPL Lens API",
     description=(
         "Read-first API over the cleaned Postgres staging tables for Uganda "
         "Premier League match intelligence."
