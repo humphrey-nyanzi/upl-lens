@@ -226,14 +226,14 @@ Production Cloudflare Pages builds should set:
 VITE_API_BASE_URL=/api
 ```
 
-The `frontend/public/_redirects` file proxies `/api/*` to the Render API:
+The `frontend/functions/api/[[path]].js` Cloudflare Pages Function proxies `/api/*` to the Render API:
 
 ```text
-/api/* https://upl-match-intelligence-api.onrender.com/:splat 200
+https://upl-lens.pages.dev/api/health -> https://upl-match-intelligence-api.onrender.com/health
 ```
 
 This keeps browser requests same-origin, for example
-`https://upl-lens.pages.dev/api/health`, while Cloudflare forwards the request to
+`https://upl-lens.pages.dev/api/health`, while the Pages Function forwards the request to
 Render server-side. This avoids false backend-offline states caused by privacy
 extensions blocking third-party `onrender.com` fetches from the public app. Keep
 local development on `http://127.0.0.1:8000` so Vite talks directly to the local
