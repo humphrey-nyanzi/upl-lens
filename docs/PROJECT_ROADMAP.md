@@ -64,6 +64,111 @@ Examples:
 - Which matches had the most dramatic timelines?
 - How has the league changed season by season?
 
+## GitHub-Native Work Management
+
+UPL Lens now uses GitHub as the active work-management layer while the seven
+docs remain the durable source of system knowledge.
+
+```text
+Docs explain the system.
+Issues move the work.
+Branches isolate the work.
+Pull Requests review the work.
+Projects show workflow state.
+Milestones define release goals.
+Releases record what shipped.
+Agents work from Issues when available.
+The owner approves closure and release.
+```
+
+Create a GitHub Issue when work exceeds a small quick fix, requires planning,
+affects documentation, changes product behavior, introduces functionality, fixes
+a defect, or needs research. Use `.github/ISSUE_TEMPLATE/` for new Issues. The
+initial seed Issues have been created in GitHub, with reusable local drafts kept
+in `.github/ISSUE_DRAFTS/`.
+
+### Project Pipeline
+
+Use this simplified UPL Project pipeline:
+
+```text
+Inbox -> Research -> Ready -> In Progress -> Review / QA -> Done -> Released -> Parked
+```
+
+Project columns describe workflow state. They do not replace Issue bodies,
+labels, acceptance criteria, or owner review.
+
+### Branch And Pull Request Workflow
+
+Meaningful work should not be pushed directly to `main`. Use an Issue-specific
+branch and Pull Request:
+
+```text
+Issue -> branch -> work -> commit -> push branch -> Pull Request -> owner test/review -> merge
+```
+
+Use branch names that identify the worker and Issue:
+
+```text
+codex/issue-1-api-client-sync
+codex/issue-8-red-card-research
+humphrey/issue-3-trends-rebuild
+```
+
+Agents should open draft PRs by default unless the user explicitly asks for a
+ready PR. PRs should link the Issue, summarize changes, list verification, call
+out risks, and leave merge/release approval to the owner.
+
+### Label Taxonomy
+
+Use these labels for filtering and agent handoffs:
+
+| Group | Labels |
+|---|---|
+| Area | `area: data-reliability`, `area: research-intelligence`, `area: product-experience`, `area: developer-docs` |
+| Type | `type: bug`, `type: feature`, `type: research`, `type: documentation`, `type: api-contract`, `type: release` |
+| Priority | `priority: critical`, `priority: high`, `priority: medium`, `priority: low` |
+| Status | `status: needs-triage`, `status: ready`, `status: blocked`, `status: needs-review`, `status: validated` |
+
+### Initial Milestones
+
+- `v0.2 Intelligence API Client Sync`
+- `v0.3 Trends + Team Intelligence`
+- `v0.4 Match + Player Intelligence`
+- `v0.5 Feature 2 Discipline Research`
+- `v1.0 Public UPL Lens Release`
+
+Milestones are release goals, not arbitrary deadlines.
+
+### Definition Of Ready
+
+An Issue is ready to work when the objective, context, scope, labels, related
+docs/files, and acceptance criteria are clear enough for a human or AI agent to
+continue without reconstructing the discussion from chat history.
+
+### Definition Of Done
+
+An Issue is done when its acceptance criteria are met, relevant verification is
+recorded, documentation is updated where needed, follow-up Issues are created
+for remaining work, a PR has been reviewed/merged when code or docs changed,
+and the owner accepts closure. Agents may recommend closure, but the owner
+closes important Issues and approves releases.
+
+### Agent Coworker Model
+
+Use Issues to give agents bounded coworker roles:
+
+- **Research Analyst Agent**: research-intelligence Issues; notebooks, SQL,
+  caveats, and promotion recommendations.
+- **Data Reliability Agent**: data-reliability Issues; scraper, staging,
+  validation, automation, and hosted health.
+- **Product Experience Agent**: product-experience Issues; API-facing React
+  pages, charts, UI states, and browser verification.
+- **Docs Steward Agent**: developer-docs Issues; documentation, navigation,
+  issue hygiene, and agent instructions.
+- **QA / Release Agent**: release Issues; acceptance criteria, verification,
+  known limitations, and release notes.
+
 ## Intelligence-Layer Frontend Maturation
 
 This phase covers the backend-upgraded UPL Lens pages that surface routine
@@ -318,9 +423,9 @@ Known weaknesses:
 Next useful work:
 
 - redesign the frontend into real product pages
-- use `docs/FRONTEND_DESIGN_SYSTEM.md` as the editable source of truth for
-  frontend request queue, approved visual system, API/page requirements, and
-  durable frontend decisions before implementation
+- use `docs/FRONTEND_DESIGN_SYSTEM.md` as the source of truth for approved
+  visual system, API/page requirements, seed issue guidance, and durable
+  frontend decisions before implementation
 - add stronger loading, empty, and error states
 - add API endpoints only when product features prove the need
 - create a visible path from summary views to match/team detail views

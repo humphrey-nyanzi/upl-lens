@@ -367,6 +367,20 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   documentation, consult and follow the installed `docs-steward` skill. Keep
   docs current with code, commands, API contracts, workflows, diagrams, and
   agent instructions.
+- When the user provides a GitHub Issue number or asks for issue-based work,
+  read the Issue, comments, labels, milestone, and acceptance criteria before
+  changing files. Report progress against the Issue and leave important Issue
+  closure and release approval to the project owner unless explicitly told
+  otherwise.
+- For meaningful Issue or Project work, create or use an Issue-specific branch
+  such as `codex/issue-8-red-card-research`. Do not push directly to `main`.
+  Commit scoped work to the branch, push it, and open a draft Pull Request by
+  default. Link the Issue, list verification, and do not merge unless explicitly
+  instructed.
+- GitHub network operations such as `gh issue`, `gh pr`, `gh project`,
+  `git push`, and creating remote branches may require running outside the
+  sandbox with approval. Use escalation for those operations when needed, while
+  keeping local file edits scoped to the workspace and avoiding unrelated files.
 - When doing frontend work, consult and follow the installed
   `build-web-apps:frontend-app-builder`, `impeccable`, `tufte-viz`, and
   `upl-react-doctor` skills

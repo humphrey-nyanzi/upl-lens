@@ -6,7 +6,9 @@ Backend, data-platform, research, API, frontend, and operations work still live
 in this repository.
 
 The docs are now consolidated into seven maintained Markdown files. Do not add
-a new doc unless the topic cannot fit cleanly into one of these owners.
+a new doc unless the topic cannot fit cleanly into one of these owners. Active
+work now belongs in GitHub Issues once it exceeds a small quick fix, needs
+planning, affects documentation, or should be resumable by another agent.
 
 ## The Project In One Minute
 
@@ -48,7 +50,37 @@ implementation order is:
 7. Refine Overview and About.
 
 Do not begin page redesigns before checking the current API contract and page
-requirements in [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md).
+requirements in [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md). Use
+GitHub Issues for active implementation tracking; the frontend guide owns the
+durable rules and seed issue list, not the live task board.
+
+## GitHub-Native Workflow
+
+Use this operating rule:
+
+```text
+Docs explain the system.
+Issues move the work.
+Branches isolate the work.
+Pull Requests review the work.
+Projects show workflow state.
+Milestones define release goals.
+Releases record what shipped.
+Agents work from Issues when available.
+The owner approves closure and release.
+```
+
+The default Project pipeline is:
+
+```text
+Inbox -> Research -> Ready -> In Progress -> Review / QA -> Done -> Released -> Parked
+```
+
+Use `.github/ISSUE_TEMPLATE/` for new work. The initial frontend and
+discipline-research seed Issues have been created in GitHub, with reusable
+local drafts kept in `.github/ISSUE_DRAFTS/`. Meaningful work should happen on
+an Issue-specific branch and enter `main` through a Pull Request after owner
+review.
 
 ## Seven-Doc Structure
 
@@ -56,10 +88,10 @@ requirements in [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md).
 |-----|-------|--------------|
 | [START_HERE.md](START_HERE.md) | Orientation, doc map, current phase, recent history | You are new, returning, or deciding where work belongs. |
 | [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md) | Product identity and decision rules | You are planning product-facing work or checking scope. |
-| [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Planning, milestones, strengths, gaps, priorities | You need the current implementation order or historical roadmap context. |
+| [PROJECT_ROADMAP.md](PROJECT_ROADMAP.md) | Planning, GitHub workflow, milestones, strengths, gaps, priorities | You need the current implementation order, work-management rules, or historical roadmap context. |
 | [FEATURE_PROMOTION_WORKFLOW.md](FEATURE_PROMOTION_WORKFLOW.md) | Research workflow and notebook-to-product promotion | You are working in notebooks or promoting a football insight. |
 | [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) | Local setup, verification, operations, automation, troubleshooting | You need to run, validate, refresh, deploy, or debug the system. |
-| [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) | Frontend design, API contract, page requirements, wireframes, UX request queue | You are changing UI, routes, frontend data flow, charts, or public product pages. |
+| [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) | Frontend design, API contract, page requirements, wireframes, seed issue list | You are changing UI, routes, frontend data flow, charts, or public product pages. |
 | [diagram_collection.md](diagram_collection.md) | Visual architecture reference | You need architecture, data-flow, API-flow, database, scraper, or frontend diagrams. |
 
 `visual_inspo.png` remains in `docs/` as a visual asset, not a standalone doc.
@@ -181,6 +213,8 @@ decision exists in code but not in docs.
   operations, and changelog material into the owning docs.
 - Kept [diagram_collection.md](diagram_collection.md) as the visual system and
   architecture reference.
+- Added the GitHub-native work-management rule: docs hold durable system
+  knowledge, while Issues track active work.
 
 ### 2026-06-06
 
