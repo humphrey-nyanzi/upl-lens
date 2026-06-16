@@ -22,13 +22,18 @@ When creating, editing, consolidating, deleting, or depending on project
 documentation, use the installed `docs-steward` skill to keep documentation
 accurate, non-redundant, linked, and aligned with agent guidance.
 When an Issue number is provided, treat the Issue as the active task brief:
-read its body, comments, labels, milestone, and acceptance criteria before
+read its body, comments, labels, milestone, Project, checklist, and acceptance criteria before
 editing. Comment or report against the Issue, but do not close important Issues
 or approve releases unless the project owner explicitly instructs it.
 For meaningful Issue or Project work, use an Issue-specific branch and Pull
 Request instead of pushing directly to `main`. Open draft PRs by default, link
 the Issue, include verification, and leave merge/release approval to the owner.
-GitHub network operations such as `gh issue`, `gh pr`, `gh project`, and
+When opening a PR from an Issue, copy relevant Issue labels, assign the same
+milestone, add the PR to the same Project, set PR status to
+`status: needs-review` only after the Issue checklist and acceptance criteria
+are complete, and use `Closes #<issue-number>` so the Issue closes when the
+owner-reviewed PR is merged. Put useful out-of-scope follow-up in a PR comment
+or follow-up Issue.GitHub network operations such as `gh issue`, `gh pr`, `gh project`, and
 `git push` may need to run outside sandboxed environments with approval.
 If the task affects the public frontend relaunch, also read
 `docs/FRONTEND_DESIGN_SYSTEM.md` first and treat it as the frontend, API,

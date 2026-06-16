@@ -366,7 +366,7 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   docs current with code, commands, API contracts, workflows, diagrams, and
   agent instructions.
 - When the user provides a GitHub Issue number or asks for issue-based work,
-  read the Issue, comments, labels, milestone, and acceptance criteria before
+  read the Issue, comments, labels, milestone, Project, checklist, and acceptance criteria before
   changing files. Report progress against the Issue and leave important Issue
   closure and release approval to the project owner unless explicitly told
   otherwise.
@@ -375,7 +375,14 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   Commit scoped work to the branch, push it, and open a draft Pull Request by
   default. Link the Issue, list verification, and do not merge unless explicitly
   instructed.
-- GitHub network operations such as `gh issue`, `gh pr`, `gh project`,
+- When opening a PR from an Issue, copy the Issue's relevant area/type/priority
+  labels, assign the same milestone, add the PR to the same GitHub Project, and
+  set the PR status to `status: needs-review` only when the Issue checklist and
+  acceptance criteria are complete. Use `Closes #<issue-number>` in the PR body
+  so the Issue closes automatically after the owner-reviewed PR is merged.
+- If useful work is discovered outside the Issue scope, do not silently expand
+  the PR. Add a PR comment or create a follow-up Issue so the owner can decide
+  whether it belongs in a later milestone.- GitHub network operations such as `gh issue`, `gh pr`, `gh project`,
   `git push`, and creating remote branches may require running outside the
   sandbox with approval. Use escalation for those operations when needed, while
   keeping local file edits scoped to the workspace and avoiding unrelated files.

@@ -118,6 +118,23 @@ Agents should open draft PRs by default unless the user explicitly asks for a
 ready PR. PRs should link the Issue, summarize changes, list verification, call
 out risks, and leave merge/release approval to the owner.
 
+### Pull Request Metadata And Issue Closure
+
+When a PR is created from an Issue, it should carry the same planning metadata
+so work remains visible in GitHub views:
+
+- Copy relevant Issue labels, especially area, type, and priority labels.
+- Add the PR to the same GitHub Project as the Issue.
+- Assign the same milestone when the Issue has one.
+- Set the PR status label to `status: needs-review` when it is ready for owner
+  review, and `status: validated` only after verification evidence supports it.
+- Use `Closes #<issue-number>` in the PR body so GitHub closes the Issue when
+  the reviewed PR is merged.
+
+A PR should not be submitted for review until the Issue checklist and acceptance
+criteria are complete. If useful follow-up work is discovered outside the Issue
+scope, leave it as a PR comment or create a follow-up Issue instead of expanding
+the PR silently.
 ### Label Taxonomy
 
 Use these labels for filtering and agent handoffs:
