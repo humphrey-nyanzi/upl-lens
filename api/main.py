@@ -1,4 +1,4 @@
-"""FastAPI entrypoint for the UPL Match Intelligence read backend."""
+"""FastAPI entrypoint for the UPL Lens read backend."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="UPL Match Intelligence API",
+    title="UPL Lens API",
     description=(
         "Read-first API over the cleaned Postgres staging tables for Uganda "
         "Premier League match intelligence."
@@ -62,7 +62,7 @@ app = FastAPI(
 
 # The React pilot runs on Vite's local dev server, which is a different origin
 # from FastAPI. In production, set ALLOWED_ORIGINS to the deployed frontend
-# origin, for example: https://upl-match-intelligence.pages.dev.
+# origin, for example: https://upl-lens.pages.dev.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_allowed_origins(),

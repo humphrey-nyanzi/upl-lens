@@ -45,7 +45,7 @@ def main() -> None:
     """Run the repeatable raw-to-staging pipeline and print a summary."""
 
     args = parse_args()
-    print("UPL Match Intelligence - Build Staging From Raw Postgres Tables")
+    print("UPL Lens - Build Staging From Raw Postgres Tables")
     print(
         f"Requested seasons: {', '.join(args.seasons) if args.seasons else 'all raw database seasons'}",
         flush=True,

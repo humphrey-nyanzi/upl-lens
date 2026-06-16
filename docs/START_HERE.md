@@ -1,9 +1,9 @@
 # Start Here
 
-This is the first orientation document for the repository. The public frontend
-product formerly known as "UPL Match Intelligence" is now **UPL Lens**.
-Backend, data-platform, research, API, frontend, and operations work still live
-in this repository.
+This is the first orientation document for the **UPL Lens** repository. The
+project began as a goal-timing / UPL Match Intelligence research build, but the
+unified project and product name is now **UPL Lens**. Backend, data-platform,
+research, API, frontend, and operations work all live in this repository.
 
 The docs are now consolidated into seven maintained Markdown files. Do not add
 a new doc unless the topic cannot fit cleanly into one of these owners. Active
@@ -230,8 +230,8 @@ decision exists in code but not in docs.
 ### 2026-06-05
 
 - Updated roadmap and diagram public-product language so Product Experience
-  planning points at UPL Lens while preserving UPL Match Intelligence as the
-  broader repo, data-platform, research, API, and historical context.
+  planning points at UPL Lens while preserving the former UPL Match Intelligence
+  name only as historical context.
 
 ### 2026-05-31
 

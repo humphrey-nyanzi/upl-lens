@@ -1,8 +1,8 @@
-# UPL Match Intelligence / UPL Lens Roadmap
+# UPL Lens Roadmap
 
 ## Purpose
 
-This document is the working plan for evolving the project from a goal timing
+This document is the working plan for evolving **UPL Lens** from a goal-timing
 analysis into a full-stack Uganda Premier League data platform.
 
 The initial launch build moved through a set of phases so each layer could be
@@ -35,11 +35,10 @@ Build an open-source UPL data observatory where users can explore matches,
 teams, players, discipline, goal timing, lineups, officials, and match trends
 across seasons.
 
-Public product framing: **UPL Lens** is an independent statistical observatory
+**UPL Lens** is an independent statistical observatory
 for people who want to understand the league beyond fixtures, results, and
 tables. It should lead with curated insight, then offer deeper analytical
-drilldowns. The broader repo still contains the UPL Match Intelligence data
-platform, research lab, API, and historical operating context.
+drilldowns. The former UPL Match Intelligence name is historical context only.
 
 The project should support two audiences:
 
@@ -678,7 +677,7 @@ Tasks:
 
 Implementation command pattern:
 
-- Create database: `psql -U postgres -c "CREATE DATABASE upl_match_intelligence;"`
+- Create database: `psql -U postgres -c "CREATE DATABASE upl_lens;"`
 - Apply migrations: `python scripts/data_platform/apply_db_migrations.py`
 - Load raw CSVs: `python scripts/data_platform/load_raw_to_postgres.py`
 - Load one season only: `python scripts/data_platform/load_raw_to_postgres.py --season 2025-26`

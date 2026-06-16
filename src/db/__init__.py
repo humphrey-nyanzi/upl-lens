@@ -1,2 +1,2 @@
-"""Database helpers for the UPL Match Intelligence project."""
+"""Database helpers for the UPL Lens project."""
 

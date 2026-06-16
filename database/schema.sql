@@ -1,4 +1,4 @@
--- UPL Match Intelligence database foundation
+-- UPL Lens database foundation
 --
 -- This file mirrors the current Phase 1 migration in a single readable place.
 -- You can inspect it to understand the intended database structure, while the

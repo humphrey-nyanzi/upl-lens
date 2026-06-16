@@ -1,4 +1,4 @@
-# UPL Match Intelligence Python dependencies
+# UPL Lens Python dependencies
 #
 # Install:
 #   python -m pip install --upgrade pip

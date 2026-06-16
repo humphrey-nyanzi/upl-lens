@@ -1,16 +1,14 @@
-# AGENTS.md - UPL Match Intelligence (repo-level guidance)
+# AGENTS.md - UPL Lens (repo-level guidance)
 
 ## Project Direction
 
-This repository contains the data platform, research lab, API, and frontend
-that historically shipped under the public name "UPL Match Intelligence".
-The frontend product has been redesigned and rebranded as **UPL Lens**.
-Keep historical operational and research guidance here; frontend design and
-launch direction should now follow the UPL Lens frontend docs (see
-`docs/FRONTEND_DESIGN_SYSTEM.md`).
+This repository contains the **UPL Lens** data platform, research lab, API, and
+frontend. It began as a UPL goal-timing / UPL Match Intelligence project, but
+the unified project and product name is now **UPL Lens**.
 
-This repo continues to evolve the data platform and research workflows, while
-the UPL Lens frontend sets the public-facing product and visual direction.
+Keep historical operational and research context where it explains current
+decisions; current frontend design and launch direction should follow the UPL
+Lens frontend docs (see `docs/FRONTEND_DESIGN_SYSTEM.md`).
 
 The long-term goal is to collect official UPL match data, store it in Postgres,
 clean and model it for analysis, expose it through a FastAPI backend, and present
@@ -414,3 +412,6 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   deployment shape, or known gaps, check whether
   [docs/diagram_collection.md](docs/diagram_collection.md) needs an update.
 - Copilot instructions also exist at `.github/copilot-instructions.md`.
+- Shared production frontend URL: `https://upl-lens.pages.dev/`. The older
+  Cloudflare Pages URL may remain live as a fallback during the rename
+  transition, but do not present it as the primary product URL.

@@ -20,7 +20,7 @@ from src.db.migrations import apply_pending_migrations
 def main() -> None:
     """Apply pending migrations and print a beginner-friendly summary."""
 
-    print("UPL Match Intelligence - Apply Postgres Migrations")
+    print("UPL Lens - Apply Postgres Migrations")
     results = apply_pending_migrations()
 
     if not results:

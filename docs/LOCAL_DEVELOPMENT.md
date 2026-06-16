@@ -1,7 +1,7 @@
 # Local Development And Operations
 
 This guide is the practical path for running, checking, refreshing, validating,
-and debugging the UPL Lens product and the broader UPL Match Intelligence repo.
+and debugging the UPL Lens repo.
 
 Use [START_HERE.md](START_HERE.md) for project orientation and current
 high-signal history before digging deeper.
@@ -149,7 +149,7 @@ Use this table to avoid guessing.
 Run commands from the repository root:
 
 ```text
-C:\Personal Code Projects\upl-goal-timing
+C:\Personal Code Projects\upl-lens
 ```
 
 Prefer:
@@ -204,6 +204,15 @@ Check:
 For hosted deployments, browser privacy extensions can block the Render API and
 surface as `net::ERR_BLOCKED_BY_CLIENT`. Verify in a private or guest profile
 before changing deployment settings.
+
+Current hosted deployment names:
+
+- Shared frontend URL: `https://upl-lens.pages.dev/`
+- Legacy frontend fallback: `https://upl-match-intelligence.pages.dev/`
+- API URL: `https://upl-match-intelligence-api.onrender.com/`
+
+The Render project display name may use UPL Lens, but the API slug can remain
+`upl-match-intelligence-api` until there is a planned URL migration.
 
 ### `npm run dev` or `npm run build` fails
 

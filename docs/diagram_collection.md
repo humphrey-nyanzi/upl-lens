@@ -1,5 +1,5 @@
 
-# UPL Match Intelligence / UPL Lens - Mermaid Diagram Collection
+# UPL Lens - Mermaid Diagram Collection
 
 Status: **visual system overview / maintained architecture reference**. These
 diagrams describe the repo's data platform, API, and UPL Lens public frontend.
