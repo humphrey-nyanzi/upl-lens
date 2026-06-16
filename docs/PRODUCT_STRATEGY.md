@@ -35,6 +35,34 @@ The product question remains the same:
 What do the UPL numbers reveal that the official website does not explain?
 ```
 
+## Product Dictionary
+
+Use this compact dictionary to keep product language, UI copy, Issues, PRs, and
+agent handoffs consistent.
+
+| Term | Meaning | Use it when |
+|---|---|---|
+| UPL Lens | The public product and unified project name. | Naming the app, repo, docs, Issues, PRs, and public surfaces. |
+| Official source | The official Uganda Premier League website and match pages this project reads from. | Explaining provenance, scraping, and source-data limitations. |
+| Source record | The official archived match fact or page. | Distinguishing original records from UPL Lens analysis. |
+| Intelligence layer | The analytical meaning UPL Lens adds on top of official source records. | Explaining why a page, chart, or API endpoint exists. |
+| Match Intelligence Brief | A match detail surface that explains why a match matters through signals, timing, cards, context, or anomalies. | Designing match detail pages or avoiding official match-report clones. |
+| Routine intelligence | Reusable backend-supported signals that appear on normal product pages. | Building team labels, match signals, trends, coverage notes, and comparison modules. |
+| Featured insight | A promoted notebook-backed research product with clear findings, caveats, API support, and frontend presentation. | Promoting analyses such as Goal Timing or future Discipline research. |
+| Feature package | A numbered notebook research folder with `analysis.ipynb`, `research_brief.md`, `product_plan.md`, and outputs. | Starting or reviewing research work. |
+| Promoted metric | A research metric stable enough to become an API, SQL, or frontend contract. | Moving from notebooks into production. |
+| Data-quality caveat | Visible user-facing context that prevents a number from looking more certain than it is. | Showing incomplete timeline, lineup, event, player, or source coverage. |
+| Available data | A cautious phrase meaning the project is reporting from collected and validated records, not claiming official completeness. | Writing player, lineup, event, or leaderboard copy. |
+| Staging data | Cleaned app-facing Postgres tables under `staging.*`. | Discussing trusted inputs for API and research. |
+| Analytics data | Stable reusable summaries, facts, views, or tables under `analytics.*`. | Describing promoted or reusable metrics. |
+| Browser-facing API proxy | The Cloudflare Pages `/api/*` path the public frontend calls. | Configuring hosted frontend requests and avoiding browser extension blocking. |
+| Backend origin API | The Render-hosted FastAPI service behind the proxy. | Debugging backend health or deployment origin behavior. |
+
+When in doubt, use product-facing football language before technical language.
+For example, prefer "available event data" over "rows in staging.events" in UI
+copy, while preserving the precise technical term in docs or implementation
+notes.
+
 ## Origin And Growth Philosophy
 
 The project began as a portfolio and passion project for analysing Uganda
