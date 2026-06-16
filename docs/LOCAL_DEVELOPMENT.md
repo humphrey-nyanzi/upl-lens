@@ -201,18 +201,43 @@ Check:
 - `ALLOWED_ORIGINS` in `.env` includes `http://127.0.0.1:5173`.
 - after changing `frontend/.env`, restart `npm run dev`.
 
-For hosted deployments, browser privacy extensions can block the Render API and
-surface as `net::ERR_BLOCKED_BY_CLIENT`. Verify in a private or guest profile
-before changing deployment settings.
+For hosted deployments, privacy extensions such as Ghostery can block direct
+browser calls from `upl-lens.pages.dev` to the `onrender.com` API domain and
+surface as `net::ERR_BLOCKED_BY_CLIENT` or a blocked `/health` request. The
+production frontend should therefore use the same-origin Cloudflare Pages proxy
+with `VITE_API_BASE_URL=/api`, not the direct Render URL. Verify in a private
+or guest profile to separate extension behavior from real API outages.
 
 Current hosted deployment names:
 
 - Shared frontend URL: `https://upl-lens.pages.dev/`
 - Legacy frontend fallback: `https://upl-match-intelligence.pages.dev/`
-- API URL: `https://upl-match-intelligence-api.onrender.com/`
+- Browser-facing API proxy: `https://upl-lens.pages.dev/api/`
+- Backend origin API: `https://upl-match-intelligence-api.onrender.com/`
 
 The Render project display name may use UPL Lens, but the API slug can remain
 `upl-match-intelligence-api` until there is a planned URL migration.
+
+### Hosted frontend API proxy
+
+Production Cloudflare Pages builds should set:
+
+```text
+VITE_API_BASE_URL=/api
+```
+
+The `frontend/public/_redirects` file proxies `/api/*` to the Render API:
+
+```text
+/api/* https://upl-match-intelligence-api.onrender.com/:splat 200
+```
+
+This keeps browser requests same-origin, for example
+`https://upl-lens.pages.dev/api/health`, while Cloudflare forwards the request to
+Render server-side. This avoids false backend-offline states caused by privacy
+extensions blocking third-party `onrender.com` fetches from the public app. Keep
+local development on `http://127.0.0.1:8000` so Vite talks directly to the local
+FastAPI server.
 
 ### `npm run dev` or `npm run build` fails
 
