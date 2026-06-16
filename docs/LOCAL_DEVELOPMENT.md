@@ -205,6 +205,15 @@ For hosted deployments, browser privacy extensions can block the Render API and
 surface as `net::ERR_BLOCKED_BY_CLIENT`. Verify in a private or guest profile
 before changing deployment settings.
 
+Current hosted deployment names:
+
+- Shared frontend URL: `https://upl-lens.pages.dev/`
+- Legacy frontend fallback: `https://upl-match-intelligence.pages.dev/`
+- API URL: `https://upl-match-intelligence-api.onrender.com/`
+
+The Render project display name may use UPL Lens, but the API slug can remain
+`upl-match-intelligence-api` until there is a planned URL migration.
+
 ### `npm run dev` or `npm run build` fails
 
 From the repository root:

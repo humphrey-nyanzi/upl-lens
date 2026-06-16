@@ -412,3 +412,6 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   deployment shape, or known gaps, check whether
   [docs/diagram_collection.md](docs/diagram_collection.md) needs an update.
 - Copilot instructions also exist at `.github/copilot-instructions.md`.
+- Shared production frontend URL: `https://upl-lens.pages.dev/`. The older
+  Cloudflare Pages URL may remain live as a fallback during the rename
+  transition, but do not present it as the primary product URL.

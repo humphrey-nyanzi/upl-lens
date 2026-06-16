@@ -24,7 +24,7 @@ a fixtures clone or developer-portfolio landing page.
 
 ## Live Demo
 
-- Frontend: [UPL Lens](https://upl-match-intelligence.pages.dev/)
+- Frontend: [UPL Lens](https://upl-lens.pages.dev/)
 - API: [UPL Lens API](https://upl-match-intelligence-api.onrender.com/)
 - API liveness check:
   [`/health/live`](https://upl-match-intelligence-api.onrender.com/health/live)
@@ -34,8 +34,8 @@ a fixtures clone or developer-portfolio landing page.
 The backend runs on a free Render service, so the first API request after an
 idle period can be slow while the service wakes up.
 
-The hosted URLs still use the legacy `upl-match-intelligence` slug until the
-Cloudflare Pages and Render service renames are completed and verified.
+The older Cloudflare Pages URL remains available as a fallback during the
+rename transition, but `https://upl-lens.pages.dev/` is the URL to share.
 
 ## Intelligence-layer API
 
