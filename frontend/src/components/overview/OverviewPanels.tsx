@@ -10,13 +10,39 @@ import { Target, Home, TrendingUp, ArrowRight } from "lucide-react";
 
 type TeamFormValue = "W" | "D" | "L";
 
+const shortMatchDateFormatter = new Intl.DateTimeFormat("en", { day: "numeric", month: "short" });
+
+const explorePreviewCards = [
+  {
+    icon: <Target size={24} />,
+    page: "insights" as PageKey,
+    title: "Featured insight",
+    description: "Open curated football insights built from the current app-safe data scope.",
+    action: "Open insights",
+  },
+  {
+    icon: <Home size={24} />,
+    page: "matches" as PageKey,
+    title: "Match evidence",
+    description: "Review recent scorelines and match-by-match context behind overview signals.",
+    action: "Open match briefs",
+  },
+  {
+    icon: <TrendingUp size={24} />,
+    page: "teams" as PageKey,
+    title: "Team summaries",
+    description: "Compare team form, results, and scoring output across the current scope.",
+    action: "Open teams",
+  },
+] as const;
+
 function formatShortMatchDate(value: string | null) {
   if (!value) return "Date TBC";
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Date TBC";
 
-  return new Intl.DateTimeFormat("en", { day: "numeric", month: "short" }).format(date);
+  return shortMatchDateFormatter.format(date);
 }
 
 function getPerspectiveResult(match: MatchSummary, teamName: string): TeamFormValue | null {
@@ -70,7 +96,7 @@ export function TeamSignalPanel({
         <div>
           <p className="eyebrow">Team signals</p>
           <h2>Signal board</h2>
-          <p>Fast ranking context with each club's most recent completed five-match run.</p>
+          <p>Fast ranking context with each club's latest completed five-match run.</p>
         </div>
       </div>
       <div className="overview-list">
@@ -134,30 +160,6 @@ export function EventSignalPanel({ eventBreakdown }: { eventBreakdown: Array<{ e
 }
 
 export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey) => void }) {
-  const trendCards = [
-    {
-      icon: <Target size={24} />,
-      page: "insights" as PageKey,
-      title: "Featured insight",
-      description: "Open curated football insights built from the current app-safe data scope.",
-      action: "Open insights",
-    },
-    {
-      icon: <Home size={24} />,
-      page: "matches" as PageKey,
-      title: "Match evidence",
-      description: "Review recent scorelines and match-by-match context behind overview signals.",
-      action: "Open match briefs",
-    },
-    {
-      icon: <TrendingUp size={24} />,
-      page: "teams" as PageKey,
-      title: "Team summaries",
-      description: "Compare team form, results, and scoring output across the current scope.",
-      action: "Open teams",
-    },
-  ];
-
   return (
     <section className="explore-panel overview-insight-strip" aria-labelledby="trends-title">
       <div className="section-heading compact overview-insight-heading">
@@ -167,7 +169,7 @@ export function ExplorePreview({ onPageChange }: { onPageChange: (page: PageKey)
         </div>
       </div>
       <div className="trends-grid">
-        {trendCards.map((card) => (
+        {explorePreviewCards.map((card) => (
           <button
             className="trends-card"
             key={card.title}
@@ -253,7 +255,7 @@ export function RecentMatchPanel({
         <div>
           <p className="eyebrow">Recent matches</p>
           <h2>Recent scorelines</h2>
-          <p>Latest completed results, kept compact so club identity and scoreline stay easy to scan.</p>
+          <p>Latest completed results, kept compact and easy to scan.</p>
         </div>
       </div>
       <div className="overview-list">

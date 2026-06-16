@@ -391,7 +391,7 @@ export default function MatchDetailPage(_props: PageProps) {
         Back to Matches
       </Link>
 
-      <header className="match-brief-hero">
+      <header className="match-brief-hero lens-fused-hero">
         <div className="match-detail-meta-line">
           <span>{formatSeason(match.season)}</span>
           <span>{formatMatchday(match.match_day)}</span>
@@ -412,7 +412,7 @@ export default function MatchDetailPage(_props: PageProps) {
           </div>
         </div>
 
-        <div className="match-brief-headline">
+        <div className="match-brief-headline lens-fused-hero-copy">
           <p className="eyebrow">{intelligence?.primary_signal ?? "Match intelligence brief"}</p>
           <h1>
             {homeTeam} {scoreline} {awayTeam}

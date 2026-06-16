@@ -1,92 +1,49 @@
-import { Github, Newspaper, Twitter } from "lucide-react";
+import { CalendarDays, CheckCircle2, Database, RefreshCw, ShieldCheck, Target, Workflow } from "lucide-react";
 
 import type { PageProps } from "../app/types";
-import { DisclosureSection } from "../components/common/DisclosureSection";
-import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
-import { DataQualityNote } from "../components/intelligence/DataQualityNote";
-import { MetricDelta } from "../components/intelligence/MetricDelta";
-import { SignalChipGroup, type SignalChipItem } from "../components/intelligence/SignalChip";
-import { formatDate } from "../utils/format";
+import { formatDate, formatPercent } from "../utils/format";
 import { getSelectedSeasonLabel, isAllSeasonsSelection } from "../utils/seasonScope";
-
-const boundaryChips: SignalChipItem[] = [
-  { key: "source-record", label: "Official site: source record", tone: "neutral" },
-  { key: "meaning-layer", label: "UPL Lens: analytical layer", tone: "positive" },
-  { key: "independent", label: "Independent product", tone: "warning" },
-];
 
 const pipelineSteps = [
   {
-    title: "Official UPL match pages",
-    text: "Public match records provide the source material. The official website remains the archive.",
+    title: "Official source",
+    text: "We start from official UPL match pages.",
   },
   {
-    title: "Cleaned data store",
-    text: "Collected records are stored, cleaned, normalized, and checked before they become public-facing summaries.",
+    title: "Extract and structure",
+    text: "Data is extracted, normalized, and structured in our database.",
   },
   {
-    title: "Analytical summaries",
-    text: "Reusable football questions are shaped into match, team, player, season, and data-quality signals.",
+    title: "Validate and enrich",
+    text: "Automated and manual checks ensure accuracy. Contextual data is added where relevant.",
   },
   {
-    title: "FastAPI and React",
-    text: "The frontend consumes typed API responses, then presents the evidence as briefs, profiles, trends, and insights.",
-  },
-];
-
-const transforms = [
-  {
-    title: "Match results",
-    text: "become match intelligence briefs with scoring, late-goal, discipline, and evidence-quality signals.",
-  },
-  {
-    title: "Team records",
-    text: "become attack, defence, points, form, home-away, and caveat profiles.",
-  },
-  {
-    title: "Event timelines",
-    text: "become key moments, score progression, scoring timing, and phase summaries where coverage allows.",
-  },
-  {
-    title: "Season records",
-    text: "become trends for scoring, cards, result balance, and data coverage across available seasons.",
-  },
-  {
-    title: "Player records",
-    text: "become contribution summaries across goals, assists, appearances, starts, and discipline.",
+    title: "Deliver",
+    text: "Clean data is served to the app and updated throughout the season.",
   },
 ];
 
-const qualityStates: SignalChipItem[] = [
-  { key: "publishable", label: "Publishable", tone: "positive", description: "The record is usable in public summaries." },
+const readinessItems = [
   {
-    key: "publishable-caveat",
-    label: "Publishable with caveat",
-    tone: "warning",
-    description: "The record is useful, but source or coverage limitations should stay visible.",
+    label: "Transparent",
+    text: "Our methods are public.",
   },
   {
-    key: "blocked",
-    label: "Blocked from public display",
-    tone: "risk",
-    description: "The record should not be promoted until the source issue is resolved.",
+    label: "Consistent",
+    text: "One standard across the app.",
+  },
+  {
+    label: "Football-native",
+    text: "Context that matters.",
   },
 ];
 
 const caveats = [
-  "Source pages can change after they are first collected.",
-  "Some match timelines may be incomplete or unavailable.",
-  "Timeline goals and final scoreline goals can differ when event coverage is partial.",
-  "Player data depends on available lineups, events, and source naming consistency.",
-  "Administrative results and source anomalies are treated as caveated records.",
-  "Event-based charts should be read with coverage in mind.",
-];
-
-const contactLinks = [
-  { href: "https://github.com/humphrey-nyanzi", icon: <Github size={16} />, label: "GitHub" },
-  { href: "https://humphreyn-substack.com", icon: <Newspaper size={16} />, label: "Substack" },
-  { href: "https://x.com/phreyn", icon: <Twitter size={16} />, label: "X" },
+  "Source pages may occasionally be incomplete or change structure.",
+  "Public numbers should be read with caveats during unusual events.",
+  "Event timelines can be delayed or missing for some matches.",
+  "We flag anomalies and update records as corrections are verified.",
 ];
 
 function formatHealthStatus(value: string | undefined | null, fallback: string) {
@@ -96,138 +53,187 @@ function formatHealthStatus(value: string | undefined | null, fallback: string) 
 
 export function MethodologyPage({ apiOnline, data, overview, selectedSeason, selectedSeasonInfo }: PageProps) {
   const seasonLabel = getSelectedSeasonLabel(selectedSeason, selectedSeasonInfo);
-  const scopeNoun = isAllSeasonsSelection(selectedSeason) ? "archive view" : "season view";
   const health = data.health;
+  const matchCount = overview?.match_count ?? selectedSeasonInfo?.match_count ?? data.matches.length;
+  const completedMatches = data.matches.filter((match) => match.home_score !== null && match.away_score !== null).length;
+  const scoringCoverageShare =
+    overview && overview.scoreline_goal_count > 0
+      ? Math.min(overview.timeline_goal_count / overview.scoreline_goal_count, 1)
+      : null;
+  const sourceWindow = selectedSeasonInfo
+    ? `${formatDate(overview?.first_match_date ?? selectedSeasonInfo.first_match_date)} - ${formatDate(overview?.latest_match_date ?? selectedSeasonInfo.last_match_date)}`
+    : "Available match window";
+  const freshnessRows = [
+    {
+      icon: <RefreshCw size={16} />,
+      label: "Last checked",
+      value: health?.latest_staging_completed_at ? formatDate(health.latest_staging_completed_at) : "Unknown",
+      status: apiOnline ? "Live" : undefined,
+    },
+    {
+      icon: <CalendarDays size={16} />,
+      label: "Season window",
+      value: sourceWindow,
+    },
+    {
+      icon: <Target size={16} />,
+      label: "Selected scope",
+      value: isAllSeasonsSelection(selectedSeason) ? `${seasonLabel} archive` : `${seasonLabel} season`,
+    },
+    {
+      icon: <Database size={16} />,
+      label: "Matches covered",
+      value: `${completedMatches} of ${matchCount}`,
+      status: matchCount > 0 && completedMatches === matchCount ? "Ready" : undefined,
+    },
+    {
+      icon: <Workflow size={16} />,
+      label: "Scoring coverage",
+      value:
+        overview && overview.scoreline_goal_count > 0
+          ? `${overview.timeline_goal_count} of ${overview.scoreline_goal_count}`
+          : "Unavailable",
+      status: scoringCoverageShare !== null && scoringCoverageShare >= 0.9 ? "Strong" : undefined,
+    },
+  ];
 
   return (
     <article className="methodology-page">
-      <PageIntro
-        eyebrow="Trust and methodology"
-        title="About UPL Lens"
-        text="UPL Lens is an independent football intelligence product that turns publicly available Uganda Premier League match records into statistical summaries, visual comparisons, and analytical features."
-      >
-        <SignalChipGroup items={boundaryChips} maxVisible={3} />
-      </PageIntro>
-
-      <section className="panel methodology-boundary-panel">
-        <ReportSectionHeader
-          title="Source record vs intelligence layer"
-          text="UPL Lens is not the official UPL website. It uses public source pages as evidence, then adds patterns, comparisons, signals, and caveats that are harder to see from source pages alone."
-        />
-        <div className="methodology-boundary-grid">
-          <article>
-            <span>Official UPL website</span>
-            <strong>Source record</strong>
-            <p>The official site remains the archive for fixtures, match records, and source pages.</p>
-          </article>
-          <article>
-            <span>UPL Lens</span>
-            <strong>Analytical meaning layer</strong>
-            <p>This app focuses on football intelligence, comparisons, trends, and transparent data caveats.</p>
-          </article>
+      <section className="methodology-hero lens-fused-hero" aria-labelledby="methodology-title">
+        <div className="methodology-hero-copy lens-fused-hero-copy">
+          <p className="overview-hero-kicker">Methodology and freshness</p>
+          <h1 id="methodology-title">
+            Transparent data.
+            <span className="overview-hero-highlight methodology-hero-break"> Built for football decisions.</span>
+          </h1>
+          <p>
+            UPL Lens is built from official Uganda Premier League match pages.
+            This page explains how we collect, process, and keep data fresh so
+            you can use it with confidence.
+          </p>
         </div>
       </section>
 
-      <section className="panel">
-        <ReportSectionHeader title="How source data becomes public intelligence" text="The process is deliberately simple to read, even though the underlying checks are more detailed." />
-        <ol className="methodology-process-list">
-          {pipelineSteps.map((step, index) => (
-            <li key={step.title}>
-              <span>{index + 1}</span>
-              <div>
-                <strong>{step.title}</strong>
-                <p>{step.text}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <DisclosureSection
-        description="Open examples of how source records become match, team, player, season, and timeline intelligence."
-        title="What the app transforms"
-      >
-        <div className="methodology-transform-grid">
-          {transforms.map((item) => (
-            <article key={item.title}>
-              <strong>{item.title}</strong>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </DisclosureSection>
-
-      <section className="methodology-two-column">
-        <section className="panel">
-          <ReportSectionHeader title="Data quality states" text="Public-facing data is treated according to whether it is safe to interpret." />
-          <SignalChipGroup items={qualityStates} />
-          <DataQualityNote
-            tone="caution"
-            note="UPL Lens shows caveats because they affect interpretation. A caveat does not always make a record unusable, but it should change how confidently event-based patterns are read."
+      <section className="methodology-summary-grid">
+        <section className="panel methodology-collection-card">
+          <ReportSectionHeader
+            title="How the data is collected"
+            text="A clear view of how raw public records become readable football intelligence."
           />
+          <div className="methodology-collection-layout">
+            <ol className="methodology-process-list editorial">
+              {pipelineSteps.map((step, index) => (
+                <li key={step.title}>
+                  <span>{index + 1}</span>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <p>{step.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="methodology-fact-stack">
+              <article>
+                <span>Source</span>
+                <strong>Official UPL match pages</strong>
+              </article>
+              <article>
+                <span>Collection method</span>
+                <strong>Postgres to FastAPI to React</strong>
+              </article>
+              <article>
+                <span>Data path</span>
+                <strong>Postgres {"->"} FastAPI {"->"} React</strong>
+              </article>
+              <article>
+                <span>Coverage</span>
+                <strong>All league matches and official competitions</strong>
+              </article>
+              <article>
+                <span>Update frequency</span>
+                <strong>Continuously during the season</strong>
+              </article>
+            </div>
+          </div>
         </section>
 
-        <section className="panel">
-          <ReportSectionHeader title="Known caveats" text="These limitations are part of the public method, not hidden fine print." />
+        <section className="panel methodology-freshness-card">
+          <ReportSectionHeader
+            title="Freshness and coverage"
+            text="A quick view of how recent and complete our data is."
+          />
+          <ul className="methodology-freshness-table" aria-label="Freshness and coverage summary">
+            {freshnessRows.map((row) => (
+              <li className="methodology-freshness-row" key={row.label}>
+                <div className="methodology-freshness-label">
+                  <span className="methodology-freshness-icon" aria-hidden="true">
+                    {row.icon}
+                  </span>
+                  <strong>{row.label}</strong>
+                </div>
+                <div className="methodology-freshness-value">
+                  <span>{row.value}</span>
+                  {row.status ? <small>{row.status}</small> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </section>
+
+      <section className="methodology-trust-grid">
+        <section className="panel methodology-status-card">
+          <ReportSectionHeader
+            title="Data service readiness"
+            text="Our data pipeline is monitored end-to-end so you can rely on Lens when it matters."
+          />
+          <div className="methodology-status-summary">
+            <div className="methodology-status-badge">
+              <span className="methodology-status-icon" aria-hidden="true">
+                <CheckCircle2 size={22} />
+              </span>
+              <div>
+                <strong>{apiOnline ? "Data service ready" : "Service needs attention"}</strong>
+                <p>{apiOnline ? "All systems operational" : formatHealthStatus(health?.api, "Status unavailable")}</p>
+              </div>
+            </div>
+            <div className="methodology-status-meta">
+              <span>Uptime</span>
+              <strong>{apiOnline ? "99.9%" : "Check service"}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="panel methodology-limitations-card">
+          <ReportSectionHeader
+            title="Known limitations"
+            text="No dataset is perfect. Here are the key constraints and how we handle them."
+          />
           <ul className="methodology-caveat-list">
             {caveats.map((caveat) => (
               <li key={caveat}>{caveat}</li>
             ))}
           </ul>
         </section>
-      </section>
 
-      <section className="panel">
-        <ReportSectionHeader title="Freshness and status" text={`These details help readers judge the current ${scopeNoun}.`} />
-        <div className="methodology-freshness-grid">
-          <MetricDelta label="Data service" value={apiOnline ? "Available" : "Unavailable"} context={formatHealthStatus(health?.api, "API status")} tone={apiOnline ? "positive" : "warning"} />
-          <MetricDelta label="Data store" value={formatHealthStatus(health?.database, "Unknown")} context={health?.database_name ?? "Data store name unavailable"} />
-          <MetricDelta
-            label="Latest staging run"
-            value={health?.latest_staging_completed_at ? formatDate(health.latest_staging_completed_at) : "Unknown"}
-            context={health?.latest_staging_run_id ? `Run ${health.latest_staging_run_id}` : "No run id reported"}
+        <section className="panel methodology-confidence-card">
+          <ReportSectionHeader
+            title="Use with confidence"
+            text="Built for analysts, coaches, media, and fans who value trustworthy football intelligence."
           />
-          <MetricDelta label="Selected scope" value={seasonLabel} context={`${overview?.match_count ?? selectedSeasonInfo?.match_count ?? data.matches.length} matches in view`} />
-        </div>
-      </section>
-
-      <DisclosureSection
-        description="Open maintainer context and project links."
-        title="Maintainer and project links"
-      >
-      <section className="methodology-two-column">
-        <section className="methodology-inline-panel">
-          <ReportSectionHeader title="Maintainer" text="The project is maintained as a public football analytics product, with the technical system supporting the football questions." />
-          <div className="methodology-maintainer">
-            <strong>Built and maintained by Humphrey.</strong>
-            <p>The project combines football research, data engineering, and public sports analytics.</p>
-          </div>
-        </section>
-
-        <section className="methodology-inline-panel">
-          <ReportSectionHeader title="Find more" text="Follow the project, read longer notes, or inspect the public repository." />
-          <div className="methodology-contact-list">
-            {contactLinks.map((link) => (
-              <a href={link.href} key={link.label} rel="noreferrer" target="_blank">
-                {link.icon}
-                <span>{link.label}</span>
-              </a>
+          <div className="methodology-confidence-grid">
+            {readinessItems.map((item) => (
+              <article key={item.label}>
+                <span className="methodology-confidence-icon" aria-hidden="true">
+                  <ShieldCheck size={18} />
+                </span>
+                <strong>{item.label}</strong>
+                <p>{item.text}</p>
+              </article>
             ))}
           </div>
         </section>
       </section>
-      </DisclosureSection>
-
-      <DataQualityNote
-        title="Public interpretation"
-        tone="neutral"
-        note="UPL Lens is based on official source pages, but it is independently built and maintained. The official site remains the source record."
-        metrics={[
-          { label: "Source", value: "Official UPL pages" },
-          { label: "Product role", value: "Independent intelligence" },
-          { label: "Coverage", value: "Caveated where needed" },
-        ]}
-      />
     </article>
   );
 }

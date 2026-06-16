@@ -312,9 +312,9 @@ export default function TeamDetailPage({ onRefresh, selectedSeason, selectedSeas
         Back to Teams
       </Link>
 
-      <header className="team-dossier-hero">
+      <header className="team-dossier-hero lens-fused-hero">
         <TeamMarker label={profile.team_name} size="medium" />
-        <div className="team-dossier-hero-copy">
+        <div className="team-dossier-hero-copy lens-fused-hero-copy">
           <span className="eyebrow">Team dossier</span>
           <h1>{profile.team_name}</h1>
           <p>

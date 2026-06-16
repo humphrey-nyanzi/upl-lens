@@ -357,8 +357,8 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
         Back to Players
       </Link>
 
-      <header className="player-profile-hero player-profile-header">
-        <div className="player-profile-hero-copy">
+      <header className="player-profile-hero player-profile-header lens-fused-hero">
+        <div className="player-profile-hero-copy lens-fused-hero-copy">
           <span className="eyebrow">Player contribution profile</span>
           <h1>{player.player_name}</h1>
           <p>
