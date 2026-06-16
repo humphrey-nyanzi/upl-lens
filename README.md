@@ -34,6 +34,9 @@ a fixtures clone or developer-portfolio landing page.
 The backend runs on a free Render service, so the first API request after an
 idle period can be slow while the service wakes up.
 
+The hosted URLs still use the legacy `upl-match-intelligence` slug until the
+Cloudflare Pages and Render service renames are completed and verified.
+
 ## Intelligence-layer API
 
 The backend now supports routine intelligence modules for the public frontend,

@@ -1,7 +1,7 @@
 # Local Development And Operations
 
 This guide is the practical path for running, checking, refreshing, validating,
-and debugging the UPL Lens product and the broader UPL Match Intelligence repo.
+and debugging the UPL Lens repo.
 
 Use [START_HERE.md](START_HERE.md) for project orientation and current
 high-signal history before digging deeper.
@@ -149,7 +149,7 @@ Use this table to avoid guessing.
 Run commands from the repository root:
 
 ```text
-C:\Personal Code Projects\upl-goal-timing
+C:\Personal Code Projects\upl-lens
 ```
 
 Prefer:

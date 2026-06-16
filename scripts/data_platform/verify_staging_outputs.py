@@ -169,7 +169,7 @@ def main() -> None:
     args = parse_args()
     seasons = [season_key(season) for season in args.seasons] if args.seasons else None
 
-    print("UPL Match Intelligence - Verify Staging Outputs")
+    print("UPL Lens - Verify Staging Outputs")
 
     with get_psycopg_connection() as connection:
         with connection.cursor() as cursor:

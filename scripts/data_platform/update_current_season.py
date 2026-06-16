@@ -791,7 +791,7 @@ def main() -> None:
     normalized_season = season_key(season)
     log_dir = args.log_dir / normalized_season
 
-    print("UPL Match Intelligence - Current Season Operations Update")
+    print("UPL Lens - Current Season Operations Update")
     print(f"Season: {season}")
     print(f"Mode: {args.mode}")
     print(f"Raw season folder: {raw_season_dir(season).relative_to(PROJECT_ROOT)}")

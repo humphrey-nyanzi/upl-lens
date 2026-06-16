@@ -41,7 +41,7 @@ def main() -> None:
     args = parse_args()
     target_seasons = args.seasons or discover_available_seasons()
 
-    print("UPL Match Intelligence - Load Raw CSVs To Postgres")
+    print("UPL Lens - Load Raw CSVs To Postgres")
     print(f"Target seasons: {', '.join(target_seasons)}")
 
     load_counts = load_raw_seasons_to_postgres(seasons=args.seasons)
