@@ -82,6 +82,18 @@ local drafts kept in `.github/ISSUE_DRAFTS/`. Meaningful work should happen on
 an Issue-specific branch and enter `main` through a Pull Request after owner
 review.
 
+Beginner defaults:
+
+- No file change: no branch is needed.
+- Small clear file change: branch and PR; Issue optional.
+- Meaningful, risky, unclear, milestone, research, API, data, or frontend work:
+  Issue -> branch -> draft PR -> owner test/review -> merge.
+- Keep PRs draft until the linked Issue checklist and acceptance criteria are
+  complete.
+- Test PRs locally or through a preview deployment before merging.
+- Delete merged short-lived branches unless the owner intentionally wants to
+  preserve an experiment.
+
 ## Seven-Doc Structure
 
 | Doc | Owner | Open it when |

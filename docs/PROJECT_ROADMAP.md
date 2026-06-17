@@ -118,6 +118,121 @@ Agents should open draft PRs by default unless the user explicitly asks for a
 ready PR. PRs should link the Issue, summarize changes, list verification, call
 out risks, and leave merge/release approval to the owner.
 
+### Small Fix Rule
+
+A small fix may skip a GitHub Issue, but it should still use a branch and PR if
+it changes code, docs, config, deployment behavior, or other tracked project
+files.
+
+Small fixes usually:
+
+- take less than about 15 minutes
+- touch one or two files
+- have an obvious cause and acceptance condition
+- do not need a product, research, API, data, or deployment decision
+- do not change public data interpretation, schema, secrets, or release safety
+
+Examples include typo fixes, broken links, tiny copy corrections, obvious doc
+command corrections, or a one-line config note. Create or use an Issue instead
+when work is unclear, multi-step, risky, useful for another agent to resume,
+belongs to a milestone, changes API/data/frontend behavior, or may create
+follow-up work.
+
+Use this beginner decision flow:
+
+```mermaid
+flowchart TD
+    A["Request, bug, or idea"] --> B{"Small, clear, and low-risk?"}
+    B -->|"Yes"| C["Branch + PR; Issue optional"]
+    B -->|"No"| D["Create or use a GitHub Issue"]
+    D --> E["Add labels, milestone, Project, and acceptance criteria"]
+    E --> F["Branch + PR with Closes #issue"]
+```
+
+### When To Create An Issue
+
+Create an Issue before coding when any of these are true:
+
+- the task needs acceptance criteria or a checklist
+- the work should appear on the Project board
+- the work belongs to a milestone or release goal
+- another agent or future session may need to resume it
+- the task changes public product behavior, API shape, data interpretation, or
+  deployment behavior
+- the task needs research, notebook evidence, screenshots, stakeholder review,
+  or caveat documentation
+- the bug is not immediately reproducible or the cause is uncertain
+
+If a user gives a direct request with no Issue, an agent may execute it as a
+small fix only when it clearly meets the small-fix rule. Otherwise the agent
+should create a draft Issue or ask whether to create one before implementation.
+
+### Draft PR Default
+
+Draft PRs are the safe default for humans and agents while work is still being
+assembled. A PR should move from draft to ready for review only after:
+
+- the linked Issue checklist and acceptance criteria are complete
+- the PR template is filled in
+- relevant verification evidence is recorded
+- out-of-scope follow-up is captured in a PR comment or follow-up Issue
+
+### Pull Request Testing Before Merge
+
+The owner should test PRs before merge, using the lightest evidence that matches
+the risk of the change.
+
+Common testing paths:
+
+- Review the PR diff, linked Issue, checklist, labels, milestone, and Project
+  state.
+- For local testing, fetch the branch, switch to it, run the relevant commands,
+  and inspect the affected app surface.
+- For frontend PRs, use the Cloudflare Pages preview deployment when available,
+  then record the preview URL and browser notes in the PR.
+- For API or data PRs, run the relevant test/script/endpoint check and record
+  the command or endpoint evidence.
+- For docs-only PRs, read the changed section and run link or formatting checks
+  when links changed.
+
+Useful local commands:
+
+```powershell
+git fetch origin
+git switch <branch-name>
+.venv\Scripts\python.exe -m pytest
+cd frontend
+npm run build
+npm run dev
+```
+
+Do not merge a PR just because it builds. Merge when the Issue acceptance
+criteria are met and the owner has reviewed the result.
+
+### Branch Cleanup And Long-Lived Branches
+
+Use short-lived branches for normal work and delete them after merge. GitHub's
+"automatically delete head branches" setting is recommended for this repo.
+
+Avoid fixed long-lived branches such as `frontend-work`, `agent-work`, or
+`research-work` for routine development. They become mini-main branches and make
+it harder to know what is safe. Keep long-lived branches only for deliberate
+experiments that the owner explicitly wants to preserve.
+
+### Future Pull Request Automation
+
+The next useful automation is a lightweight GitHub Actions PR check. Start with
+low-noise checks that match the current repo maturity:
+
+- frontend build: `cd frontend && npm run build`
+- Python tests: `.venv\Scripts\python.exe -m pytest` or the CI equivalent after
+  dependencies are stable
+- optional documentation/link checks after the doc workflow settles
+
+CI should support owner review, not replace it. A green check means the basics
+passed; it does not mean the product decision, research caveat, or browser
+experience is automatically correct.
+
 ### Pull Request Metadata And Issue Closure
 
 When a PR is created from an Issue, it should carry the same planning metadata
@@ -135,6 +250,7 @@ A PR should not be submitted for review until the Issue checklist and acceptance
 criteria are complete. If useful follow-up work is discovered outside the Issue
 scope, leave it as a PR comment or create a follow-up Issue instead of expanding
 the PR silently.
+
 ### Label Taxonomy
 
 Use these labels for filtering and agent handoffs:

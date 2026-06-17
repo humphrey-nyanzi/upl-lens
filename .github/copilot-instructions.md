@@ -33,7 +33,18 @@ milestone, add the PR to the same Project, set PR status to
 `status: needs-review` only after the Issue checklist and acceptance criteria
 are complete, and use `Closes #<issue-number>` so the Issue closes when the
 owner-reviewed PR is merged. Put useful out-of-scope follow-up in a PR comment
-or follow-up Issue.GitHub network operations such as `gh issue`, `gh pr`, `gh project`, and
+or follow-up Issue.
+Small, clear, low-risk fixes may skip Issue creation, but they still need a
+branch and PR when they change code, docs, config, or deployment behavior. If a
+direct request is meaningful, risky, unclear, multi-step, milestone-related, or
+useful for another agent to resume, create or request a GitHub Issue before
+implementation. Keep PRs draft until the linked Issue checklist, acceptance
+criteria, PR template, and verification evidence are complete. Include local
+command output, browser notes, preview URL, endpoint evidence, or an N/A reason
+in the PR. After merge, short-lived branches should be deleted unless the owner
+explicitly preserves an experiment. Avoid long-lived fixed branches for routine
+feature or agent work.
+GitHub network operations such as `gh issue`, `gh pr`, `gh project`, and
 `git push` may need to run outside sandboxed environments with approval.
 If the task affects the public frontend relaunch, also read
 `docs/FRONTEND_DESIGN_SYSTEM.md` first and treat it as the frontend, API,

@@ -382,7 +382,24 @@ GitHub Actions is the preferred automation path for portfolio visibility.
   so the Issue closes automatically after the owner-reviewed PR is merged.
 - If useful work is discovered outside the Issue scope, do not silently expand
   the PR. Add a PR comment or create a follow-up Issue so the owner can decide
-  whether it belongs in a later milestone.- GitHub network operations such as `gh issue`, `gh pr`, `gh project`,
+  whether it belongs in a later milestone.
+- For small, clear, low-risk fixes such as typos, broken links, tiny copy
+  changes, or obvious one-file doc/config corrections, a GitHub Issue is
+  optional. Still use a branch and PR for code, docs, config, or deployment
+  changes unless the owner explicitly says otherwise.
+- If a direct user request is meaningful, risky, multi-step, unclear, tied to a
+  milestone, likely to need follow-up, or useful for another agent to resume,
+  create or request a GitHub Issue before implementation.
+- Keep PRs in draft while the linked Issue checklist, acceptance criteria, PR
+  template, or verification evidence is incomplete. Mark or request ready for
+  review only after the in-scope checklist is complete.
+- Include PR testing evidence: local command output, browser notes, Cloudflare
+  preview URL, endpoint check, or a short reason that the item is not
+  applicable.
+- After merge, delete short-lived work branches unless the owner explicitly
+  wants to preserve an experimental branch. Avoid long-lived fixed branches for
+  routine feature or agent work.
+- GitHub network operations such as `gh issue`, `gh pr`, `gh project`,
   `git push`, and creating remote branches may require running outside the
   sandbox with approval. Use escalation for those operations when needed, while
   keeping local file edits scoped to the workspace and avoiding unrelated files.

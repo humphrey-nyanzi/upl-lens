@@ -13,7 +13,7 @@ Closes #
 - [ ] PR has the relevant Issue area/type/priority labels.
 - [ ] PR is assigned to the same milestone as the linked Issue, when applicable.
 - [ ] PR is added to the same GitHub Project as the linked Issue, when applicable.
-- [ ] PR status is `status: needs-review` only because this is ready for owner review.
+- [ ] PR status is `status: needs-review` only because the linked Issue checklist and acceptance criteria are complete.
 
 ## Summary
 
@@ -22,8 +22,18 @@ Closes #
 ## Verification
 
 - [ ] Relevant tests, build, script, or manual check completed.
-- [ ] Frontend screenshots or browser notes added when UI changes.
+- [ ] Local verification commands are listed below, or marked N/A with reason.
+- [ ] Frontend screenshots, browser notes, or Cloudflare preview URL added when UI changes.
+- [ ] API/data endpoint evidence added when behavior or interpretation changes.
 - [ ] Data/API caveats documented when behavior or interpretation changes.
+
+Local commands / evidence:
+
+- TBD or N/A with reason.
+
+Preview URL / browser notes:
+
+- TBD or N/A with reason.
 
 ## Documentation
 
@@ -33,5 +43,5 @@ Closes #
 
 ## Owner Review
 
-- [ ] Ready for owner testing/review.
+- [ ] Ready for owner testing/review; if still in progress, keep this PR as draft.
 - [ ] Do not merge until the project owner approves.
