@@ -142,6 +142,46 @@ Use this table to avoid guessing.
 | API response shape used by React | Verify the endpoint and run `npm run build`. |
 | Deployment config | Check the local build command and the relevant deployment runbook before changing hosted settings. |
 
+## Testing A Pull Request Before Merge
+
+Use this when you want to test work that is still in a PR before it reaches
+`main`.
+
+```mermaid
+flowchart TD
+    A["Open PR"] --> B["Read linked Issue and checklist"]
+    B --> C["Fetch and switch to PR branch"]
+    C --> D["Run relevant local checks"]
+    D --> E["Test app or preview URL"]
+    E --> F{"Acceptance criteria met?"}
+    F -->|"Yes"| G["Approve or merge"]
+    F -->|"No"| H["Comment on PR or Issue"]
+```
+
+Local branch test flow:
+
+```powershell
+git fetch origin
+git switch <branch-name>
+```
+
+Then run the smallest useful verification from the table above. For frontend
+work, usually run:
+
+```powershell
+cd frontend
+npm run build
+npm run dev
+```
+
+For hosted frontend PRs, also check the Cloudflare Pages preview deployment when
+available. Record the preview URL, browser notes, and any extension-related
+findings in the PR so the review history explains what was tested.
+
+After a PR is merged, delete the short-lived branch unless it is an intentional
+experiment. Do not keep fixed branches such as `frontend-work` or `agent-work`
+for normal development; they make it harder to tell what has been reviewed.
+
 ## Local Troubleshooting
 
 ### Python command cannot import project modules
