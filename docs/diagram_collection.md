@@ -338,6 +338,7 @@ sequenceDiagram
     actor User
     participant React as React App shell<br/>useDashboardData
     participant Client as api/client.ts<br/>fetch()
+    participant Edge as Cloudflare Pages Function<br/>/api proxy + short cache
     participant FastAPI as FastAPI<br/>api/main.py
     participant Router as Router<br/>e.g. seasons.py
     participant Query as Query service<br/>src/api/query_services/*
@@ -345,21 +346,28 @@ sequenceDiagram
 
     User->>React: Opens dashboard in browser
 
-    Note over React,PG: Phase 1 — Initial load (parallel)
+    Note over React,PG: Phase 1 — Initial load (parallel, cacheable)
     React->>Client: loadInitialData()
-    Client->>FastAPI: GET /health
-    Client->>FastAPI: GET /seasons
+    Client->>Edge: GET /health
+    Client->>Edge: GET /seasons
+    alt cached public response
+        Edge-->>Client: cached JSON + x-upl-lens-cache=HIT
+    else cache miss or bypass
+        Edge->>FastAPI: forwards safe GET request
+    end
     FastAPI->>Router: health + seasons routers
     Router->>Query: get_health_status() + list_seasons()
     Query->>PG: SELECT version(), current_database()
     Query->>PG: SELECT latest staging run FROM validation_runs
     PG-->>Query: db name + version + timestamp
     Query-->>Router: health row
-    FastAPI-->>Client: HealthResponse JSON
+    FastAPI-->>Edge: HealthResponse JSON
     Query->>PG: SELECT season, COUNT(match_id),<br/>COUNT(DISTINCT team), SUM(total_goals)<br/>FROM staging.matches GROUP BY season
     PG-->>Query: season rows
     Query-->>Router: typed rows
-    Router-->>Client: SeasonResponse[] JSON
+    Router-->>FastAPI: SeasonResponse[] rows
+    FastAPI-->>Edge: SeasonResponse[] JSON
+    Edge-->>Client: JSON responses with cache status
     Client-->>React: setData({ health, seasons })
     React->>User: shows season dropdown
 
@@ -368,26 +376,27 @@ sequenceDiagram
     React->>Client: loadSeasonData("2025_26")
 
     par all 4 fetch in parallel
-        Client->>FastAPI: GET /seasons/2025_26/overview
+        Client->>Edge: GET /seasons/2025_26/overview
         and
-        Client->>FastAPI: GET /insights/goal-timing?season=2025_26
+        Client->>Edge: GET /insights/goal-timing?season=2025_26
         and
-        Client->>FastAPI: GET /matches?season=2025_26&limit=200
+        Client->>Edge: GET /matches?season=2025_26&limit=200
         and
-        Client->>FastAPI: GET /teams?season=2025_26
+        Client->>Edge: GET /teams?season=2025_26
     end
 
+    Edge->>FastAPI: forwards cache misses to API origin
     FastAPI->>Router: route handlers validate request
     Router->>Query: overview, insight, match, and team query functions
     Query->>PG: SQL against staging.matches,\nstaging.events, staging.lineups,\nand analytics.team_season_summary
     PG-->>Query: result sets
     Query-->>Router: typed rows
-    FastAPI-->>Client: 4 JSON responses
+    FastAPI-->>Edge: 4 JSON responses
+    Edge-->>Client: JSON responses with cache status
 
     Client-->>React: setData({ overview, goalTiming,\nmatches, teams })
     React->>User: renders selected page
 ```
-
 ---
 
 ## Diagram 4 — Scraper Package & State

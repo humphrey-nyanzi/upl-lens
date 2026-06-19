@@ -239,6 +239,12 @@ extensions blocking third-party `onrender.com` fetches from the public app. Keep
 local development on `http://127.0.0.1:8000` so Vite talks directly to the local
 FastAPI server.
 
+The Pages Function also caches public, unauthenticated `GET` responses for short
+periods. This reduces repeat reads against Render and Supabase without changing
+where the source data lives. Requests with `Authorization` or `Cookie` headers
+bypass this cache. Use the `x-upl-lens-cache` response header to check whether a
+request was a `HIT`, `MISS`, or `BYPASS`.
+
 ### `npm run dev` or `npm run build` fails
 
 From the repository root:
@@ -393,6 +399,31 @@ Mirror-check command:
 
 That command compares the latest successful hosted workflow with a local
 current-season run and writes a sync report under `outputs/sync/`.
+
+### Supabase Disk IO warnings
+
+Treat Disk IO warnings as an operations signal, not an automatic reason to
+upgrade compute. First reduce avoidable repeat reads and confirm whether the
+pressure comes from public traffic, routine refreshes, or manual rebuilds.
+
+First checks:
+
+- Open `https://upl-lens.pages.dev/api/health` and confirm the response includes
+  `x-upl-lens-cache`. Repeat safe public requests and look for cache `HIT`
+  behavior after the first request.
+- Keep routine hosted refreshes on `season_scope=current`,
+  `run_type=routine-refresh`, `apply_migrations=false`, and
+  `force_full_scrape=false` unless an admin rebuild is intentional.
+- Use GitHub Actions artifacts and Supabase's available 24-hour reports to
+  compare Disk IO spikes with hosted refresh timing.
+- If query-level evidence is available, use `pg_stat_statements` and
+  `EXPLAIN (ANALYZE, BUFFERS)` to identify high-read queries before adding more
+  indexes or changing compute size.
+
+Migration `011_add_io_mitigation_indexes.sql` adds targeted indexes for repeated
+raw-season filters and public API query shapes. These indexes are additive: they
+should reduce unnecessary reads, but they do not replace the longer-term work of
+making hosted refreshes more incremental.
 
 ### Current-season refresh asks for too much database permission
 
