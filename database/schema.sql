@@ -15,3 +15,4 @@
 \i migrations/008_add_admin_results_and_official_points.sql
 \i migrations/009_backfill_team_summary_admin_fields.sql
 \i migrations/010_add_timeline_coverage_fields.sql
+\i migrations/011_add_io_mitigation_indexes.sql
