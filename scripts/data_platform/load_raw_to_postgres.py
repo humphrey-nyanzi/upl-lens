@@ -32,6 +32,14 @@ def parse_args() -> argparse.Namespace:
         dest="seasons",
         help="Season to load, for example 2025-26. Repeat the flag to load multiple seasons.",
     )
+    parser.add_argument(
+        "--allow-unsafe-season-reload",
+        action="store_true",
+        help=(
+            "Admin recovery only: permit empty or low-confidence CSV input to "
+            "delete/reload hosted raw season rows. Do not use for routine refreshes."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -44,7 +52,10 @@ def main() -> None:
     print("UPL Lens - Load Raw CSVs To Postgres")
     print(f"Target seasons: {', '.join(target_seasons)}")
 
-    load_counts = load_raw_seasons_to_postgres(seasons=args.seasons)
+    load_counts = load_raw_seasons_to_postgres(
+        seasons=args.seasons,
+        allow_unsafe_season_reload=args.allow_unsafe_season_reload,
+    )
 
     print("\n[ok] Raw ingestion finished.")
     for season, table_counts in load_counts.items():

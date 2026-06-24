@@ -67,7 +67,7 @@ flowchart TD
 
     subgraph RAW_INGESTION["PRIMARY ② — Raw Ingestion"]
         direction TB
-        RAWLOAD["📥 load_raw_to_postgres.py\n→ src/db/raw_loader.py\nfor each season:\n  1. delete existing season rows\n  2. read CSV rows\n  3. filter in-season rows only\n  4. fingerprint child table keys\n  5. upsert into raw.*"]
+        RAWLOAD["📥 load_raw_to_postgres.py\n→ src/db/raw_loader.py\nfor each season:\n  1. safety-check match rows\n  2. delete existing season rows\n     only after guard passes\n  3. filter in-season rows only\n  4. fingerprint child table keys\n  5. upsert into raw.*"]
 
         RAWVERIFY["✅ verify_raw_postgres_counts.py\ncompares CSV row counts\nvs Postgres row counts\nflags mismatches"]
 
@@ -87,7 +87,7 @@ flowchart TD
 
     RAWLOAD -->|"upserts"| PGRAW
 
-    NOTE2["⚠️ GAP: raw.* tables have\nno foreign keys between\nmatches and child tables.\nIntegrity is only checked\nin staging validation layer."]
+    NOTE2["⚠️ GAP: raw.* tables have\nno foreign keys between\nmatches and child tables.\nIntegrity is checked by\nraw-load safety guards and\nstaging validation."]
     PGRAW -.->|"known gap"| NOTE2
 
     %% ═══════════════════════════════
