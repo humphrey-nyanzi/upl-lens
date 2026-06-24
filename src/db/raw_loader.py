@@ -18,7 +18,15 @@ from typing import Any
 
 from psycopg import sql
 
-from src.config import RAW_TABLE_FILE_PREFIXES, raw_season_dir, raw_season_failed_matches_file, raw_season_file, season_key
+from src.config import (
+    MIN_RAW_SEASON_MATCH_RATIO,
+    MIN_RAW_SEASON_MATCH_ROWS,
+    RAW_TABLE_FILE_PREFIXES,
+    raw_season_dir,
+    raw_season_failed_matches_file,
+    raw_season_file,
+    season_key,
+)
 from src.db.connection import get_psycopg_connection
 from src.db.settings import DatabaseSettings
 
@@ -86,6 +94,33 @@ def _fingerprint(*parts: Any) -> str:
     normalized_parts = ["" if part is None else str(part).strip() for part in parts]
     joined = "||".join(normalized_parts)
     return hashlib.sha256(joined.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class RawSeasonSafetyReport:
+    """Counts used to decide whether a raw season reload is safe."""
+
+    season: str
+    incoming_match_rows: int
+    existing_match_rows: int
+    minimum_match_rows: int
+    minimum_existing_ratio: float
+
+
+class RawSeasonLoadSafetyError(RuntimeError):
+    """Raised before a raw season reload would delete trustworthy hosted rows."""
+
+    def __init__(self, report: RawSeasonSafetyReport, reason: str) -> None:
+        self.report = report
+        self.reason = reason
+        super().__init__(
+            "Unsafe raw season reload blocked for "
+            f"{report.season}: {reason} "
+            f"(incoming matches={report.incoming_match_rows}, "
+            f"existing raw matches={report.existing_match_rows}, "
+            f"minimum matches={report.minimum_match_rows}, "
+            f"minimum existing ratio={report.minimum_existing_ratio:.0%})."
+        )
 
 
 @dataclass(frozen=True)
@@ -562,6 +597,65 @@ def _upsert_rows(connection, table_key: str, rows: list[dict[str, Any]]) -> int:
     return len(rows)
 
 
+def _count_existing_season_matches(connection, season: str) -> int:
+    """Return the current raw match count for one normalized season."""
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM raw.matches
+            WHERE REPLACE(REPLACE(season, '-', '_'), '/', '_') = %s;
+            """,
+            (season_key(season),),
+        )
+        row = cursor.fetchone()
+    return int(row[0]) if row is not None else 0
+
+
+def _enforce_safe_raw_season_load(
+    *,
+    season: str,
+    incoming_match_rows: int,
+    existing_match_rows: int,
+    allow_unsafe_season_reload: bool,
+    minimum_match_rows: int = MIN_RAW_SEASON_MATCH_ROWS,
+    minimum_existing_ratio: float = MIN_RAW_SEASON_MATCH_RATIO,
+) -> RawSeasonSafetyReport:
+    """Block empty or suspicious raw loads before any season rows are deleted."""
+
+    report = RawSeasonSafetyReport(
+        season=season,
+        incoming_match_rows=incoming_match_rows,
+        existing_match_rows=existing_match_rows,
+        minimum_match_rows=minimum_match_rows,
+        minimum_existing_ratio=minimum_existing_ratio,
+    )
+    if allow_unsafe_season_reload:
+        return report
+
+    if incoming_match_rows == 0:
+        raise RawSeasonLoadSafetyError(report, "incoming match CSV has no in-season rows")
+
+    if incoming_match_rows < minimum_match_rows:
+        raise RawSeasonLoadSafetyError(
+            report,
+            "incoming match CSV is below the minimum trusted match count",
+        )
+
+    if existing_match_rows <= 0:
+        return report
+
+    minimum_from_existing = int(existing_match_rows * minimum_existing_ratio)
+    if incoming_match_rows < minimum_from_existing:
+        raise RawSeasonLoadSafetyError(
+            report,
+            "incoming match CSV is much smaller than existing hosted raw data",
+        )
+
+    return report
+
+
 def _delete_existing_season_rows(connection, table_key: str, season: str) -> None:
     """Delete one season slice from a raw table before reloading it.
 
@@ -589,6 +683,8 @@ def _delete_existing_season_rows(connection, table_key: str, season: str) -> Non
 def load_raw_seasons_to_postgres(
     seasons: list[str] | None = None,
     settings: DatabaseSettings | None = None,
+    *,
+    allow_unsafe_season_reload: bool = False,
 ) -> dict[str, dict[str, int]]:
     """Load one or more season folders into the Postgres `raw` schema.
 
@@ -599,6 +695,10 @@ def load_raw_seasons_to_postgres(
         season folders are loaded.
     settings : DatabaseSettings | None, optional
         Preloaded database settings object.
+    allow_unsafe_season_reload : bool, optional
+        Admin recovery override that permits empty or low-confidence season
+        CSVs to delete/reload hosted raw rows. Routine automation should leave
+        this disabled.
 
     Returns
     -------
@@ -615,9 +715,27 @@ def load_raw_seasons_to_postgres(
             if not season_dir.exists():
                 raise FileNotFoundError(f"Season folder not found: {season_dir}")
 
+            table_paths = _season_table_paths(season)
+            match_rows = _read_csv_rows(table_paths["matches"])
+            matching_match_rows = [
+                row for row in match_rows
+                if row_matches_expected_season(row, season)
+            ]
+            safety_report = _enforce_safe_raw_season_load(
+                season=season,
+                incoming_match_rows=len(matching_match_rows),
+                existing_match_rows=_count_existing_season_matches(connection, season),
+                allow_unsafe_season_reload=allow_unsafe_season_reload,
+            )
+            print(
+                "[ok] Raw season safety check passed: "
+                f"season={season} incoming_matches={safety_report.incoming_match_rows} "
+                f"existing_matches={safety_report.existing_match_rows}"
+            )
+
             table_counts: dict[str, int] = {}
-            for table_key, csv_path in _season_table_paths(season).items():
-                rows = _read_csv_rows(csv_path)
+            for table_key, csv_path in table_paths.items():
+                rows = match_rows if table_key == "matches" else _read_csv_rows(csv_path)
                 matching_rows = [
                     row for row in rows
                     if row_matches_expected_season(row, season)

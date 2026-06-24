@@ -343,6 +343,34 @@ Use `--force-full-scrape` only when you intentionally need a whole-season
 scrape. Full mode otherwise uses Postgres change detection so completed matches
 do not get re-fetched unnecessarily.
 
+### Hosted Refresh Safety Guards
+
+Routine hosted refreshes now fail closed before database writes when source data
+is not trustworthy:
+
+- the scraper rejects a source calendar that returns too few official match
+  links for the requested season
+- the raw loader checks incoming in-season match rows before deleting hosted raw
+  season rows
+- empty or suspiciously small match CSV input is blocked unless an explicit
+  admin recovery override is passed
+
+The normal hosted command should not use the override:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
+```
+
+The raw-loader override exists only for manual recovery after the operator has
+confirmed the input files are intentionally empty or partial:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\load_raw_to_postgres.py --season 2025-26 --allow-unsafe-season-reload
+```
+
+Treat that override as a Level 4 manual/admin action. Do not add it to the
+weekly GitHub Actions workflow.
+
 ## Hosted Workflow Modes
 
 The GitHub workflow exposes operator-level choices:
@@ -454,6 +482,8 @@ First checks:
 - Keep routine hosted refreshes on `season_scope=current`,
   `run_type=routine-refresh`, `apply_migrations=false`, and
   `force_full_scrape=false` unless an admin rebuild is intentional.
+- Treat source-preflight or raw season safety failures as successful protection:
+  investigate the source page or raw artifacts before trying any manual reload.
 - Use GitHub Actions artifacts and Supabase's available 24-hour reports to
   compare Disk IO spikes with hosted refresh timing.
 - If query-level evidence is available, use `pg_stat_statements` and

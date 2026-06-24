@@ -14,6 +14,7 @@ from urllib3.util.retry import Retry
 
 from src.config import (
     MAX_CONCURRENT_REQUESTS,
+    MIN_CALENDAR_MATCH_LINKS,
     REQUEST_TIMEOUT,
     RETRY_BACKOFF_SECONDS,
     SCRAPE_RETRY_ATTEMPTS,
@@ -21,6 +22,19 @@ from src.config import (
     UPL_CALENDAR_URL,
     UPL_EVENT_URL_PREFIX,
 )
+
+
+class SourceCalendarPreflightError(RuntimeError):
+    """Raised when a season calendar response is not safe to scrape from."""
+
+    def __init__(self, calendar_url: str, match_count: int, minimum_count: int) -> None:
+        self.calendar_url = calendar_url
+        self.match_count = match_count
+        self.minimum_count = minimum_count
+        super().__init__(
+            f"Source calendar preflight failed for {calendar_url}: found "
+            f"{match_count} match link(s), expected at least {minimum_count}."
+        )
 
 
 class RateLimiter:
@@ -170,7 +184,12 @@ def _first_anchor_info(node: Tag | None) -> tuple[str | None, str | None]:
     return _normalize_whitespace(anchor.get_text(" ", strip=True)), anchor.get("href")
 
 
-def fetch_match_urls(client: ScraperClient, season: str) -> list[str]:
+def fetch_match_urls(
+    client: ScraperClient,
+    season: str,
+    *,
+    minimum_match_links: int = MIN_CALENDAR_MATCH_LINKS,
+) -> list[str]:
     """
     Fetch all match URLs for a given season.
 
@@ -206,5 +225,13 @@ def fetch_match_urls(client: ScraperClient, season: str) -> list[str]:
 
     unique_match_urls = sorted(set(match_urls))
     print(f"[ok] Found {len(unique_match_urls)} unique matches")
+    if len(unique_match_urls) < minimum_match_links:
+        print(
+            "[error] Source calendar preflight failed: "
+            f"found {len(unique_match_urls)} match link(s), "
+            f"expected at least {minimum_match_links}."
+        )
+        raise SourceCalendarPreflightError(
+            calendar_url, len(unique_match_urls), minimum_match_links
+        )
     return unique_match_urls
-
