@@ -347,6 +347,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
   return (
     <div className="team-board-page">
       <PageIntro
+        variant="dense"
         eyebrow="Team intelligence board"
         title="Teams"
         text={`Compare UPL teams by record, scoring profile, defensive strength, and season-level performance signals. ${seasonLabel}.`}

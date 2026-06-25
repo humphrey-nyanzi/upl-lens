@@ -255,6 +255,7 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
   return (
     <div className="match-triage-page">
       <PageIntro
+        variant="dense"
         eyebrow="Match intelligence"
         title="Matches"
         text="Find UPL matches by football signal: scoring, late goals, discipline, result context, and evidence quality."

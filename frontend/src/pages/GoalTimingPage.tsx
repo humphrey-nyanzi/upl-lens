@@ -29,6 +29,7 @@ export function GoalTimingPage({
   return (
     <>
       <PageIntro
+        variant="hero"
         eyebrow="Featured insight"
         title="Goal Timing"
         text="A fan-facing look at when UPL goals arrive, built from the first validated notebook insight promoted into the app."
