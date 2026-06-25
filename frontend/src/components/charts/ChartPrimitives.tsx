@@ -1,4 +1,5 @@
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
+import { cloneElement, useLayoutEffect, useRef, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -44,9 +45,18 @@ type ChartTooltipProps = {
   payload?: ChartTooltipPayload[];
 };
 
+type ChartElement = ReactElement<{ height?: number; width?: number }>;
+
 type ChartShellProps = {
-  children: ReactElement;
+  children: ChartElement;
   height?: number;
+};
+
+type ResponsiveChartFrameProps = {
+  children: ChartElement;
+  className?: string;
+  height?: number;
+  style?: CSSProperties;
 };
 
 type ChartCardProps = {
@@ -164,14 +174,65 @@ export function ChartTooltip({ active, label, payload }: ChartTooltipProps) {
   );
 }
 
-function ChartShell({ children, height = 280 }: ChartShellProps) {
+export function ResponsiveChartFrame({
+  children,
+  className = "chart-fill-frame",
+  height,
+  style,
+}: ResponsiveChartFrameProps) {
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const [measuredSize, setMeasuredSize] = useState<{ height: number; width: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    let animationFrame = 0;
+    const updateMeasuredSize = () => {
+      const rect = frame.getBoundingClientRect();
+      const nextSize = {
+        height: Math.floor(rect.height),
+        width: Math.floor(rect.width),
+      };
+
+      if (nextSize.width <= 0 || nextSize.height <= 0) return;
+
+      setMeasuredSize((currentSize) => {
+        if (currentSize?.width === nextSize.width && currentSize.height === nextSize.height) {
+          return currentSize;
+        }
+        return nextSize;
+      });
+    };
+
+    animationFrame = window.requestAnimationFrame(updateMeasuredSize);
+
+    if (typeof ResizeObserver === "undefined") {
+      return () => window.cancelAnimationFrame(animationFrame);
+    }
+
+    const observer = new ResizeObserver(updateMeasuredSize);
+    observer.observe(frame);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      observer.disconnect();
+    };
+  }, []);
+
   return (
-    <div className="chart-shell" style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        {children}
-      </ResponsiveContainer>
+    <div ref={frameRef} className={className} style={{ ...style, ...(height ? { height, minHeight: height } : {}) }}>
+      {measuredSize ? (
+        cloneElement(children, { height: measuredSize.height, width: measuredSize.width })
+      ) : (
+        <div className="chart-measurement-placeholder" aria-hidden="true" />
+      )}
     </div>
   );
+}
+
+function ChartShell({ children, height = 280 }: ChartShellProps) {
+  return <ResponsiveChartFrame className="chart-shell" height={height}>{children}</ResponsiveChartFrame>;
 }
 
 export function RankingBarChart({ data, height, valueLabel = "Value" }: BarChartProps) {

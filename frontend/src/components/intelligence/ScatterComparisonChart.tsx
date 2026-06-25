@@ -1,7 +1,6 @@
 import {
   CartesianGrid,
   Cell,
-  ResponsiveContainer,
   Scatter,
   ScatterChart,
   Tooltip,
@@ -9,7 +8,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { ChartTooltip } from "../charts/ChartPrimitives";
+import { ChartTooltip, ResponsiveChartFrame } from "../charts/ChartPrimitives";
 import type { IntelligenceTone } from "./ComparisonBars";
 import type { ScatterDatum } from "./ScatterComparisonPlot";
 
@@ -37,7 +36,7 @@ export function ScatterComparisonChart({
   yLabel,
 }: ScatterComparisonChartProps) {
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveChartFrame>
       <ScatterChart margin={{ bottom: 14, left: -18, right: 16, top: 16 }}>
         <CartesianGrid stroke="var(--color-chart-grid)" strokeDasharray="3 6" />
         <XAxis
@@ -61,6 +60,6 @@ export function ScatterComparisonChart({
           ))}
         </Scatter>
       </ScatterChart>
-    </ResponsiveContainer>
+    </ResponsiveChartFrame>
   );
 }
