@@ -27,13 +27,15 @@ export function KpiCard({
 }: KpiCardProps) {
   const displayValue = typeof value === "number" ? value.toLocaleString() : value;
   const supportingText = context ?? detail;
-  const classNames = ["kpi-card", `accent-${accent}`, `kpi-${variant}`, className].filter(Boolean).join(" ");
+  const classNames = ["kpi-card", `accent-${accent}`, `kpi-${variant}`, icon ? "has-icon" : "no-icon", className].filter(Boolean).join(" ");
 
   return (
     <article className={classNames}>
-      <div className="kpi-icon" aria-hidden="true">
-        {icon}
-      </div>
+      {icon ? (
+        <div className="kpi-icon" aria-hidden="true">
+          {icon}
+        </div>
+      ) : null}
       <div>
         <span>{label}</span>
         <strong>{displayValue}</strong>

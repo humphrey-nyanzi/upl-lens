@@ -17,6 +17,7 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
   return (
     <>
       <PageIntro
+        variant="hero"
         eyebrow="Promoted analysis"
         title="Insights Library"
         text="Curated football intelligence, promoted from validated research and framed so readers can move from one strong finding into deeper league context."

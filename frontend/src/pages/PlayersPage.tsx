@@ -382,6 +382,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
   return (
     <article className="player-board-page">
       <PageIntro
+        variant="dense"
         eyebrow="Player contribution board"
         title="Players"
         text={`Explore player contribution through available UPL lineup and event data in ${seasonLabel.toLowerCase()} — goals, assists, appearances, starts, discipline, and involvement patterns.`}

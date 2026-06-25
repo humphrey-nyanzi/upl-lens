@@ -440,6 +440,7 @@ export function TrendsPage({ onRefresh }: PageProps) {
   return (
     <div className="trends-page">
       <PageIntro
+        variant="dense"
         eyebrow="League evolution"
         title="Trends"
         text={`Track how the Uganda Premier League changes across available seasons: scoring levels, card patterns, result balance, and data coverage. ${seasonRange}.`}
