@@ -16,6 +16,7 @@ const PlayerDetailPage = lazy(() => import("./pages/PlayerDetailPage").then((m) 
 const TeamDetailPage = lazy(() => import("./pages/TeamDetailPage").then((m) => ({ default: m.default })));
 const InsightsListPage = lazy(() => import("./pages/InsightsListPage").then((m) => ({ default: m.InsightsListPage })));
 const InsightsDetailWrapper = lazy(() => import("./pages/InsightsDetailWrapper").then((m) => ({ default: m.InsightsDetailWrapper })));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 const TrendsPage = lazy(() => import("./pages/TrendsPage").then((m) => ({ default: m.TrendsPage })));
 
 function RouteLoadingFallback() {
@@ -93,7 +94,7 @@ function App() {
           <Route path="/trends" element={<TrendsPage {...pageProps} />} />
           <Route path="/about" element={<MethodologyPage {...pageProps} />} />
           <Route path="/goal-timing" element={<Navigate to="/insights/goal-timing" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </AppShell>

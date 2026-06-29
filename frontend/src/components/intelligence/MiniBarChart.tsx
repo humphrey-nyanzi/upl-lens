@@ -1,6 +1,6 @@
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { lazy, Suspense } from "react";
 
-import { ChartEmptyState, ChartTooltip } from "../charts/ChartPrimitives";
+import { ChartEmptyState } from "../charts/ChartPrimitives";
 import type { IntelligenceTone } from "./ComparisonBars";
 
 export type MiniBarDatum = {
@@ -20,12 +20,9 @@ export type MiniBarChartProps = {
   height?: "compact" | "regular";
 };
 
-const toneColors: Record<NonNullable<MiniBarDatum["tone"]>, string> = {
-  gold: "var(--color-accent-gold)",
-  green: "var(--color-chart-green-muted)",
-  muted: "rgba(15, 23, 32, 0.18)",
-  risk: "var(--color-risk)",
-};
+const MiniBarChartCanvas = lazy(() =>
+  import("./MiniBarChartCanvas").then((module) => ({ default: module.MiniBarChartCanvas })),
+);
 
 export function MiniBarChart({
   data,
@@ -51,30 +48,9 @@ export function MiniBarChart({
       {chartData.length ? (
         <>
           <div className="mini-chart-canvas">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ bottom: 0, left: -22, right: 8, top: 8 }}>
-                <CartesianGrid stroke="var(--color-chart-grid)" strokeDasharray="3 6" vertical={false} />
-                <XAxis
-                  axisLine={false}
-                  dataKey="label"
-                  interval={0}
-                  tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
-                  tickLine={false}
-                />
-                <YAxis
-                  axisLine={false}
-                  tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
-                  tickFormatter={(value) => (valueFormatter ? valueFormatter(Number(value)) : String(value))}
-                  tickLine={false}
-                />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--color-chart-cursor)" }} />
-                <Bar dataKey="value" name="Value" radius={[6, 6, 2, 2]}>
-                  {chartData.map((item) => (
-                    <Cell fill={toneColors[item.tone ?? "green"]} key={item.key} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<ChartEmptyState message="Loading chart." />}>
+              <MiniBarChartCanvas chartData={chartData} valueFormatter={valueFormatter} />
+            </Suspense>
           </div>
           <div className="chart-value-list compact" aria-label="Readable chart values">
             {chartData.map((item) => (

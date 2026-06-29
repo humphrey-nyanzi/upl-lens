@@ -245,7 +245,10 @@ p {
 }
 
 .app-main {
+  display: flex;
+  min-height: 100vh;
   min-width: 0;
+  flex-direction: column;
 }
 
 .top-bar {
@@ -862,12 +865,92 @@ p {
 
 .workspace {
   display: grid;
+  flex: 1 0 auto;
   gap: var(--space-3);
+  align-content: start;
   width: min(1180px, 100%);
   margin: 0 auto;
   padding: var(--space-3);
 }
 
+.app-footer {
+  flex: 0 0 auto;
+}
+
+.not-found-page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.not-found-current-route {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-control);
+  background: rgba(255, 253, 252, 0.72);
+  color: var(--color-text-secondary);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.not-found-current-route span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.not-found-panel {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-featured);
+  background: var(--surface-gradient);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+
+.not-found-panel > div:first-child {
+  display: grid;
+  gap: 6px;
+  max-width: 68ch;
+}
+
+.not-found-route-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.not-found-route-grid a {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-row-gradient);
+  color: var(--color-text-primary);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition-control);
+}
+
+.not-found-route-grid a:hover,
+.not-found-route-grid a:focus-visible {
+  border-color: var(--state-green-border-strong);
+  background: #fffefd;
+  color: var(--color-green);
+}
+
+.not-found-home-link {
+  justify-self: start;
+  gap: 8px;
+}
 .overview-page {
   position: relative;
   isolation: isolate;
@@ -1624,7 +1707,8 @@ p {
 }
 
 @media (max-width: 639px) {
-  .overview-page {
+
+.overview-page {
     gap: var(--space-4);
   }
 
@@ -2817,7 +2901,22 @@ p {
 }
 
 .chart-shell {
+  width: 100%;
   min-width: 0;
+  min-height: 180px;
+}
+
+.chart-fill-frame {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 160px;
+}
+
+.chart-measurement-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
 }
 
 .chart-panel {
@@ -6662,7 +6761,7 @@ p {
     font-size: 12px;
   }
 
-  .overview-page {
+.overview-page {
     gap: var(--space-3);
   }
 
@@ -7243,7 +7342,7 @@ p {
     width: 100%;
   }
 
-  .overview-page {
+.overview-page {
     gap: var(--space-4);
   }
 
