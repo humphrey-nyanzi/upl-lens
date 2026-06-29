@@ -35,6 +35,8 @@ from src.config import (
     raw_season_dir,
     raw_season_failed_matches_file,
     raw_season_file,
+    raw_season_load_safety_file,
+    raw_season_source_preflight_file,
     season_key,
 )
 from src.operations.command_runner import display_path, run_logged_step, timestamp_slug
@@ -392,7 +394,11 @@ def _run_summary_payload(
         "status": "success",
         "season": season,
         "mode": mode,
-        "source": "cached HTML/checkpoints allowed" if use_cache else "fresh live-source refresh",
+        "source": (
+            "cached HTML/checkpoints allowed"
+            if use_cache
+            else "fresh live-source refresh"
+        ),
         "migrations": "skipped" if skip_migrations else "applied",
         "raw_verification": "completed" if raw_verification_ran else "skipped",
         "staging_rebuild": "completed",
@@ -406,6 +412,61 @@ def _run_summary_payload(
             step_name: _display_path(log_path)
             for step_name, log_path in step_logs.items()
         },
+    }
+
+
+def _read_json_artifact(path: Path) -> dict[str, object] | None:
+    """Read a JSON artifact without hiding the original pipeline failure."""
+
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _failure_evidence_payload(
+    *,
+    season: str,
+    step_logs: dict[str, Path],
+    failed_stage: str,
+) -> dict[str, object]:
+    """Merge source and loader guard evidence across subprocess boundaries."""
+
+    source = _read_json_artifact(raw_season_source_preflight_file(season)) or {}
+    raw_load = (
+        _read_json_artifact(raw_season_load_safety_file(season)) or {}
+        if failed_stage == "load_raw_to_postgres"
+        else {}
+    )
+    raw_completed = "load_raw_to_postgres" in step_logs
+    staging_completed = "build_staging_from_raw" in step_logs
+    skipped_write_stages = []
+    if not raw_completed:
+        skipped_write_stages.append("raw")
+    if not staging_completed:
+        skipped_write_stages.extend(["staging", "analytics"])
+
+    return {
+        "source_url": source.get("source_url") or raw_load.get("source_url"),
+        "failure_reason": raw_load.get("failure_reason")
+        or source.get("failure_reason"),
+        "observed_link_count": source.get("observed_link_count"),
+        "minimum_link_count": source.get("minimum_link_count"),
+        "expected_match_count": raw_load.get("expected_match_rows")
+        or source.get("expected_match_count"),
+        "incoming_match_count": raw_load.get("incoming_match_rows"),
+        "existing_hosted_count": raw_load.get("existing_match_rows"),
+        "target_season": season,
+        "override_enabled": bool(raw_load.get("override_enabled", False)),
+        "database_write_stages_skipped": skipped_write_stages,
+        "failed_stage": failed_stage,
+        "source_preflight_report": _display_path(
+            raw_season_source_preflight_file(season)
+        ),
+        "raw_load_safety_report": _display_path(raw_season_load_safety_file(season)),
     }
 
 
@@ -448,6 +509,10 @@ def _partial_artifacts_payload(
         "failed_stage_log": (
             _display_path(failed_stage_log) if failed_stage_log is not None else None
         ),
+        "source_preflight_report": _display_path(
+            raw_season_source_preflight_file(season)
+        ),
+        "raw_load_safety_report": _display_path(raw_season_load_safety_file(season)),
     }
 
 
@@ -473,16 +538,28 @@ def _failed_run_summary_payload(
         "status": "failed",
         "season": season,
         "mode": mode,
-        "source": "cached HTML/checkpoints allowed" if use_cache else "fresh live-source refresh",
-        "migrations": "skipped" if skip_migrations else _stage_state(
-            "apply_db_migrations",
-            step_logs,
-            failed_stage,
+        "source": (
+            "cached HTML/checkpoints allowed"
+            if use_cache
+            else "fresh live-source refresh"
         ),
-        "raw_load": "skipped" if skip_raw_load else _stage_state(
-            "load_raw_to_postgres",
-            step_logs,
-            failed_stage,
+        "migrations": (
+            "skipped"
+            if skip_migrations
+            else _stage_state(
+                "apply_db_migrations",
+                step_logs,
+                failed_stage,
+            )
+        ),
+        "raw_load": (
+            "skipped"
+            if skip_raw_load
+            else _stage_state(
+                "load_raw_to_postgres",
+                step_logs,
+                failed_stage,
+            )
         ),
         "raw_verification": _verification_state(
             step_name="verify_raw_postgres_counts",
@@ -507,6 +584,11 @@ def _failed_run_summary_payload(
         ),
         "exit_code": exit_code,
         "failure_reason": failure_reason,
+        "failure_evidence": _failure_evidence_payload(
+            season=season,
+            step_logs=step_logs,
+            failed_stage=failed_stage,
+        ),
         "partial_artifacts": _partial_artifacts_payload(
             season=season,
             log_dir=log_dir,
@@ -613,7 +695,9 @@ def _write_run_summary_json(
         raw_verification_ran=raw_verification_ran,
         staging_verification_ran=staging_verification_ran,
     )
-    summary_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     print(f"\n[operations] Run summary artifact: {_display_path(summary_path)}")
     return summary_path
 

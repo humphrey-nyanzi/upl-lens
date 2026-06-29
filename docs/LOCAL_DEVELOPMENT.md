@@ -345,15 +345,22 @@ do not get re-fetched unnecessarily.
 
 ### Hosted Refresh Safety Guards
 
-Routine hosted refreshes now fail closed before database writes when source data
-is not trustworthy:
+Routine hosted refreshes fail closed before database writes when source data is
+not trustworthy:
 
-- the scraper rejects a source calendar that returns too few official match
-  links for the requested season
-- the raw loader checks incoming in-season match rows before deleting hosted raw
-  season rows
-- empty or suspiciously small match CSV input is blocked unless an explicit
-  admin recovery override is passed
+- the scraper requires a successful HTML response from the configured calendar
+  URL, the matching canonical URL, a Sportspress calendar container, and at
+  least the configured minimum number of official event links
+- every successful preflight writes
+  `data/raw/<season>/upl_source_preflight_<season>.json`; this is the
+  source-derived expected-count contract consumed by the raw loader
+- the loader requires incoming match URLs to belong to that contract and at
+  least 90% of its observed calendar links to be present, even when the target
+  database currently has zero season rows
+- when hosted rows already exist, the incoming season must also retain at least
+  50% of the hosted match count and satisfy the fixed 10-match emergency floor
+- all checks run before the first season delete; a blocked decision writes
+  `upl_raw_load_safety_<season>.json` and skips raw, staging, and analytics writes
 
 The normal hosted command should not use the override:
 
@@ -361,8 +368,9 @@ The normal hosted command should not use the override:
 .venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
 ```
 
-The raw-loader override exists only for manual recovery after the operator has
-confirmed the input files are intentionally empty or partial:
+A direct raw load now also needs the season's valid source-preflight JSON. The
+raw-loader override exists only for manual recovery after the operator has
+confirmed that a missing contract or intentionally empty/partial input is safe:
 
 ```powershell
 .venv\Scripts\python.exe scripts\data_platform\load_raw_to_postgres.py --season 2025-26 --allow-unsafe-season-reload
@@ -416,11 +424,17 @@ Typical files:
 <timestamp>_build_staging_from_raw.log
 <timestamp>_verify_staging_outputs.log
 <timestamp>_run_summary.json
+data/raw/<season>/upl_source_preflight_<season>.json
+data/raw/<season>/upl_raw_load_safety_<season>.json
 ```
 
 Step logs answer what happened inside a stage. The JSON run summary records the
 final operational state: season, mode, migration behavior, verification status,
-remaining failed matches, raw row counts, loader counts, and step-log paths.
+remaining failed matches, raw row counts, loader counts, and step-log paths. A
+failed summary also carries the source URL, failure reason, observed and
+expected/minimum counts, incoming and hosted counts, target season, override
+state, and skipped database write stages. The hosted wrapper embeds that child
+failure evidence so it survives the subprocess boundary.
 
 In GitHub Actions, upload both raw files and `outputs/automation/` logs as
 artifacts even when a run fails.

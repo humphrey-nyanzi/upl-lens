@@ -61,6 +61,7 @@ SCRAPER_STATUS_FORCELIST = (429, 500, 502, 503, 504)
 MIN_CALENDAR_MATCH_LINKS = 10
 MIN_RAW_SEASON_MATCH_ROWS = 10
 MIN_RAW_SEASON_MATCH_RATIO = 0.5
+MIN_RAW_SEASON_SOURCE_RATIO = 0.9
 
 # Team name corrections mapping
 CLUB_NAME_CORRECTIONS = {
@@ -117,6 +118,8 @@ RAW_TABLE_FILE_PREFIXES = {
 }
 
 FAILED_MATCHES_FILE_PREFIX = "upl_failed_matches"
+SOURCE_PREFLIGHT_FILE_PREFIX = "upl_source_preflight"
+RAW_LOAD_SAFETY_FILE_PREFIX = "upl_raw_load_safety"
 
 
 def season_key(season: str) -> str:
@@ -138,3 +141,13 @@ def raw_season_file(season: str, table_name: str) -> Path:
 def raw_season_failed_matches_file(season: str) -> Path:
     """Return the per-season CSV that tracks failed match URLs."""
     return raw_season_dir(season) / f"{FAILED_MATCHES_FILE_PREFIX}_{season_key(season)}.csv"
+
+
+def raw_season_source_preflight_file(season: str) -> Path:
+    """Return the source-calendar preflight contract for one season."""
+    return raw_season_dir(season) / f"{SOURCE_PREFLIGHT_FILE_PREFIX}_{season_key(season)}.json"
+
+
+def raw_season_load_safety_file(season: str) -> Path:
+    """Return the raw-loader safety evidence file for one season."""
+    return raw_season_dir(season) / f"{RAW_LOAD_SAFETY_FILE_PREFIX}_{season_key(season)}.json"

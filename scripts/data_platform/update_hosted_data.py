@@ -25,7 +25,6 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.config import CURRENT_SEASON, season_key
 from src.operations.command_runner import display_path, run_logged_step, timestamp_slug
 
-
 SCRIPT_DIR = PROJECT_ROOT / "scripts" / "data_platform"
 DEFAULT_LOG_DIR = PROJECT_ROOT / "outputs" / "automation"
 ALL_KNOWN_SEASONS = (
@@ -176,11 +175,15 @@ def _season_args(seasons: list[str]) -> list[str]:
     return args
 
 
-def _build_update_current_season_command(args: argparse.Namespace, season: str) -> list[str]:
+def _build_update_current_season_command(
+    args: argparse.Namespace, season: str
+) -> list[str]:
     """Translate operator options into the existing one-season pipeline command."""
 
     mode = "artifact-only" if args.run_type == "artifact-only" else "full"
-    command = _python_command("update_current_season.py", "--season", season, "--mode", mode)
+    command = _python_command(
+        "update_current_season.py", "--season", season, "--mode", mode
+    )
 
     if args.run_type == "rebuild-from-existing-raw":
         command.extend(["--skip-scrape", "--skip-raw-load"])
@@ -205,16 +208,28 @@ def _run_rebuild_all_from_existing_raw(
 
     if args.apply_migrations:
         step_logs["apply_db_migrations"] = _display_path(
-            _run_step("apply_db_migrations", _python_command("apply_db_migrations.py"), log_dir)
+            _run_step(
+                "apply_db_migrations",
+                _python_command("apply_db_migrations.py"),
+                log_dir,
+            )
         )
     else:
         print("\n[hosted-update] Skipping migrations.")
 
     step_logs["build_staging_from_raw"] = _display_path(
-        _run_step("build_staging_from_raw", _python_command("build_staging_from_raw.py"), log_dir)
+        _run_step(
+            "build_staging_from_raw",
+            _python_command("build_staging_from_raw.py"),
+            log_dir,
+        )
     )
     step_logs["verify_staging_outputs"] = _display_path(
-        _run_step("verify_staging_outputs", _python_command("verify_staging_outputs.py"), log_dir)
+        _run_step(
+            "verify_staging_outputs",
+            _python_command("verify_staging_outputs.py"),
+            log_dir,
+        )
     )
 
 
@@ -231,7 +246,33 @@ def _run_per_season_pipeline(
         season_log_dir = log_dir / season_key(season)
         step_name = f"{args.run_type}_{season_key(season)}"
         command = _build_update_current_season_command(args, season)
-        step_logs[step_name] = _display_path(_run_step(step_name, command, season_log_dir))
+        step_logs[step_name] = _display_path(
+            _run_step(step_name, command, season_log_dir)
+        )
+
+
+def _latest_child_failure_summary(log_dir: Path) -> dict[str, object] | None:
+    """Return the newest child failure summary produced before subprocess exit."""
+
+    summaries = sorted(
+        log_dir.rglob("*_failed_run_summary.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if not summaries:
+        return None
+    try:
+        payload = json.loads(summaries[0].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return {
+        "path": _display_path(summaries[0]),
+        "failure_evidence": payload.get("failure_evidence"),
+        "failed_stage": payload.get("failed_stage"),
+        "failure_reason": payload.get("failure_reason"),
+    }
 
 
 def _write_summary(
@@ -257,8 +298,13 @@ def _write_summary(
         "force_full_scrape": args.force_full_scrape,
         "step_logs": step_logs,
         "failure": failure,
+        "child_failure_summary": (
+            _latest_child_failure_summary(log_dir) if status == "failed" else None
+        ),
     }
-    summary_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     print(f"\n[hosted-update] Summary artifact: {_display_path(summary_path)}")
     return summary_path
 
@@ -281,9 +327,13 @@ def main() -> None:
 
     try:
         if args.run_type == "rebuild-from-existing-raw" and args.season_scope == "all":
-            _run_rebuild_all_from_existing_raw(args=args, log_dir=log_dir, step_logs=step_logs)
+            _run_rebuild_all_from_existing_raw(
+                args=args, log_dir=log_dir, step_logs=step_logs
+            )
         else:
-            _run_per_season_pipeline(args=args, seasons=seasons, log_dir=log_dir, step_logs=step_logs)
+            _run_per_season_pipeline(
+                args=args, seasons=seasons, log_dir=log_dir, step_logs=step_logs
+            )
     except HostedUpdateStepError as error:
         _write_summary(
             args=args,

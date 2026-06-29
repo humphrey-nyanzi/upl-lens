@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import threading
 import time
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 from bs4 import BeautifulSoup
@@ -27,14 +31,74 @@ from src.config import (
 class SourceCalendarPreflightError(RuntimeError):
     """Raised when a season calendar response is not safe to scrape from."""
 
-    def __init__(self, calendar_url: str, match_count: int, minimum_count: int) -> None:
-        self.calendar_url = calendar_url
-        self.match_count = match_count
-        self.minimum_count = minimum_count
+    def __init__(self, report: "SourceCalendarPreflightReport") -> None:
+        self.report = report
+        self.calendar_url = report.source_url
+        self.match_count = report.observed_link_count
+        self.minimum_count = report.minimum_link_count
         super().__init__(
-            f"Source calendar preflight failed for {calendar_url}: found "
-            f"{match_count} match link(s), expected at least {minimum_count}."
+            f"Source calendar preflight failed for {report.source_url}: "
+            f"{report.failure_reason} (observed links={report.observed_link_count}, "
+            f"expected/minimum links={report.minimum_link_count})."
         )
+
+
+@dataclass(frozen=True)
+class SourceDocument:
+    """HTTP response metadata and body used by source preflight validation."""
+
+    requested_url: str
+    final_url: str
+    status_code: int
+    content_type: str
+    content: bytes
+    from_cache: bool
+
+
+@dataclass(frozen=True)
+class SourceCalendarPreflightReport:
+    """Machine-readable evidence for one source calendar validation."""
+
+    status: str
+    target_season: str
+    source_url: str
+    final_source_url: str | None
+    http_status: int | None
+    content_type: str | None
+    observed_link_count: int
+    minimum_link_count: int
+    expected_match_count: int
+    failure_reason: str | None
+    source_structure_valid: bool
+    override_enabled: bool
+    match_urls: list[str]
+    checked_at_utc: str
+
+
+def _normalized_source_url(url: str) -> str:
+    """Normalize a source URL for strict host and path comparison."""
+
+    parts = urlsplit(url)
+    normalized_path = parts.path.rstrip("/") + "/"
+    return urlunsplit(
+        (parts.scheme.lower(), parts.netloc.lower(), normalized_path, "", "")
+    )
+
+
+def _write_preflight_report(
+    report: SourceCalendarPreflightReport,
+    report_path: Path | None,
+) -> None:
+    """Persist source evidence when the caller supplied an artifact path."""
+
+    if report_path is None:
+        return
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(asdict(report), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    print(f"[source-preflight] Report: {report_path}")
 
 
 class RateLimiter:
@@ -61,7 +125,9 @@ class RateLimiter:
         with self._lock:
             now = time.monotonic()
             wait_seconds = max(0.0, self._next_allowed_time - now)
-            self._next_allowed_time = max(self._next_allowed_time, now) + self.min_interval_seconds
+            self._next_allowed_time = (
+                max(self._next_allowed_time, now) + self.min_interval_seconds
+            )
 
         if wait_seconds > 0:
             time.sleep(wait_seconds)
@@ -107,7 +173,11 @@ class ScraperClient:
             respect_retry_after_header=True,
         )
 
-        adapter = HTTPAdapter(max_retries=retry, pool_connections=MAX_CONCURRENT_REQUESTS, pool_maxsize=MAX_CONCURRENT_REQUESTS)
+        adapter = HTTPAdapter(
+            max_retries=retry,
+            pool_connections=MAX_CONCURRENT_REQUESTS,
+            pool_maxsize=MAX_CONCURRENT_REQUESTS,
+        )
         session.mount("http://", adapter)
         session.mount("https://", adapter)
         return session
@@ -123,27 +193,38 @@ class ScraperClient:
         return self.cache_dir / f"{url_hash}.html"
 
     def get(self, url: str) -> bytes:
-        """
-        Fetch one URL with optional cache support.
+        """Fetch one URL and return its body."""
 
-        Cache flow:
-        - If we already saved the HTML locally, read it from disk.
-        - Otherwise, wait for the rate limiter, make the request, then save it.
-        """
+        return self.get_source_document(url).content
+
+    def get_source_document(self, url: str) -> SourceDocument:
+        """Fetch one URL while retaining response metadata for validation."""
+
         cache_path = self._cache_path_for_url(url)
-
         if self.use_cache and cache_path.exists():
-            return cache_path.read_bytes()
+            return SourceDocument(
+                requested_url=url,
+                final_url=url,
+                status_code=200,
+                content_type="text/html",
+                content=cache_path.read_bytes(),
+                from_cache=True,
+            )
 
         self.rate_limiter.wait()
         response = self.session.get(url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
-        content = response.content
-
+        document = SourceDocument(
+            requested_url=url,
+            final_url=response.url,
+            status_code=response.status_code,
+            content_type=response.headers.get("Content-Type", ""),
+            content=response.content,
+            from_cache=False,
+        )
         if self.use_cache:
-            cache_path.write_bytes(content)
-
-        return content
+            cache_path.write_bytes(document.content)
+        return document
 
 
 def _empty_scraped_tables() -> dict[str, list[dict[str, Any]]]:
@@ -189,49 +270,110 @@ def fetch_match_urls(
     season: str,
     *,
     minimum_match_links: int = MIN_CALENDAR_MATCH_LINKS,
+    report_path: Path | None = None,
 ) -> list[str]:
-    """
-    Fetch all match URLs for a given season.
+    """Fetch and validate all official match URLs for one season."""
 
-    Parameters
-    ----------
-    client : ScraperClient
-        Reusable HTTP client with caching and rate limiting.
-    season : str
-        Season string (e.g., "2025-26")
-
-    Returns
-    -------
-    list[str]
-        Sorted list of unique match URLs
-    """
     calendar_url = UPL_CALENDAR_URL.format(season=season)
+    checked_at = datetime.now(timezone.utc).isoformat()
     print(f"Fetching match calendar from: {calendar_url}")
 
     try:
-        response_content = client.get(calendar_url)
+        if hasattr(client, "get_source_document"):
+            document = client.get_source_document(calendar_url)
+        else:
+            document = SourceDocument(
+                requested_url=calendar_url,
+                final_url=calendar_url,
+                status_code=200,
+                content_type="text/html",
+                content=client.get(calendar_url),
+                from_cache=False,
+            )
         print("[ok] Calendar fetched successfully")
     except Exception as exc:
+        report = SourceCalendarPreflightReport(
+            status="failed",
+            target_season=season,
+            source_url=calendar_url,
+            final_source_url=None,
+            http_status=getattr(getattr(exc, "response", None), "status_code", None),
+            content_type=None,
+            observed_link_count=0,
+            minimum_link_count=minimum_match_links,
+            expected_match_count=minimum_match_links,
+            failure_reason=f"http_failure: {exc}",
+            source_structure_valid=False,
+            override_enabled=False,
+            match_urls=[],
+            checked_at_utc=checked_at,
+        )
+        _write_preflight_report(report, report_path)
         print(f"[error] Failed to fetch calendar: {exc}")
-        raise
+        raise SourceCalendarPreflightError(report) from exc
 
-    soup = BeautifulSoup(response_content, "html.parser")
-    match_urls = []
+    failure_reason: str | None = None
+    accepted_content_types = {"text/html", "application/xhtml+xml"}
+    response_content_type = document.content_type.lower().split(";", 1)[0].strip()
+    if document.status_code < 200 or document.status_code >= 300:
+        failure_reason = f"http_status_not_success: {document.status_code}"
+    elif response_content_type not in accepted_content_types:
+        failure_reason = (
+            f"unexpected_content_type: {document.content_type or '<missing>'}"
+        )
+    elif _normalized_source_url(document.final_url) != _normalized_source_url(
+        calendar_url
+    ):
+        failure_reason = f"unexpected_source_url: {document.final_url}"
 
-    for link in soup.select(f'a[href^="{UPL_EVENT_URL_PREFIX}"]'):
-        url = link.get("href")
-        if url:
-            match_urls.append(url)
+    soup = BeautifulSoup(document.content, "html.parser")
+    canonical = soup.select_one('link[rel="canonical"][href]')
+    canonical_url = canonical.get("href") if canonical is not None else None
+    calendar_container = soup.select_one(
+        "div.sp-template-event-blocks, table.sp-event-calendar, table.sp-calendar"
+    )
+    structure_valid = (
+        canonical_url is not None
+        and _normalized_source_url(str(canonical_url))
+        == _normalized_source_url(calendar_url)
+        and calendar_container is not None
+    )
+    if failure_reason is None and not structure_valid:
+        failure_reason = "unexpected_calendar_structure"
 
+    link_scope = calendar_container if calendar_container is not None else soup
+    match_urls = [
+        str(link.get("href"))
+        for link in link_scope.select(f'a[href^="{UPL_EVENT_URL_PREFIX}"]')
+        if link.get("href")
+    ]
     unique_match_urls = sorted(set(match_urls))
     print(f"[ok] Found {len(unique_match_urls)} unique matches")
-    if len(unique_match_urls) < minimum_match_links:
+    if failure_reason is None and len(unique_match_urls) < minimum_match_links:
+        failure_reason = "match_link_count_below_minimum"
+
+    report = SourceCalendarPreflightReport(
+        status="failed" if failure_reason else "passed",
+        target_season=season,
+        source_url=calendar_url,
+        final_source_url=document.final_url,
+        http_status=document.status_code,
+        content_type=document.content_type,
+        observed_link_count=len(unique_match_urls),
+        minimum_link_count=minimum_match_links,
+        expected_match_count=len(unique_match_urls),
+        failure_reason=failure_reason,
+        source_structure_valid=structure_valid,
+        override_enabled=False,
+        match_urls=unique_match_urls,
+        checked_at_utc=checked_at,
+    )
+    _write_preflight_report(report, report_path)
+    if failure_reason:
         print(
             "[error] Source calendar preflight failed: "
-            f"found {len(unique_match_urls)} match link(s), "
+            f"{failure_reason}; found {len(unique_match_urls)} match link(s), "
             f"expected at least {minimum_match_links}."
         )
-        raise SourceCalendarPreflightError(
-            calendar_url, len(unique_match_urls), minimum_match_links
-        )
+        raise SourceCalendarPreflightError(report)
     return unique_match_urls
