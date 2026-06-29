@@ -50,7 +50,7 @@ UPL_CALENDAR_URL = f"{UPL_BASE_URL}/calendar/{{season}}-fixtures-results/"
 UPL_EVENT_URL_PREFIX = f"{UPL_BASE_URL}/event/"
 
 # Scraping configuration
-REQUEST_TIMEOUT = 60 # seconds
+REQUEST_TIMEOUT = 60  # seconds
 SCRAPE_RETRY_ATTEMPTS = 3
 RETRY_BACKOFF_SECONDS = 1.5
 RATE_LIMIT_SECONDS = 0.75
@@ -62,6 +62,16 @@ MIN_CALENDAR_MATCH_LINKS = 10
 MIN_RAW_SEASON_MATCH_ROWS = 10
 MIN_RAW_SEASON_MATCH_RATIO = 0.5
 MIN_RAW_SEASON_SOURCE_RATIO = 0.9
+# Trusted baselines are reviewed operational data, not values learned from the
+# current HTTP response. Rotate a baseline only after validating a known-good
+# official calendar snapshot and recording the evidence in the same code review.
+TRUSTED_SEASON_CALENDAR_BASELINES = {
+    "2025_26": {
+        "expected_match_count": 208,
+        "version": "2026-06-29",
+        "evidence": "validated official 2025-26 calendar snapshot",
+    },
+}
 
 # Team name corrections mapping
 CLUB_NAME_CORRECTIONS = {
@@ -140,14 +150,23 @@ def raw_season_file(season: str, table_name: str) -> Path:
 
 def raw_season_failed_matches_file(season: str) -> Path:
     """Return the per-season CSV that tracks failed match URLs."""
-    return raw_season_dir(season) / f"{FAILED_MATCHES_FILE_PREFIX}_{season_key(season)}.csv"
+    return (
+        raw_season_dir(season)
+        / f"{FAILED_MATCHES_FILE_PREFIX}_{season_key(season)}.csv"
+    )
 
 
 def raw_season_source_preflight_file(season: str) -> Path:
     """Return the source-calendar preflight contract for one season."""
-    return raw_season_dir(season) / f"{SOURCE_PREFLIGHT_FILE_PREFIX}_{season_key(season)}.json"
+    return (
+        raw_season_dir(season)
+        / f"{SOURCE_PREFLIGHT_FILE_PREFIX}_{season_key(season)}.json"
+    )
 
 
 def raw_season_load_safety_file(season: str) -> Path:
     """Return the raw-loader safety evidence file for one season."""
-    return raw_season_dir(season) / f"{RAW_LOAD_SAFETY_FILE_PREFIX}_{season_key(season)}.json"
+    return (
+        raw_season_dir(season)
+        / f"{RAW_LOAD_SAFETY_FILE_PREFIX}_{season_key(season)}.json"
+    )

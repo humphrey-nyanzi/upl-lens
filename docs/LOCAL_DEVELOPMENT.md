@@ -349,18 +349,27 @@ Routine hosted refreshes fail closed before database writes when source data is
 not trustworthy:
 
 - the scraper requires a successful HTML response from the configured calendar
-  URL, the matching canonical URL, a Sportspress calendar container, and at
-  least the configured minimum number of official event links
-- every successful preflight writes
-  `data/raw/<season>/upl_source_preflight_<season>.json`; this is the
-  source-derived expected-count contract consumed by the raw loader
-- the loader requires incoming match URLs to belong to that contract and at
-  least 90% of its observed calendar links to be present, even when the target
-  database currently has zero season rows
-- when hosted rows already exist, the incoming season must also retain at least
-  50% of the hosted match count and satisfy the fixed 10-match emergency floor
+  URL, the matching canonical URL, a Sportspress calendar container, and a
+  plausible number of official event links
+- authorization uses the reviewed baseline in
+  `TRUSTED_SEASON_CALENDAR_BASELINES`, never a count learned from the current
+  response; the 2025-26 baseline is 208 and its 90% authorization floor is 188
+- every attempt writes `data/raw/<season>/upl_source_preflight_<season>.json`
+  as evidence, but a failed or truncated attempt cannot create or rotate the
+  version-controlled baseline
+- the loader independently checks the report's baseline count/version, counts
+  distinct validated match URLs, and rejects duplicate match records before
+  any delete; a 10-link response therefore fails on a fresh hosted database
+- when hosted rows already exist, distinct incoming URLs must also retain at
+  least 50% of the hosted match count and satisfy the fixed 10-match emergency
+  floor
 - all checks run before the first season delete; a blocked decision writes
   `upl_raw_load_safety_<season>.json` and skips raw, staging, and analytics writes
+
+To add or rotate a season baseline, validate a known-good official calendar,
+update its count, version, and evidence in `src/config.py`, and review that code
+change before the season can run routinely. Unknown seasons fail closed. The
+current HTTP response and its JSON artifact never mutate this baseline.
 
 The normal hosted command should not use the override:
 

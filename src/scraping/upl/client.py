@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import threading
 import time
 from dataclasses import asdict, dataclass
@@ -19,12 +20,15 @@ from urllib3.util.retry import Retry
 from src.config import (
     MAX_CONCURRENT_REQUESTS,
     MIN_CALENDAR_MATCH_LINKS,
+    MIN_RAW_SEASON_SOURCE_RATIO,
     REQUEST_TIMEOUT,
     RETRY_BACKOFF_SECONDS,
     SCRAPE_RETRY_ATTEMPTS,
     SCRAPER_STATUS_FORCELIST,
+    TRUSTED_SEASON_CALENDAR_BASELINES,
     UPL_CALENDAR_URL,
     UPL_EVENT_URL_PREFIX,
+    season_key,
 )
 
 
@@ -72,6 +76,8 @@ class SourceCalendarPreflightReport:
     source_structure_valid: bool
     override_enabled: bool
     match_urls: list[str]
+    baseline_version: str | None
+    baseline_evidence: str | None
     checked_at_utc: str
 
 
@@ -272,10 +278,22 @@ def fetch_match_urls(
     minimum_match_links: int = MIN_CALENDAR_MATCH_LINKS,
     report_path: Path | None = None,
 ) -> list[str]:
-    """Fetch and validate all official match URLs for one season."""
+    """Fetch and validate official match URLs against a trusted season baseline."""
 
     calendar_url = UPL_CALENDAR_URL.format(season=season)
     checked_at = datetime.now(timezone.utc).isoformat()
+    baseline = TRUSTED_SEASON_CALENDAR_BASELINES.get(season_key(season))
+    expected_match_count = int(baseline["expected_match_count"]) if baseline else 0
+    minimum_authorized_count = (
+        max(
+            minimum_match_links,
+            math.ceil(expected_match_count * MIN_RAW_SEASON_SOURCE_RATIO),
+        )
+        if expected_match_count > 0
+        else minimum_match_links
+    )
+    baseline_version = str(baseline["version"]) if baseline else None
+    baseline_evidence = str(baseline["evidence"]) if baseline else None
     print(f"Fetching match calendar from: {calendar_url}")
 
     try:
@@ -300,12 +318,14 @@ def fetch_match_urls(
             http_status=getattr(getattr(exc, "response", None), "status_code", None),
             content_type=None,
             observed_link_count=0,
-            minimum_link_count=minimum_match_links,
-            expected_match_count=minimum_match_links,
+            minimum_link_count=minimum_authorized_count,
+            expected_match_count=expected_match_count,
             failure_reason=f"http_failure: {exc}",
             source_structure_valid=False,
             override_enabled=False,
             match_urls=[],
+            baseline_version=baseline_version,
+            baseline_evidence=baseline_evidence,
             checked_at_utc=checked_at,
         )
         _write_preflight_report(report, report_path)
@@ -349,8 +369,10 @@ def fetch_match_urls(
     ]
     unique_match_urls = sorted(set(match_urls))
     print(f"[ok] Found {len(unique_match_urls)} unique matches")
-    if failure_reason is None and len(unique_match_urls) < minimum_match_links:
-        failure_reason = "match_link_count_below_minimum"
+    if failure_reason is None and baseline is None:
+        failure_reason = "trusted_season_baseline_missing"
+    elif failure_reason is None and len(unique_match_urls) < minimum_authorized_count:
+        failure_reason = "match_link_count_below_trusted_baseline"
 
     report = SourceCalendarPreflightReport(
         status="failed" if failure_reason else "passed",
@@ -360,12 +382,14 @@ def fetch_match_urls(
         http_status=document.status_code,
         content_type=document.content_type,
         observed_link_count=len(unique_match_urls),
-        minimum_link_count=minimum_match_links,
-        expected_match_count=len(unique_match_urls),
+        minimum_link_count=minimum_authorized_count,
+        expected_match_count=expected_match_count,
         failure_reason=failure_reason,
         source_structure_valid=structure_valid,
         override_enabled=False,
         match_urls=unique_match_urls,
+        baseline_version=baseline_version,
+        baseline_evidence=baseline_evidence,
         checked_at_utc=checked_at,
     )
     _write_preflight_report(report, report_path)
@@ -373,7 +397,7 @@ def fetch_match_urls(
         print(
             "[error] Source calendar preflight failed: "
             f"{failure_reason}; found {len(unique_match_urls)} match link(s), "
-            f"expected at least {minimum_match_links}."
+            f"trusted expected={expected_match_count}, minimum={minimum_authorized_count}."
         )
         raise SourceCalendarPreflightError(report)
     return unique_match_urls
