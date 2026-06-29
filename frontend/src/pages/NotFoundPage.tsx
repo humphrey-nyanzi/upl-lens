@@ -15,6 +15,7 @@ export function NotFoundPage() {
   return (
     <div className="not-found-page">
       <PageIntro
+        variant="dense"
         eyebrow="Page not found"
         title="That UPL Lens route is not available"
         text="The page may have moved, or the link may not match a current product surface. Use one of the main football intelligence routes below to keep exploring."
