@@ -71,3 +71,47 @@ def test_force_full_scrape_disables_postgres_change_detection() -> None:
     )
 
     assert "--disable-postgres-change-detection" in command
+
+
+def test_routine_command_cannot_enable_unsafe_reload() -> None:
+    """The routine wrapper exposes no path to the destructive admin override."""
+
+    command = update_hosted_data._build_update_current_season_command(
+        _args(run_type="routine-refresh"),
+        "2025-26",
+    )
+
+    assert "--allow-unsafe-season-reload" not in command
+
+
+def test_weekly_workflow_does_not_expose_unsafe_reload() -> None:
+    """Scheduled and dispatch workflow inputs must not include the admin flag."""
+
+    workflow = (
+        update_hosted_data.PROJECT_ROOT
+        / ".github"
+        / "workflows"
+        / "current-season-update.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "allow-unsafe-season-reload" not in workflow
+    assert "--allow-unsafe-season-reload" not in workflow
+
+
+def test_hosted_wrapper_reads_child_failure_evidence(tmp_path) -> None:
+    """Child guard evidence should survive the hosted subprocess boundary."""
+
+    summary_path = tmp_path / "2025_26" / "test_failed_run_summary.json"
+    summary_path.parent.mkdir(parents=True)
+    summary_path.write_text(
+        '{"failed_stage":"load_raw_to_postgres",'
+        '"failure_reason":"blocked",'
+        '"failure_evidence":{"incoming_match_count":20}}',
+        encoding="utf-8",
+    )
+
+    payload = update_hosted_data._latest_child_failure_summary(tmp_path)
+
+    assert payload is not None
+    assert payload["failed_stage"] == "load_raw_to_postgres"
+    assert payload["failure_evidence"] == {"incoming_match_count": 20}

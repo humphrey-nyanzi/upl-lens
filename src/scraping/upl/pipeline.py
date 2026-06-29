@@ -20,11 +20,15 @@ from src.config import (
     RATE_LIMIT_SECONDS,
     USE_HTML_CACHE,
     USER_AGENT,
+    raw_season_source_preflight_file,
     season_key,
 )
 from src.scraping.upl.client import RateLimiter, ScraperClient, fetch_match_urls
 from src.scraping.upl.constants import TABLE_COLUMNS, TABLE_NAMES
-from src.scraping.upl.dataframes import _build_output_dataframe, _filter_tables_to_requested_season
+from src.scraping.upl.dataframes import (
+    _build_output_dataframe,
+    _filter_tables_to_requested_season,
+)
 from src.scraping.upl.models import PostgresScrapePlan
 from src.scraping.upl.parsing import parse_match_page
 from src.scraping.upl.postgres import _build_postgres_scrape_plan
@@ -37,7 +41,9 @@ from src.scraping.upl.state import (
 )
 
 
-def _fetch_and_parse_match(client: ScraperClient, url: str) -> tuple[str, dict[str, Any]]:
+def _fetch_and_parse_match(
+    client: ScraperClient, url: str
+) -> tuple[str, dict[str, Any]]:
     """
     Download one match page and return all normalized table rows for that match.
 
@@ -85,7 +91,11 @@ def scrape_season(
     if refresh_source:
         print("[ok] Refresh source enabled: bypassing cached HTML and checkpoint state")
 
-    match_urls = fetch_match_urls(client, season)
+    match_urls = fetch_match_urls(
+        client,
+        season,
+        report_path=raw_season_source_preflight_file(season),
+    )
     postgres_plan: PostgresScrapePlan | None = None
     if use_postgres_change_detection:
         postgres_plan = _build_postgres_scrape_plan(
@@ -97,19 +107,24 @@ def scrape_season(
         all_tables = postgres_plan.existing_tables
         failed_urls = {}
         print("[ok] Postgres change detection enabled")
-        print(f"[ok] Existing complete matches in Postgres: {postgres_plan.complete_match_count}")
-        print(f"[ok] Existing incomplete/unplayed matches in Postgres: {postgres_plan.incomplete_match_count}")
-        print(f"[ok] Previously failed matches in Postgres: {postgres_plan.failed_match_count}")
-        print(f"[ok] Recent completed matches selected for refresh: {postgres_plan.recent_refresh_count}")
+        print(
+            f"[ok] Existing complete matches in Postgres: {postgres_plan.complete_match_count}"
+        )
+        print(
+            f"[ok] Existing incomplete/unplayed matches in Postgres: {postgres_plan.incomplete_match_count}"
+        )
+        print(
+            f"[ok] Previously failed matches in Postgres: {postgres_plan.failed_match_count}"
+        )
+        print(
+            f"[ok] Recent completed matches selected for refresh: {postgres_plan.recent_refresh_count}"
+        )
     elif refresh_source:
         completed_urls, all_tables, failed_urls = set(), _empty_scraped_tables(), {}
     else:
         completed_urls, all_tables, failed_urls = _load_checkpoint(season)
     starting_completed_count = len(completed_urls)
-    pending_urls = [
-        url for url in match_urls
-        if url not in completed_urls
-    ]
+    pending_urls = [url for url in match_urls if url not in completed_urls]
     retry_first_urls = [url for url in pending_urls if url in failed_urls]
     new_pending_urls = [url for url in pending_urls if url not in failed_urls]
     pending_urls = retry_first_urls + new_pending_urls
@@ -118,7 +133,9 @@ def scrape_season(
     if use_postgres_change_detection:
         print(f"[ok] Skipping {len(completed_urls)} complete matches from Postgres")
     elif completed_urls:
-        print(f"[ok] Skipping {len(completed_urls)} matches already saved in checkpoint")
+        print(
+            f"[ok] Skipping {len(completed_urls)} matches already saved in checkpoint"
+        )
     print(f"[ok] {len(pending_urls)} matches left to fetch")
     if postgres_plan and postgres_plan.pending_reasons:
         reason_counts: dict[str, int] = {}
@@ -148,7 +165,9 @@ def scrape_season(
                     failed_urls.pop(completed_url, None)
                 except Exception as exc:
                     print(f"  [error] Error processing {url}: {exc}")
-                    current_attempt_count = failed_urls.get(url, {}).get("attempt_count", 0)
+                    current_attempt_count = failed_urls.get(url, {}).get(
+                        "attempt_count", 0
+                    )
                     failed_urls[url] = {
                         "attempt_count": current_attempt_count + 1,
                         "last_error": str(exc),
@@ -158,18 +177,26 @@ def scrape_season(
 
                 processed_count = len(completed_urls)
                 if processed_count % 10 == 0:
-                    print(f"  [ok] Processed {processed_count}/{len(match_urls)} matches")
+                    print(
+                        f"  [ok] Processed {processed_count}/{len(match_urls)} matches"
+                    )
 
                 if index % CHECKPOINT_EVERY == 0:
                     _save_checkpoint(season, completed_urls, all_tables, failed_urls)
-                    print(f"  [ok] Checkpoint saved after {processed_count} completed matches")
+                    print(
+                        f"  [ok] Checkpoint saved after {processed_count} completed matches"
+                    )
 
     _save_checkpoint(season, completed_urls, all_tables, failed_urls)
     season_tables = {
-        table_name: _build_output_dataframe(all_tables[table_name], TABLE_COLUMNS[table_name])
+        table_name: _build_output_dataframe(
+            all_tables[table_name], TABLE_COLUMNS[table_name]
+        )
         for table_name in TABLE_NAMES
     }
-    season_tables, spill_counts = _filter_tables_to_requested_season(season, season_tables)
+    season_tables, spill_counts = _filter_tables_to_requested_season(
+        season, season_tables
+    )
     scrape_summary = {
         "match_urls_found": len(match_urls),
         "starting_completed_matches": starting_completed_count,
@@ -179,4 +206,3 @@ def scrape_season(
         "spill_rows_filtered": spill_counts,
     }
     return season_tables, scrape_summary
-

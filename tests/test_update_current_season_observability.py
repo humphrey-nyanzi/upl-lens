@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import shutil
 from io import StringIO
@@ -14,6 +15,7 @@ from scripts.data_platform.update_current_season import (
     _extract_raw_load_counts,
     _extract_staging_row_counts,
     _failed_run_summary_payload,
+    _failure_evidence_payload,
     _run_summary_payload,
     _run_step,
     _staging_verification_status,
@@ -105,7 +107,10 @@ def test_staging_verification_status_detects_passing_log() -> None:
         "[ok] Staging verification finished without error-level validation issues."
     )
 
-    assert _staging_verification_status(log_path) == "passed without error-level validation issues"
+    assert (
+        _staging_verification_status(log_path)
+        == "passed without error-level validation issues"
+    )
 
 
 def test_run_summary_payload_keeps_operational_decisions_visible() -> None:
@@ -152,12 +157,10 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
     log_dir = test_root / "outputs" / "automation" / "2025_26"
     completed_log = log_dir / "scrape.log"
     raw_load_log = log_dir / "raw-load.log"
-    failed_log = log_dir / "raw-verify.log"
 
     try:
         raw_counts = {
-            table_name: None
-            for table_name in updater.RAW_TABLE_FILE_PREFIXES
+            table_name: None for table_name in updater.RAW_TABLE_FILE_PREFIXES
         }
         raw_counts["matches"] = 1
         raw_counts["failed_matches"] = 0
@@ -174,6 +177,42 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
             "raw_season_failed_matches_file",
             lambda season: raw_dir / "failed_matches.csv",
         )
+        source_report = raw_dir / "source_preflight.json"
+        source_report.write_text(
+            json.dumps(
+                {
+                    "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
+                    "observed_link_count": 210,
+                    "minimum_link_count": 10,
+                    "expected_match_count": 210,
+                    "failure_reason": None,
+                }
+            ),
+            encoding="utf-8",
+        )
+        raw_load_report = raw_dir / "raw_load_safety.json"
+        raw_load_report.write_text(
+            json.dumps(
+                {
+                    "failure_reason": "incoming match CSV is below the source-calendar expectation",
+                    "expected_match_rows": 210,
+                    "incoming_match_rows": 20,
+                    "existing_match_rows": 0,
+                    "override_enabled": False,
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(
+            updater,
+            "raw_season_source_preflight_file",
+            lambda season: source_report,
+        )
+        monkeypatch.setattr(
+            updater,
+            "raw_season_load_safety_file",
+            lambda season: raw_load_report,
+        )
 
         payload = _failed_run_summary_payload(
             season="2025-26",
@@ -185,21 +224,31 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
             skip_staging_verification=False,
             step_logs={
                 "scrape_current_season": completed_log,
-                "load_raw_to_postgres": raw_load_log,
             },
             log_dir=log_dir,
-            failed_stage="verify_raw_postgres_counts",
-            failed_stage_log=failed_log,
+            failed_stage="load_raw_to_postgres",
+            failed_stage_log=raw_load_log,
             exit_code=1,
-            failure_reason="raw counts did not match",
+            failure_reason="unsafe raw load blocked",
         )
 
         assert payload["status"] == "failed"
-        assert payload["failed_stage"] == "verify_raw_postgres_counts"
+        assert payload["failed_stage"] == "load_raw_to_postgres"
         assert payload["exit_code"] == 1
-        assert payload["raw_load"] == "completed"
-        assert payload["raw_verification"] == "failed"
+        assert payload["raw_load"] == "failed"
+        assert payload["raw_verification"] == "not_started"
         assert payload["staging_rebuild"] == "not_started"
+        evidence = payload["failure_evidence"]
+        assert evidence["observed_link_count"] == 210
+        assert evidence["expected_match_count"] == 210
+        assert evidence["incoming_match_count"] == 20
+        assert evidence["existing_hosted_count"] == 0
+        assert evidence["override_enabled"] is False
+        assert evidence["database_write_stages_skipped"] == [
+            "raw",
+            "staging",
+            "analytics",
+        ]
         assert payload["partial_artifacts"]["raw_season_dir_exists"] is True
         assert payload["partial_artifacts"]["raw_files"]["matches"]["exists"] is True
         assert payload["partial_artifacts"]["raw_files"]["matches"]["row_count"] == 1
@@ -211,6 +260,58 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
     finally:
         if test_root.exists():
             shutil.rmtree(test_root)
+
+
+def test_source_failure_ignores_stale_raw_loader_evidence(
+    monkeypatch, tmp_path
+) -> None:
+    """A failed preflight must not inherit an older loader failure report."""
+
+    source_report = tmp_path / "source.json"
+    source_report.write_text(
+        json.dumps(
+            {
+                "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
+                "failure_reason": "unexpected_calendar_structure",
+                "observed_link_count": 3,
+                "minimum_link_count": 10,
+                "expected_match_count": 3,
+            }
+        ),
+        encoding="utf-8",
+    )
+    stale_raw_report = tmp_path / "raw.json"
+    stale_raw_report.write_text(
+        json.dumps(
+            {
+                "failure_reason": "stale loader failure",
+                "incoming_match_rows": 20,
+                "existing_match_rows": 200,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        updater,
+        "raw_season_source_preflight_file",
+        lambda season: source_report,
+    )
+    monkeypatch.setattr(
+        updater,
+        "raw_season_load_safety_file",
+        lambda season: stale_raw_report,
+    )
+
+    evidence = _failure_evidence_payload(
+        season="2025-26",
+        step_logs={},
+        failed_stage="scrape_current_season",
+    )
+
+    assert evidence["failure_reason"] == "unexpected_calendar_structure"
+    assert evidence["incoming_match_count"] is None
+    assert evidence["existing_hosted_count"] is None
+    assert evidence["database_write_stages_skipped"] == ["raw", "staging", "analytics"]
 
 
 def test_run_step_raises_structured_error_on_failed_command() -> None:

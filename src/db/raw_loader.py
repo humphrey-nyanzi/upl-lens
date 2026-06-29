@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import csv
 import hashlib
-from dataclasses import dataclass
+import json
+import math
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -21,15 +23,18 @@ from psycopg import sql
 from src.config import (
     MIN_RAW_SEASON_MATCH_RATIO,
     MIN_RAW_SEASON_MATCH_ROWS,
+    MIN_RAW_SEASON_SOURCE_RATIO,
     RAW_TABLE_FILE_PREFIXES,
+    UPL_CALENDAR_URL,
     raw_season_dir,
     raw_season_failed_matches_file,
     raw_season_file,
+    raw_season_load_safety_file,
+    raw_season_source_preflight_file,
     season_key,
 )
 from src.db.connection import get_psycopg_connection
 from src.db.settings import DatabaseSettings
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
@@ -98,13 +103,25 @@ def _fingerprint(*parts: Any) -> str:
 
 @dataclass(frozen=True)
 class RawSeasonSafetyReport:
-    """Counts used to decide whether a raw season reload is safe."""
+    """Counts and source evidence used to authorize a raw season reload."""
 
     season: str
+    source_url: str
     incoming_match_rows: int
     existing_match_rows: int
+    expected_match_rows: int
     minimum_match_rows: int
+    minimum_source_ratio: float
     minimum_existing_ratio: float
+    source_contract_valid: bool
+    incoming_urls_match_source: bool
+    override_enabled: bool
+
+    @property
+    def minimum_source_rows(self) -> int:
+        """Return the season-aware floor derived from the validated calendar."""
+
+        return math.ceil(self.expected_match_rows * self.minimum_source_ratio)
 
 
 class RawSeasonLoadSafetyError(RuntimeError):
@@ -116,10 +133,13 @@ class RawSeasonLoadSafetyError(RuntimeError):
         super().__init__(
             "Unsafe raw season reload blocked for "
             f"{report.season}: {reason} "
-            f"(incoming matches={report.incoming_match_rows}, "
+            f"(source={report.source_url}, incoming matches={report.incoming_match_rows}, "
             f"existing raw matches={report.existing_match_rows}, "
-            f"minimum matches={report.minimum_match_rows}, "
-            f"minimum existing ratio={report.minimum_existing_ratio:.0%})."
+            f"expected matches={report.expected_match_rows}, "
+            f"minimum source matches={report.minimum_source_rows}, "
+            f"minimum fixed matches={report.minimum_match_rows}, "
+            f"minimum existing ratio={report.minimum_existing_ratio:.0%}, "
+            f"override enabled={report.override_enabled})."
         )
 
 
@@ -538,27 +558,33 @@ def _build_upsert_statement(config: RawTableConfig) -> sql.SQL:
     """Construct an `INSERT ... ON CONFLICT DO UPDATE` statement."""
 
     insert_columns = [sql.Identifier(column) for column in config.database_columns]
-    placeholders = sql.SQL(", ").join(sql.Placeholder(column) for column in config.database_columns)
+    placeholders = sql.SQL(", ").join(
+        sql.Placeholder(column) for column in config.database_columns
+    )
 
-    update_columns = [column for column in config.database_columns if column not in config.conflict_columns]
+    update_columns = [
+        column
+        for column in config.database_columns
+        if column not in config.conflict_columns
+    ]
     update_assignments = sql.SQL(", ").join(
         sql.SQL("{column} = EXCLUDED.{column}").format(column=sql.Identifier(column))
         for column in update_columns
     )
 
-    return sql.SQL(
-        """
+    return sql.SQL("""
         INSERT INTO raw.{table_name} ({columns})
         VALUES ({values})
         ON CONFLICT ({conflict_columns}) DO UPDATE
         SET {update_assignments},
             ingested_at = NOW();
-        """
-    ).format(
+        """).format(
         table_name=sql.Identifier(config.table_name),
         columns=sql.SQL(", ").join(insert_columns),
         values=placeholders,
-        conflict_columns=sql.SQL(", ").join(sql.Identifier(column) for column in config.conflict_columns),
+        conflict_columns=sql.SQL(", ").join(
+            sql.Identifier(column) for column in config.conflict_columns
+        ),
         update_assignments=update_assignments,
     )
 
@@ -567,7 +593,10 @@ def _season_table_paths(season: str) -> dict[str, Path]:
     """Return the expected CSV path for each raw table in one season folder."""
 
     return {
-        **{table_name: raw_season_file(season, table_name) for table_name in RAW_TABLE_FILE_PREFIXES},
+        **{
+            table_name: raw_season_file(season, table_name)
+            for table_name in RAW_TABLE_FILE_PREFIXES
+        },
         "failed_matches": raw_season_failed_matches_file(season),
     }
 
@@ -597,6 +626,64 @@ def _upsert_rows(connection, table_key: str, rows: list[dict[str, Any]]) -> int:
     return len(rows)
 
 
+def _read_source_preflight_contract(
+    season: str,
+) -> tuple[int, str, bool, set[str]]:
+    """Read and validate the scraper's source-derived season expectation."""
+
+    expected_source_url = UPL_CALENDAR_URL.format(season=season)
+    report_path = raw_season_source_preflight_file(season)
+    if not report_path.exists():
+        return 0, expected_source_url, False, set()
+
+    try:
+        payload = json.loads(report_path.read_text(encoding="utf-8"))
+        match_urls = payload.get("match_urls")
+        expected_match_rows = int(payload.get("expected_match_count", 0))
+        observed_link_count = int(payload.get("observed_link_count", 0))
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return 0, expected_source_url, False, set()
+
+    source_url = str(payload.get("source_url") or expected_source_url)
+    source_urls = set(match_urls) if isinstance(match_urls, list) else set()
+    contract_valid = (
+        payload.get("status") == "passed"
+        and season_key(str(payload.get("target_season", ""))) == season_key(season)
+        and source_url == expected_source_url
+        and payload.get("source_structure_valid") is True
+        and expected_match_rows == observed_link_count == len(source_urls)
+        and expected_match_rows >= int(payload.get("minimum_link_count", 0))
+    )
+    return expected_match_rows, source_url, contract_valid, source_urls
+
+
+def _write_raw_load_safety_artifact(
+    report: RawSeasonSafetyReport,
+    *,
+    status: str,
+    failure_reason: str | None,
+) -> Path:
+    """Persist the raw-loader decision before any destructive write begins."""
+
+    report_path = raw_season_load_safety_file(report.season)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "status": status,
+        "failure_reason": failure_reason,
+        **asdict(report),
+        "minimum_source_rows": report.minimum_source_rows,
+        "database_write_stages_skipped": (
+            ["raw", "staging", "analytics"] if status == "blocked" else []
+        ),
+    }
+    report_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    print(f"[raw-load-safety] Report: {report_path}")
+    return report_path
+
+
 def _count_existing_season_matches(connection, season: str) -> int:
     """Return the current raw match count for one normalized season."""
 
@@ -616,26 +703,51 @@ def _count_existing_season_matches(connection, season: str) -> int:
 def _enforce_safe_raw_season_load(
     *,
     season: str,
+    source_url: str,
     incoming_match_rows: int,
     existing_match_rows: int,
+    expected_match_rows: int,
+    source_contract_valid: bool,
+    incoming_urls_match_source: bool,
     allow_unsafe_season_reload: bool,
     minimum_match_rows: int = MIN_RAW_SEASON_MATCH_ROWS,
+    minimum_source_ratio: float = MIN_RAW_SEASON_SOURCE_RATIO,
     minimum_existing_ratio: float = MIN_RAW_SEASON_MATCH_RATIO,
 ) -> RawSeasonSafetyReport:
-    """Block empty or suspicious raw loads before any season rows are deleted."""
+    """Block unsafe raw loads before any season rows are deleted."""
 
     report = RawSeasonSafetyReport(
         season=season,
+        source_url=source_url,
         incoming_match_rows=incoming_match_rows,
         existing_match_rows=existing_match_rows,
+        expected_match_rows=expected_match_rows,
         minimum_match_rows=minimum_match_rows,
+        minimum_source_ratio=minimum_source_ratio,
         minimum_existing_ratio=minimum_existing_ratio,
+        source_contract_valid=source_contract_valid,
+        incoming_urls_match_source=incoming_urls_match_source,
+        override_enabled=allow_unsafe_season_reload,
     )
     if allow_unsafe_season_reload:
         return report
 
     if incoming_match_rows == 0:
-        raise RawSeasonLoadSafetyError(report, "incoming match CSV has no in-season rows")
+        raise RawSeasonLoadSafetyError(
+            report, "incoming match CSV has no in-season rows"
+        )
+
+    if not source_contract_valid:
+        raise RawSeasonLoadSafetyError(
+            report,
+            "validated source-calendar expectation is missing or invalid",
+        )
+
+    if not incoming_urls_match_source:
+        raise RawSeasonLoadSafetyError(
+            report,
+            "incoming match URLs are not contained in the validated source calendar",
+        )
 
     if incoming_match_rows < minimum_match_rows:
         raise RawSeasonLoadSafetyError(
@@ -643,15 +755,19 @@ def _enforce_safe_raw_season_load(
             "incoming match CSV is below the minimum trusted match count",
         )
 
-    if existing_match_rows <= 0:
-        return report
-
-    minimum_from_existing = int(existing_match_rows * minimum_existing_ratio)
-    if incoming_match_rows < minimum_from_existing:
+    if incoming_match_rows < report.minimum_source_rows:
         raise RawSeasonLoadSafetyError(
             report,
-            "incoming match CSV is much smaller than existing hosted raw data",
+            "incoming match CSV is below the source-calendar expectation",
         )
+
+    if existing_match_rows > 0:
+        minimum_from_existing = math.ceil(existing_match_rows * minimum_existing_ratio)
+        if incoming_match_rows < minimum_from_existing:
+            raise RawSeasonLoadSafetyError(
+                report,
+                "incoming match CSV is much smaller than existing hosted raw data",
+            )
 
     return report
 
@@ -667,12 +783,10 @@ def _delete_existing_season_rows(connection, table_key: str, season: str) -> Non
     config = RAW_TABLE_CONFIGS[table_key]
     with connection.cursor() as cursor:
         cursor.execute(
-            sql.SQL(
-                """
+            sql.SQL("""
                 DELETE FROM raw.{table_name}
                 WHERE REPLACE(REPLACE({season_column}, '-', '_'), '/', '_') = %s;
-                """
-            ).format(
+                """).format(
                 table_name=sql.Identifier(config.table_name),
                 season_column=sql.Identifier(config.season_column),
             ),
@@ -718,31 +832,67 @@ def load_raw_seasons_to_postgres(
             table_paths = _season_table_paths(season)
             match_rows = _read_csv_rows(table_paths["matches"])
             matching_match_rows = [
-                row for row in match_rows
-                if row_matches_expected_season(row, season)
+                row for row in match_rows if row_matches_expected_season(row, season)
             ]
-            safety_report = _enforce_safe_raw_season_load(
-                season=season,
-                incoming_match_rows=len(matching_match_rows),
-                existing_match_rows=_count_existing_season_matches(connection, season),
-                allow_unsafe_season_reload=allow_unsafe_season_reload,
+            expected_rows, source_url, contract_valid, source_urls = (
+                _read_source_preflight_contract(season)
+            )
+            incoming_urls = {
+                str(row.get("match_url", "")).strip()
+                for row in matching_match_rows
+                if str(row.get("match_url", "")).strip()
+            }
+            incoming_urls_match_source = (
+                bool(source_urls) and incoming_urls <= source_urls
+            )
+            existing_rows = _count_existing_season_matches(connection, season)
+            try:
+                safety_report = _enforce_safe_raw_season_load(
+                    season=season,
+                    source_url=source_url,
+                    incoming_match_rows=len(matching_match_rows),
+                    existing_match_rows=existing_rows,
+                    expected_match_rows=expected_rows,
+                    source_contract_valid=contract_valid,
+                    incoming_urls_match_source=incoming_urls_match_source,
+                    allow_unsafe_season_reload=allow_unsafe_season_reload,
+                )
+            except RawSeasonLoadSafetyError as error:
+                _write_raw_load_safety_artifact(
+                    error.report,
+                    status="blocked",
+                    failure_reason=error.reason,
+                )
+                raise
+
+            _write_raw_load_safety_artifact(
+                safety_report,
+                status="override" if allow_unsafe_season_reload else "passed",
+                failure_reason=None,
             )
             print(
                 "[ok] Raw season safety check passed: "
                 f"season={season} incoming_matches={safety_report.incoming_match_rows} "
-                f"existing_matches={safety_report.existing_match_rows}"
+                f"expected_matches={safety_report.expected_match_rows} "
+                f"existing_matches={safety_report.existing_match_rows} "
+                f"override_enabled={safety_report.override_enabled}"
             )
 
             table_counts: dict[str, int] = {}
             for table_key, csv_path in table_paths.items():
-                rows = match_rows if table_key == "matches" else _read_csv_rows(csv_path)
+                rows = (
+                    match_rows if table_key == "matches" else _read_csv_rows(csv_path)
+                )
                 matching_rows = [
-                    row for row in rows
-                    if row_matches_expected_season(row, season)
+                    row for row in rows if row_matches_expected_season(row, season)
                 ]
                 _delete_existing_season_rows(connection, table_key, season)
-                prepared_rows = [ROW_PREPARERS[table_key](row, csv_path) for row in matching_rows]
-                table_counts[table_key] = _upsert_rows(connection, table_key, prepared_rows)
+                prepared_rows = [
+                    ROW_PREPARERS[table_key](row, csv_path) for row in matching_rows
+                ]
+                table_counts[table_key] = _upsert_rows(
+                    connection, table_key, prepared_rows
+                )
 
             season_counts[season] = table_counts
 

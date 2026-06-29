@@ -47,11 +47,15 @@ flowchart TD
 
         SCRAPER <-->|"read/write\ncached HTML"| CACHE
 
-        SCRAPER -->|"success"| CSV
-        SCRAPER -->|"failure after retries"| FAILED
+        SCRAPER --> PREFLIGHT
+        PREFLIGHT["🛡️ source preflight\nHTTP · HTML type · source URL\nSportspress structure · link count\nwrites expected-count JSON"]
+        PREFLIGHT -->|"passed"| CSV
+        PREFLIGHT -->|"blocked"| SOURCEFAIL
+        SCRAPER -->|"match failure after retries"| FAILED
 
-        CSV[("📁 data/raw/2025_26/\nmatches · events · lineups\nstaff · officials · stats\n~6 CSV files")]
+        CSV[("📁 data/raw/2025_26/\nmatches · events · lineups\nstaff · officials · stats\nsource-preflight contract")]
 
+        SOURCEFAIL["⛔ source-health failure\nraw · staging · analytics\nwrites skipped"]
         FAILED[("📁 upl_failed_matches\n_2025_26.csv\nmatch_url · attempt_count\nlast_error · timestamp")]
     end
 
@@ -67,7 +71,7 @@ flowchart TD
 
     subgraph RAW_INGESTION["PRIMARY ② — Raw Ingestion"]
         direction TB
-        RAWLOAD["📥 load_raw_to_postgres.py\n→ src/db/raw_loader.py\nfor each season:\n  1. safety-check match rows\n  2. delete existing season rows\n     only after guard passes\n  3. filter in-season rows only\n  4. fingerprint child table keys\n  5. upsert into raw.*"]
+        RAWLOAD["📥 load_raw_to_postgres.py\n→ src/db/raw_loader.py\nfor each season:\n  1. require source expected-count contract\n  2. compare incoming vs source + hosted\n  3. write safety-decision JSON\n  4. delete only after guard passes\n  5. filter, fingerprint, upsert raw.*"]
 
         RAWVERIFY["✅ verify_raw_postgres_counts.py\ncompares CSV row counts\nvs Postgres row counts\nflags mismatches"]
 
