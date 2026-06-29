@@ -48,7 +48,7 @@ flowchart TD
         SCRAPER <-->|"read/write\ncached HTML"| CACHE
 
         SCRAPER --> PREFLIGHT
-        PREFLIGHT["🛡️ source preflight\nHTTP · HTML type · source URL\nSportspress structure · link count\nwrites expected-count JSON"]
+        PREFLIGHT["🛡️ source preflight\nHTTP · HTML type · source URL\nstructure + links vs reviewed baseline\nwrites attempt evidence JSON"]
         PREFLIGHT -->|"passed"| CSV
         PREFLIGHT -->|"blocked"| SOURCEFAIL
         SCRAPER -->|"match failure after retries"| FAILED
@@ -71,7 +71,7 @@ flowchart TD
 
     subgraph RAW_INGESTION["PRIMARY ② — Raw Ingestion"]
         direction TB
-        RAWLOAD["📥 load_raw_to_postgres.py\n→ src/db/raw_loader.py\nfor each season:\n  1. require source expected-count contract\n  2. compare incoming vs source + hosted\n  3. write safety-decision JSON\n  4. delete only after guard passes\n  5. filter, fingerprint, upsert raw.*"]
+        RAWLOAD["📥 load_raw_to_postgres.py\n→ src/db/raw_loader.py\nfor each season:\n  1. recheck reviewed baseline/version\n  2. reject duplicate match rows\n  3. count distinct URLs vs baseline + hosted\n  4. write safety JSON, then delete\n  5. filter, fingerprint, upsert raw.*"]
 
         RAWVERIFY["✅ verify_raw_postgres_counts.py\ncompares CSV row counts\nvs Postgres row counts\nflags mismatches"]
 

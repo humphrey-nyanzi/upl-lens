@@ -7,7 +7,7 @@ import json
 import pytest
 import requests
 
-from src.config import UPL_CALENDAR_URL
+from src.config import TRUSTED_SEASON_CALENDAR_BASELINES, UPL_CALENDAR_URL
 from src.scraping.upl.client import (
     SourceCalendarPreflightError,
     SourceDocument,
@@ -46,8 +46,8 @@ class FakeClient:
         )
 
 
-def _valid_calendar_html(match_count: int) -> str:
-    source_url = UPL_CALENDAR_URL.format(season="2025-26")
+def _valid_calendar_html(match_count: int, season: str = "2025-26") -> str:
+    source_url = UPL_CALENDAR_URL.format(season=season)
     links = "".join(
         f'<h4 class="sp-event-title"><a href="https://upl.co.ug/event/{index}/">Match</a></h4>'
         for index in range(match_count)
@@ -65,62 +65,96 @@ def test_fetch_match_urls_reports_http_failure(tmp_path) -> None:
     client = FakeClient(failure=requests.HTTPError("415 Client Error"))
 
     with pytest.raises(SourceCalendarPreflightError) as error:
-        fetch_match_urls(
-            client, "2025-26", minimum_match_links=2, report_path=report_path
-        )
+        fetch_match_urls(client, "2025-26", report_path=report_path)
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert error.value.report.failure_reason == "http_failure: 415 Client Error"
     assert payload["status"] == "failed"
     assert payload["observed_link_count"] == 0
+    assert payload["expected_match_count"] == 208
 
 
 def test_fetch_match_urls_rejects_plausible_links_without_calendar_structure() -> None:
     """A generic HTML page cannot pass by merely containing event-like links."""
 
     links = "".join(
-        f'<a href="https://upl.co.ug/event/{index}/">Event</a>' for index in range(3)
+        f'<a href="https://upl.co.ug/event/{index}/">Event</a>' for index in range(208)
     )
     client = FakeClient(f"<html><body>{links}</body></html>")
 
     with pytest.raises(SourceCalendarPreflightError) as error:
-        fetch_match_urls(client, "2025-26", minimum_match_links=2)
+        fetch_match_urls(client, "2025-26")
 
     assert error.value.report.failure_reason == "unexpected_calendar_structure"
-    assert error.value.match_count == 3
+    assert error.value.match_count == 208
 
 
 def test_fetch_match_urls_rejects_non_html_content() -> None:
     """A successful status with the wrong content type is still unsafe."""
 
-    client = FakeClient(_valid_calendar_html(2), content_type="application/json")
+    client = FakeClient(_valid_calendar_html(208), content_type="application/json")
 
     with pytest.raises(SourceCalendarPreflightError) as error:
-        fetch_match_urls(client, "2025-26", minimum_match_links=2)
+        fetch_match_urls(client, "2025-26")
 
     assert (
         error.value.report.failure_reason == "unexpected_content_type: application/json"
     )
 
 
-def test_fetch_match_urls_accepts_valid_upl_calendar_and_writes_contract(
+def test_truncated_valid_calendar_cannot_define_or_rotate_its_baseline(
     tmp_path,
 ) -> None:
-    """Valid source structure and links should produce a loader contract."""
+    """Ten valid links cannot self-certify a fresh-host season load."""
+
+    trusted_before = dict(TRUSTED_SEASON_CALENDAR_BASELINES["2025_26"])
+    report_path = tmp_path / "source.json"
+
+    with pytest.raises(SourceCalendarPreflightError) as error:
+        fetch_match_urls(
+            FakeClient(_valid_calendar_html(10)),
+            "2025-26",
+            report_path=report_path,
+        )
+
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert (
+        error.value.report.failure_reason == "match_link_count_below_trusted_baseline"
+    )
+    assert payload["observed_link_count"] == 10
+    assert payload["expected_match_count"] == 208
+    assert payload["minimum_link_count"] == 188
+    assert payload["baseline_version"] == "2026-06-29"
+    assert TRUSTED_SEASON_CALENDAR_BASELINES["2025_26"] == trusted_before
+
+
+def test_missing_trusted_baseline_fails_closed() -> None:
+    """Runtime source responses cannot create a baseline for a new season."""
+
+    with pytest.raises(SourceCalendarPreflightError) as error:
+        fetch_match_urls(
+            FakeClient(_valid_calendar_html(208, season="2026-27")),
+            "2026-27",
+        )
+
+    assert error.value.report.failure_reason == "trusted_season_baseline_missing"
+    assert error.value.report.expected_match_count == 0
+
+
+def test_fetch_match_urls_accepts_trusted_208_link_snapshot(tmp_path) -> None:
+    """The validated 2025-26 snapshot size should pass the reviewed baseline."""
 
     report_path = tmp_path / "source.json"
-    client = FakeClient(_valid_calendar_html(2))
-
-    assert fetch_match_urls(
-        client,
+    urls = fetch_match_urls(
+        FakeClient(_valid_calendar_html(208)),
         "2025-26",
-        minimum_match_links=2,
         report_path=report_path,
-    ) == [
-        "https://upl.co.ug/event/0/",
-        "https://upl.co.ug/event/1/",
-    ]
+    )
+
     payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert len(urls) == 208
     assert payload["status"] == "passed"
     assert payload["source_structure_valid"] is True
-    assert payload["expected_match_count"] == 2
+    assert payload["observed_link_count"] == 208
+    assert payload["expected_match_count"] == 208
+    assert payload["minimum_link_count"] == 188

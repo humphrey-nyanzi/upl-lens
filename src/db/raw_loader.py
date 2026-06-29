@@ -21,10 +21,12 @@ from typing import Any
 from psycopg import sql
 
 from src.config import (
+    MIN_CALENDAR_MATCH_LINKS,
     MIN_RAW_SEASON_MATCH_RATIO,
     MIN_RAW_SEASON_MATCH_ROWS,
     MIN_RAW_SEASON_SOURCE_RATIO,
     RAW_TABLE_FILE_PREFIXES,
+    TRUSTED_SEASON_CALENDAR_BASELINES,
     UPL_CALENDAR_URL,
     raw_season_dir,
     raw_season_failed_matches_file,
@@ -108,6 +110,8 @@ class RawSeasonSafetyReport:
     season: str
     source_url: str
     incoming_match_rows: int
+    incoming_distinct_match_urls: int
+    duplicate_match_rows: int
     existing_match_rows: int
     expected_match_rows: int
     minimum_match_rows: int
@@ -133,7 +137,9 @@ class RawSeasonLoadSafetyError(RuntimeError):
         super().__init__(
             "Unsafe raw season reload blocked for "
             f"{report.season}: {reason} "
-            f"(source={report.source_url}, incoming matches={report.incoming_match_rows}, "
+            f"(source={report.source_url}, incoming rows={report.incoming_match_rows}, "
+            f"distinct match URLs={report.incoming_distinct_match_urls}, "
+            f"duplicate match rows={report.duplicate_match_rows}, "
             f"existing raw matches={report.existing_match_rows}, "
             f"expected matches={report.expected_match_rows}, "
             f"minimum source matches={report.minimum_source_rows}, "
@@ -629,32 +635,49 @@ def _upsert_rows(connection, table_key: str, rows: list[dict[str, Any]]) -> int:
 def _read_source_preflight_contract(
     season: str,
 ) -> tuple[int, str, bool, set[str]]:
-    """Read and validate the scraper's source-derived season expectation."""
+    """Validate scraper evidence against the version-controlled season baseline."""
 
     expected_source_url = UPL_CALENDAR_URL.format(season=season)
+    trusted_baseline = TRUSTED_SEASON_CALENDAR_BASELINES.get(season_key(season))
+    trusted_expected_rows = (
+        int(trusted_baseline["expected_match_count"]) if trusted_baseline else 0
+    )
+    trusted_minimum_rows = (
+        max(
+            MIN_CALENDAR_MATCH_LINKS,
+            math.ceil(trusted_expected_rows * MIN_RAW_SEASON_SOURCE_RATIO),
+        )
+        if trusted_expected_rows > 0
+        else MIN_CALENDAR_MATCH_LINKS
+    )
     report_path = raw_season_source_preflight_file(season)
     if not report_path.exists():
-        return 0, expected_source_url, False, set()
+        return trusted_expected_rows, expected_source_url, False, set()
 
     try:
         payload = json.loads(report_path.read_text(encoding="utf-8"))
         match_urls = payload.get("match_urls")
-        expected_match_rows = int(payload.get("expected_match_count", 0))
+        reported_expected_rows = int(payload.get("expected_match_count", 0))
         observed_link_count = int(payload.get("observed_link_count", 0))
+        reported_minimum_rows = int(payload.get("minimum_link_count", 0))
     except (OSError, TypeError, ValueError, json.JSONDecodeError):
-        return 0, expected_source_url, False, set()
+        return trusted_expected_rows, expected_source_url, False, set()
 
     source_url = str(payload.get("source_url") or expected_source_url)
     source_urls = set(match_urls) if isinstance(match_urls, list) else set()
     contract_valid = (
-        payload.get("status") == "passed"
+        trusted_baseline is not None
+        and payload.get("status") == "passed"
         and season_key(str(payload.get("target_season", ""))) == season_key(season)
         and source_url == expected_source_url
         and payload.get("source_structure_valid") is True
-        and expected_match_rows == observed_link_count == len(source_urls)
-        and expected_match_rows >= int(payload.get("minimum_link_count", 0))
+        and reported_expected_rows == trusted_expected_rows
+        and reported_minimum_rows == trusted_minimum_rows
+        and observed_link_count == len(source_urls)
+        and observed_link_count >= trusted_minimum_rows
+        and str(payload.get("baseline_version")) == str(trusted_baseline["version"])
     )
-    return expected_match_rows, source_url, contract_valid, source_urls
+    return trusted_expected_rows, source_url, contract_valid, source_urls
 
 
 def _write_raw_load_safety_artifact(
@@ -705,6 +728,8 @@ def _enforce_safe_raw_season_load(
     season: str,
     source_url: str,
     incoming_match_rows: int,
+    incoming_distinct_match_urls: int,
+    duplicate_match_rows: int,
     existing_match_rows: int,
     expected_match_rows: int,
     source_contract_valid: bool,
@@ -720,6 +745,8 @@ def _enforce_safe_raw_season_load(
         season=season,
         source_url=source_url,
         incoming_match_rows=incoming_match_rows,
+        incoming_distinct_match_urls=incoming_distinct_match_urls,
+        duplicate_match_rows=duplicate_match_rows,
         existing_match_rows=existing_match_rows,
         expected_match_rows=expected_match_rows,
         minimum_match_rows=minimum_match_rows,
@@ -732,15 +759,21 @@ def _enforce_safe_raw_season_load(
     if allow_unsafe_season_reload:
         return report
 
-    if incoming_match_rows == 0:
+    if incoming_distinct_match_urls == 0:
         raise RawSeasonLoadSafetyError(
             report, "incoming match CSV has no in-season rows"
+        )
+
+    if duplicate_match_rows > 0:
+        raise RawSeasonLoadSafetyError(
+            report,
+            "incoming match CSV contains duplicate match records",
         )
 
     if not source_contract_valid:
         raise RawSeasonLoadSafetyError(
             report,
-            "validated source-calendar expectation is missing or invalid",
+            "source evidence does not match the trusted season baseline",
         )
 
     if not incoming_urls_match_source:
@@ -749,21 +782,21 @@ def _enforce_safe_raw_season_load(
             "incoming match URLs are not contained in the validated source calendar",
         )
 
-    if incoming_match_rows < minimum_match_rows:
+    if incoming_distinct_match_urls < minimum_match_rows:
         raise RawSeasonLoadSafetyError(
             report,
             "incoming match CSV is below the minimum trusted match count",
         )
 
-    if incoming_match_rows < report.minimum_source_rows:
+    if incoming_distinct_match_urls < report.minimum_source_rows:
         raise RawSeasonLoadSafetyError(
             report,
-            "incoming match CSV is below the source-calendar expectation",
+            "incoming distinct match URLs are below the trusted season baseline",
         )
 
     if existing_match_rows > 0:
         minimum_from_existing = math.ceil(existing_match_rows * minimum_existing_ratio)
-        if incoming_match_rows < minimum_from_existing:
+        if incoming_distinct_match_urls < minimum_from_existing:
             raise RawSeasonLoadSafetyError(
                 report,
                 "incoming match CSV is much smaller than existing hosted raw data",
@@ -837,11 +870,13 @@ def load_raw_seasons_to_postgres(
             expected_rows, source_url, contract_valid, source_urls = (
                 _read_source_preflight_contract(season)
             )
-            incoming_urls = {
+            incoming_url_values = [
                 str(row.get("match_url", "")).strip()
                 for row in matching_match_rows
                 if str(row.get("match_url", "")).strip()
-            }
+            ]
+            incoming_urls = set(incoming_url_values)
+            duplicate_match_rows = len(incoming_url_values) - len(incoming_urls)
             incoming_urls_match_source = (
                 bool(source_urls) and incoming_urls <= source_urls
             )
@@ -851,6 +886,8 @@ def load_raw_seasons_to_postgres(
                     season=season,
                     source_url=source_url,
                     incoming_match_rows=len(matching_match_rows),
+                    incoming_distinct_match_urls=len(incoming_urls),
+                    duplicate_match_rows=duplicate_match_rows,
                     existing_match_rows=existing_rows,
                     expected_match_rows=expected_rows,
                     source_contract_valid=contract_valid,
@@ -872,7 +909,8 @@ def load_raw_seasons_to_postgres(
             )
             print(
                 "[ok] Raw season safety check passed: "
-                f"season={season} incoming_matches={safety_report.incoming_match_rows} "
+                f"season={season} incoming_rows={safety_report.incoming_match_rows} "
+                f"distinct_match_urls={safety_report.incoming_distinct_match_urls} "
                 f"expected_matches={safety_report.expected_match_rows} "
                 f"existing_matches={safety_report.existing_match_rows} "
                 f"override_enabled={safety_report.override_enabled}"

@@ -458,6 +458,8 @@ def _failure_evidence_payload(
         "expected_match_count": raw_load.get("expected_match_rows")
         or source.get("expected_match_count"),
         "incoming_match_count": raw_load.get("incoming_match_rows"),
+        "incoming_distinct_match_count": raw_load.get("incoming_distinct_match_urls"),
+        "duplicate_match_rows": raw_load.get("duplicate_match_rows"),
         "existing_hosted_count": raw_load.get("existing_match_rows"),
         "target_season": season,
         "override_enabled": bool(raw_load.get("override_enabled", False)),

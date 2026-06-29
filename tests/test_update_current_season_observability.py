@@ -194,9 +194,11 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
         raw_load_report.write_text(
             json.dumps(
                 {
-                    "failure_reason": "incoming match CSV is below the source-calendar expectation",
+                    "failure_reason": "incoming distinct match URLs are below the trusted season baseline",
                     "expected_match_rows": 210,
                     "incoming_match_rows": 20,
+                    "incoming_distinct_match_urls": 20,
+                    "duplicate_match_rows": 0,
                     "existing_match_rows": 0,
                     "override_enabled": False,
                 }
@@ -242,6 +244,8 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
         assert evidence["observed_link_count"] == 210
         assert evidence["expected_match_count"] == 210
         assert evidence["incoming_match_count"] == 20
+        assert evidence["incoming_distinct_match_count"] == 20
+        assert evidence["duplicate_match_rows"] == 0
         assert evidence["existing_hosted_count"] == 0
         assert evidence["override_enabled"] is False
         assert evidence["database_write_stages_skipped"] == [

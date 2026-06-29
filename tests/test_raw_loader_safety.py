@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -35,6 +36,7 @@ def _run_loader_boundary(
     incoming_count: int,
     existing_count: int,
     expected_count: int,
+    duplicate_incoming: bool = False,
     contract_valid: bool = True,
     override: bool = False,
     connection: FakeConnection | None = None,
@@ -47,7 +49,11 @@ def _run_loader_boundary(
         table_name: season_dir / f"{table_name}.csv"
         for table_name in raw_loader.RAW_TABLE_CONFIGS
     }
-    rows = _match_rows(incoming_count, season)
+    rows = (
+        [{"season": season, "match_url": "https://upl.co.ug/event/0/"}] * incoming_count
+        if duplicate_incoming
+        else _match_rows(incoming_count, season)
+    )
     source_urls = {row["match_url"] for row in _match_rows(expected_count, season)}
     connection = connection or FakeConnection()
     deleted_tables = deleted_tables if deleted_tables is not None else []
@@ -112,8 +118,10 @@ def test_safe_raw_season_load_blocks_zero_match_input() -> None:
             season="2025-26",
             source_url="https://upl.co.ug/calendar/2025-26-fixtures-results/",
             incoming_match_rows=0,
+            incoming_distinct_match_urls=0,
+            duplicate_match_rows=0,
             existing_match_rows=210,
-            expected_match_rows=210,
+            expected_match_rows=208,
             source_contract_valid=True,
             incoming_urls_match_source=True,
             allow_unsafe_season_reload=False,
@@ -133,12 +141,12 @@ def test_fresh_host_partial_input_never_reaches_delete(monkeypatch, tmp_path) ->
             tmp_path,
             incoming_count=20,
             existing_count=0,
-            expected_count=200,
+            expected_count=208,
             connection=connection,
             deleted_tables=deleted_tables,
         )
 
-    assert "source-calendar expectation" in str(error.value)
+    assert "trusted season baseline" in str(error.value)
     assert deleted_tables == []
     assert connection.commit_count == 0
     payload = (tmp_path / "raw_load_safety.json").read_text(encoding="utf-8")
@@ -157,14 +165,75 @@ def test_existing_host_ratio_rejection_preserves_transaction(
         _run_loader_boundary(
             monkeypatch,
             tmp_path,
-            incoming_count=30,
-            existing_count=100,
-            expected_count=30,
+            incoming_count=188,
+            existing_count=400,
+            expected_count=208,
             connection=connection,
             deleted_tables=deleted_tables,
         )
 
     assert "much smaller than existing" in str(error.value)
+    assert deleted_tables == []
+    assert connection.commit_count == 0
+
+
+def test_loader_rejects_self_declared_ten_match_contract(monkeypatch, tmp_path) -> None:
+    """The loader must independently compare reports with reviewed config."""
+
+    report_path = tmp_path / "source.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "status": "passed",
+                "target_season": "2025-26",
+                "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
+                "source_structure_valid": True,
+                "expected_match_count": 10,
+                "observed_link_count": 10,
+                "minimum_link_count": 10,
+                "baseline_version": "2026-06-29",
+                "match_urls": [
+                    f"https://upl.co.ug/event/{index}/" for index in range(10)
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        raw_loader,
+        "raw_season_source_preflight_file",
+        lambda season: report_path,
+    )
+
+    expected, _, valid, urls = raw_loader._read_source_preflight_contract("2025-26")
+
+    assert expected == 208
+    assert valid is False
+    assert len(urls) == 10
+
+
+def test_duplicate_inflation_never_reaches_delete_or_commit(
+    monkeypatch, tmp_path
+) -> None:
+    """Repeated copies of one valid URL cannot satisfy the count threshold."""
+
+    connection = FakeConnection()
+    deleted_tables: list[str] = []
+    with pytest.raises(RawSeasonLoadSafetyError) as error:
+        _run_loader_boundary(
+            monkeypatch,
+            tmp_path,
+            incoming_count=188,
+            existing_count=0,
+            expected_count=208,
+            duplicate_incoming=True,
+            connection=connection,
+            deleted_tables=deleted_tables,
+        )
+
+    assert "duplicate match records" in str(error.value)
+    assert error.value.report.incoming_distinct_match_urls == 1
+    assert error.value.report.duplicate_match_rows == 187
     assert deleted_tables == []
     assert connection.commit_count == 0
 
@@ -175,9 +244,9 @@ def test_valid_input_reaches_delete_and_commit(monkeypatch, tmp_path) -> None:
     connection, deleted_tables = _run_loader_boundary(
         monkeypatch,
         tmp_path,
-        incoming_count=20,
+        incoming_count=208,
         existing_count=0,
-        expected_count=20,
+        expected_count=208,
     )
 
     assert set(deleted_tables) == set(raw_loader.RAW_TABLE_CONFIGS)
