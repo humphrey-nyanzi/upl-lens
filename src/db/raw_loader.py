@@ -113,6 +113,8 @@ class RawSeasonSafetyReport:
     incoming_distinct_match_urls: int
     duplicate_match_rows: int
     existing_match_rows: int
+    missing_existing_match_url_count: int
+    missing_existing_match_url_sample: tuple[str, ...]
     expected_match_rows: int
     minimum_match_rows: int
     minimum_source_ratio: float
@@ -141,6 +143,7 @@ class RawSeasonLoadSafetyError(RuntimeError):
             f"distinct match URLs={report.incoming_distinct_match_urls}, "
             f"duplicate match rows={report.duplicate_match_rows}, "
             f"existing raw matches={report.existing_match_rows}, "
+            f"missing existing URLs={report.missing_existing_match_url_count}, "
             f"expected matches={report.expected_match_rows}, "
             f"minimum source matches={report.minimum_source_rows}, "
             f"minimum fixed matches={report.minimum_match_rows}, "
@@ -707,20 +710,21 @@ def _write_raw_load_safety_artifact(
     return report_path
 
 
-def _count_existing_season_matches(connection, season: str) -> int:
-    """Return the current raw match count for one normalized season."""
+def _existing_season_match_urls(connection, season: str) -> set[str]:
+    """Return distinct nonblank hosted match URLs for one normalized season."""
 
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT COUNT(*)
+            SELECT DISTINCT BTRIM(match_url)
             FROM raw.matches
-            WHERE REPLACE(REPLACE(season, '-', '_'), '/', '_') = %s;
+            WHERE REPLACE(REPLACE(season, '-', '_'), '/', '_') = %s
+              AND NULLIF(BTRIM(match_url), '') IS NOT NULL;
             """,
             (season_key(season),),
         )
-        row = cursor.fetchone()
-    return int(row[0]) if row is not None else 0
+        rows = cursor.fetchall()
+    return {str(row[0]).strip() for row in rows if row and str(row[0]).strip()}
 
 
 def _enforce_safe_raw_season_load(
@@ -728,9 +732,9 @@ def _enforce_safe_raw_season_load(
     season: str,
     source_url: str,
     incoming_match_rows: int,
-    incoming_distinct_match_urls: int,
+    incoming_match_urls: set[str],
     duplicate_match_rows: int,
-    existing_match_rows: int,
+    existing_match_urls: set[str],
     expected_match_rows: int,
     source_contract_valid: bool,
     incoming_urls_match_source: bool,
@@ -741,13 +745,16 @@ def _enforce_safe_raw_season_load(
 ) -> RawSeasonSafetyReport:
     """Block unsafe raw loads before any season rows are deleted."""
 
+    missing_existing_urls = sorted(existing_match_urls - incoming_match_urls)
     report = RawSeasonSafetyReport(
         season=season,
         source_url=source_url,
         incoming_match_rows=incoming_match_rows,
-        incoming_distinct_match_urls=incoming_distinct_match_urls,
+        incoming_distinct_match_urls=len(incoming_match_urls),
         duplicate_match_rows=duplicate_match_rows,
-        existing_match_rows=existing_match_rows,
+        existing_match_rows=len(existing_match_urls),
+        missing_existing_match_url_count=len(missing_existing_urls),
+        missing_existing_match_url_sample=tuple(missing_existing_urls[:10]),
         expected_match_rows=expected_match_rows,
         minimum_match_rows=minimum_match_rows,
         minimum_source_ratio=minimum_source_ratio,
@@ -759,7 +766,7 @@ def _enforce_safe_raw_season_load(
     if allow_unsafe_season_reload:
         return report
 
-    if incoming_distinct_match_urls == 0:
+    if not incoming_match_urls:
         raise RawSeasonLoadSafetyError(
             report, "incoming match CSV has no in-season rows"
         )
@@ -782,21 +789,29 @@ def _enforce_safe_raw_season_load(
             "incoming match URLs are not contained in the validated source calendar",
         )
 
-    if incoming_distinct_match_urls < minimum_match_rows:
+    if len(incoming_match_urls) < minimum_match_rows:
         raise RawSeasonLoadSafetyError(
             report,
             "incoming match CSV is below the minimum trusted match count",
         )
 
-    if incoming_distinct_match_urls < report.minimum_source_rows:
+    if len(incoming_match_urls) < report.minimum_source_rows:
         raise RawSeasonLoadSafetyError(
             report,
             "incoming distinct match URLs are below the trusted season baseline",
         )
 
-    if existing_match_rows > 0:
-        minimum_from_existing = math.ceil(existing_match_rows * minimum_existing_ratio)
-        if incoming_distinct_match_urls < minimum_from_existing:
+    if missing_existing_urls:
+        raise RawSeasonLoadSafetyError(
+            report,
+            "incoming match set would remove or substitute existing hosted matches",
+        )
+
+    if existing_match_urls:
+        minimum_from_existing = math.ceil(
+            len(existing_match_urls) * minimum_existing_ratio
+        )
+        if len(incoming_match_urls) < minimum_from_existing:
             raise RawSeasonLoadSafetyError(
                 report,
                 "incoming match CSV is much smaller than existing hosted raw data",
@@ -880,15 +895,15 @@ def load_raw_seasons_to_postgres(
             incoming_urls_match_source = (
                 bool(source_urls) and incoming_urls <= source_urls
             )
-            existing_rows = _count_existing_season_matches(connection, season)
+            existing_urls = _existing_season_match_urls(connection, season)
             try:
                 safety_report = _enforce_safe_raw_season_load(
                     season=season,
                     source_url=source_url,
                     incoming_match_rows=len(matching_match_rows),
-                    incoming_distinct_match_urls=len(incoming_urls),
+                    incoming_match_urls=incoming_urls,
                     duplicate_match_rows=duplicate_match_rows,
-                    existing_match_rows=existing_rows,
+                    existing_match_urls=existing_urls,
                     expected_match_rows=expected_rows,
                     source_contract_valid=contract_valid,
                     incoming_urls_match_source=incoming_urls_match_source,
