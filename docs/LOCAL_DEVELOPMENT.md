@@ -360,11 +360,14 @@ not trustworthy:
 - the loader independently checks the report's baseline count/version, counts
   distinct validated match URLs, and rejects duplicate match records before
   any delete; a 10-link response therefore fails on a fresh hosted database
-- when hosted rows already exist, distinct incoming URLs must also retain at
-  least 50% of the hosted match count and satisfy the fixed 10-match emergency
-  floor
+- when hosted rows already exist, routine mode reads their distinct match URLs
+  and requires every hosted identity to remain in the incoming set; additions
+  are allowed, but shrinkage or same-count substitution is blocked
+- the count floors remain secondary source-health checks, but the 90% tolerance
+  cannot authorize deleting a hosted match identity
 - all checks run before the first season delete; a blocked decision writes
-  `upl_raw_load_safety_<season>.json` and skips raw, staging, and analytics writes
+  `upl_raw_load_safety_<season>.json` with the missing-hosted count and a bounded
+  URL sample, then skips raw, staging, and analytics writes
 
 To add or rotate a season baseline, validate a known-good official calendar,
 update its count, version, and evidence in `src/config.py`, and review that code
@@ -379,7 +382,8 @@ The normal hosted command should not use the override:
 
 A direct raw load now also needs the season's valid source-preflight JSON. The
 raw-loader override exists only for manual recovery after the operator has
-confirmed that a missing contract or intentionally empty/partial input is safe:
+confirmed that a missing contract, intentional removal/correction, or
+empty/partial input is safe:
 
 ```powershell
 .venv\Scripts\python.exe scripts\data_platform\load_raw_to_postgres.py --season 2025-26 --allow-unsafe-season-reload

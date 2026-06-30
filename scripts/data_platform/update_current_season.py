@@ -461,6 +461,12 @@ def _failure_evidence_payload(
         "incoming_distinct_match_count": raw_load.get("incoming_distinct_match_urls"),
         "duplicate_match_rows": raw_load.get("duplicate_match_rows"),
         "existing_hosted_count": raw_load.get("existing_match_rows"),
+        "missing_existing_match_url_count": raw_load.get(
+            "missing_existing_match_url_count"
+        ),
+        "missing_existing_match_url_sample": raw_load.get(
+            "missing_existing_match_url_sample"
+        ),
         "target_season": season,
         "override_enabled": bool(raw_load.get("override_enabled", False)),
         "database_write_stages_skipped": skipped_write_stages,
