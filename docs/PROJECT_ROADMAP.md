@@ -219,14 +219,14 @@ Avoid fixed long-lived branches such as `frontend-work`, `agent-work`, or
 it harder to know what is safe. Keep long-lived branches only for deliberate
 experiments that the owner explicitly wants to preserve.
 
-### Future Pull Request Automation
+### Pull Request Automation
 
-The next useful automation is a lightweight GitHub Actions PR check. Start with
+The lightweight GitHub Actions gate in `.github/workflows/pr-checks.yml` runs
 low-noise checks that match the current repo maturity:
 
 - frontend build: `cd frontend && npm run build`
-- Python tests: `.venv\Scripts\python.exe -m pytest` or the CI equivalent after
-  dependencies are stable
+- Python tests: `.venv\Scripts\python.exe -m pytest` locally, or
+  `python -m pytest` in CI after installing `requirements.txt`
 - optional documentation/link checks after the doc workflow settles
 
 CI should support owner review, not replace it. A green check means the basics
