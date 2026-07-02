@@ -1,0 +1,42 @@
+.overview-signal-match-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.overview-signal-match-heading strong {
+  line-height: 1.35;
+}
+
+.overview-signal-scoreline,
+.overview-team-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.overview-signal-scoreline strong,
+.overview-team-card p strong {
+  color: var(--color-text-primary);
+}
+
+.overview-signal-match .data-quality-note {
+  margin-top: 2px;
+}
+
+@media (min-width: 861px) {
+  .overview-story-grid {
+    grid-template-columns: minmax(220px, 1.2fr) minmax(0, 2.6fr) minmax(220px, 1.2fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .overview-story-card-recent,
+  .overview-story-card-featured,
+  .overview-story-card-signals {
+    grid-area: auto;
+  }
+
+  .overview-story-card {
+    width: 100%;
+  }
+}
