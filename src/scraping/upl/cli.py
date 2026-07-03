@@ -3,18 +3,70 @@
 from __future__ import annotations
 
 import argparse
+import json
 
-from src.config import DATA_RAW, raw_season_dir, raw_season_file, season_key
+from src.config import (
+    DATA_RAW,
+    raw_season_dir,
+    raw_season_file,
+    raw_season_refresh_plan_file,
+    season_key,
+)
 from src.dataset import save_dataframe
 from src.scraping.upl.constants import TABLE_NAMES
-from src.scraping.upl.dataframes import _build_legacy_goal_dataframe, _save_structured_outputs
+from src.scraping.upl.dataframes import (
+    _build_legacy_goal_dataframe,
+    _save_structured_outputs,
+)
 from src.scraping.upl.pipeline import scrape_season
+
+
+def _write_refresh_plan(
+    season: str,
+    season_tables,
+    scrape_summary: dict[str, object],
+) -> None:
+    """Persist the successful match-level delta for routine raw loading."""
+    affected_urls = set(scrape_summary["affected_match_urls"])
+    match_rows = season_tables["matches"]
+    affected_ids = sorted(
+        {
+            int(match_id)
+            for match_id in match_rows.loc[
+                match_rows["match_url"].isin(affected_urls), "match_id"
+            ].dropna()
+        }
+    )
+    plan_path = raw_season_refresh_plan_file(season)
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    plan_path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "season": season_key(season),
+                "mode": "routine-incremental",
+                "affected_match_ids": affected_ids,
+                "affected_match_urls": sorted(affected_urls),
+                "attempted_match_urls": scrape_summary["attempted_match_urls"],
+                "failed_match_urls": scrape_summary["failed_match_urls"],
+            },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    print(
+        "[ok] Raw refresh plan: "
+        f"{len(affected_ids)} affected match(es) -> {plan_path}"
+    )
 
 
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Scrape structured UPL event data")
-    parser.add_argument("--season", type=str, default="2025-26", help="Season to scrape (e.g., 2025-26)")
+    parser.add_argument(
+        "--season", type=str, default="2025-26", help="Season to scrape (e.g., 2025-26)"
+    )
     parser.add_argument(
         "--refresh-source",
         action="store_true",
@@ -50,8 +102,13 @@ def main() -> int:
             use_postgres_change_detection=args.postgres_change_detection,
             recent_completed_limit=args.recent_completed_limit,
         )
+        if args.postgres_change_detection:
+            _write_refresh_plan(args.season, season_tables, scrape_summary)
 
-        season_outputs_exist = all(raw_season_file(args.season, table_name).exists() for table_name in TABLE_NAMES)
+        season_outputs_exist = all(
+            raw_season_file(args.season, table_name).exists()
+            for table_name in TABLE_NAMES
+        )
         legacy_goals_path = DATA_RAW / f"upl_goals_{season_key(args.season)}.csv"
         total_spill_rows = sum(scrape_summary["spill_rows_filtered"].values())
         should_write_structured_outputs = (
@@ -72,7 +129,9 @@ def main() -> int:
             legacy_goals_df = _build_legacy_goal_dataframe(season_tables["events"])
             save_dataframe(legacy_goals_df, legacy_goals_path)
         if not should_write_structured_outputs and not should_write_legacy_goals:
-            print("[ok] No newly completed matches; kept existing season outputs and updated failed-match manifest only")
+            print(
+                "[ok] No newly completed matches; kept existing season outputs and updated failed-match manifest only"
+            )
 
         # Legacy single-table output kept here for reference while raw scraping
         # now writes season-scoped tables under data/raw/<season>/.
@@ -96,4 +155,3 @@ def main() -> int:
     except Exception as exc:
         print(f"\n[error] Scraping failed: {exc}")
         return 1
-

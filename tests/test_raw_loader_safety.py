@@ -68,6 +68,51 @@ def test_existing_season_urls_are_queried_as_distinct_identities() -> None:
     assert connection.read_cursor.params == ("2025_26",)
 
 
+class DeleteCursor:
+    """Cursor fake that records a match-scoped delete."""
+
+    def __init__(self) -> None:
+        self.statement = None
+        self.params = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        return None
+
+    def execute(self, statement, params) -> None:
+        self.statement = statement
+        self.params = params
+
+
+class DeleteConnection:
+    """Connection fake for affected-match delete SQL."""
+
+    def __init__(self) -> None:
+        self.delete_cursor = DeleteCursor()
+
+    def cursor(self):
+        return self.delete_cursor
+
+
+def test_incremental_delete_targets_match_ids_not_a_season() -> None:
+    """Routine deletion must be bounded to the plan's affected IDs."""
+    connection = DeleteConnection()
+
+    raw_loader._delete_affected_match_rows(
+        connection,
+        "events",
+        match_ids=frozenset({7}),
+        attempted_match_urls=frozenset(),
+    )
+
+    assert connection.delete_cursor.params == ([7],)
+    statement = str(connection.delete_cursor.statement)
+    assert "match_id" in statement
+    assert "season" not in statement
+
+
 def _match_urls(count: int) -> list[str]:
     return [f"https://upl.co.ug/event/{index}/" for index in range(count)]
 
@@ -84,6 +129,7 @@ def _run_loader_boundary(
     override: bool = False,
     connection: FakeConnection | None = None,
     deleted_tables: list[str] | None = None,
+    full_rebuild: bool = True,
 ) -> tuple[FakeConnection, list[str]]:
     season = "2025-26"
     season_dir = tmp_path / "raw" / "2025_26"
@@ -146,6 +192,7 @@ def _run_loader_boundary(
 
     raw_loader.load_raw_seasons_to_postgres(
         [season],
+        full_rebuild=full_rebuild,
         allow_unsafe_season_reload=override,
     )
     return connection, deleted_tables
@@ -361,3 +408,175 @@ def test_named_admin_override_deliberately_permits_reviewed_shrinkage(
 
     assert set(deleted_tables) == set(raw_loader.RAW_TABLE_CONFIGS)
     assert connection.commit_count == 1
+
+
+def _run_incremental_loader(
+    monkeypatch,
+    tmp_path: Path,
+    *,
+    incoming_count: int,
+    existing_count: int,
+    affected_match_ids: set[int],
+) -> tuple[FakeConnection, list[tuple[str, tuple[int, ...]]], dict[str, list[dict]]]:
+    """Run routine loading with a match-level scraper plan."""
+    season = "2025-26"
+    season_dir = tmp_path / "raw" / "2025_26"
+    season_dir.mkdir(parents=True)
+    table_paths = {
+        table_name: season_dir / f"{table_name}.csv"
+        for table_name in raw_loader.RAW_TABLE_CONFIGS
+    }
+    match_rows = [
+        {
+            "match_id": str(match_id),
+            "season": season,
+            "match_url": f"https://upl.co.ug/event/{match_id}/",
+        }
+        for match_id in range(incoming_count)
+    ]
+    event_rows = [
+        {
+            "match_id": str(match_id),
+            "season": season,
+            "match_url": f"https://upl.co.ug/event/{match_id}/",
+            "event_index": "1",
+        }
+        for match_id in affected_match_ids
+    ]
+    rows_by_path = {
+        table_paths["matches"]: match_rows,
+        table_paths["events"]: event_rows,
+    }
+    affected_urls = frozenset(
+        f"https://upl.co.ug/event/{match_id}/" for match_id in affected_match_ids
+    )
+    plan = raw_loader.RawRefreshPlan(
+        affected_match_ids=frozenset(affected_match_ids),
+        affected_match_urls=affected_urls,
+        attempted_match_urls=affected_urls,
+        failed_match_urls=frozenset(),
+    )
+    connection = FakeConnection()
+    deleted: list[tuple[str, tuple[int, ...]]] = []
+    upserted: dict[str, list[dict]] = {}
+
+    monkeypatch.setattr(raw_loader, "raw_season_dir", lambda _season: season_dir)
+    monkeypatch.setattr(raw_loader, "_season_table_paths", lambda _season: table_paths)
+    monkeypatch.setattr(
+        raw_loader, "_read_csv_rows", lambda path: rows_by_path.get(path, [])
+    )
+    monkeypatch.setattr(raw_loader, "_read_raw_refresh_plan", lambda _season: plan)
+    monkeypatch.setattr(
+        raw_loader,
+        "_read_source_preflight_contract",
+        lambda _season: (
+            incoming_count,
+            "https://upl.co.ug/calendar/2025-26-fixtures-results/",
+            True,
+            set(_match_urls(incoming_count)),
+        ),
+    )
+    monkeypatch.setattr(
+        raw_loader,
+        "_existing_season_match_urls",
+        lambda _connection, _season: set(_match_urls(existing_count)),
+    )
+    monkeypatch.setattr(
+        raw_loader,
+        "_delete_existing_season_rows",
+        lambda *_args, **_kwargs: pytest.fail("routine mode deleted a season slice"),
+    )
+
+    def capture_incremental_delete(
+        _connection,
+        table_key,
+        *,
+        match_ids,
+        attempted_match_urls,
+    ) -> None:
+        if match_ids or attempted_match_urls:
+            deleted.append((table_key, tuple(sorted(match_ids))))
+
+    monkeypatch.setattr(
+        raw_loader, "_delete_affected_match_rows", capture_incremental_delete
+    )
+
+    def capture_upsert(_connection, table_key, values) -> int:
+        upserted[table_key] = list(values)
+        return len(values)
+
+    monkeypatch.setattr(raw_loader, "_upsert_rows", capture_upsert)
+    monkeypatch.setattr(
+        raw_loader,
+        "get_psycopg_connection",
+        lambda settings=None: nullcontext(connection),
+    )
+    monkeypatch.setattr(
+        raw_loader,
+        "raw_season_load_safety_file",
+        lambda _season: tmp_path / "raw_load_safety.json",
+    )
+    for table_name in raw_loader.ROW_PREPARERS:
+        monkeypatch.setitem(
+            raw_loader.ROW_PREPARERS, table_name, lambda row, _path: row
+        )
+
+    raw_loader.load_raw_seasons_to_postgres([season])
+    return connection, deleted, upserted
+
+
+def test_routine_no_change_skips_all_raw_database_writes(monkeypatch, tmp_path) -> None:
+    """A repeated no-change run should not touch hosted raw rows."""
+    connection, deleted, upserted = _run_incremental_loader(
+        monkeypatch,
+        tmp_path,
+        incoming_count=208,
+        existing_count=208,
+        affected_match_ids=set(),
+    )
+
+    assert deleted == []
+    assert connection.commit_count == 0
+    assert all(rows == [] for rows in upserted.values())
+
+
+def test_routine_new_match_only_mutates_the_new_match(monkeypatch, tmp_path) -> None:
+    """Adding one fixture should leave all prior hosted match rows untouched."""
+    connection, deleted, upserted = _run_incremental_loader(
+        monkeypatch,
+        tmp_path,
+        incoming_count=209,
+        existing_count=208,
+        affected_match_ids={208},
+    )
+
+    assert connection.commit_count == 1
+    assert {match_id for _, ids in deleted for match_id in ids} == {208}
+    assert [row["match_id"] for row in upserted["matches"]] == ["208"]
+    assert [row["match_id"] for row in upserted["events"]] == ["208"]
+
+
+def test_routine_changed_match_replaces_only_that_match_children(
+    monkeypatch, tmp_path
+) -> None:
+    """Refreshing one result should replace only its raw parent and child rows."""
+    connection, deleted, upserted = _run_incremental_loader(
+        monkeypatch,
+        tmp_path,
+        incoming_count=208,
+        existing_count=208,
+        affected_match_ids={7},
+    )
+
+    assert connection.commit_count == 1
+    assert {match_id for _, ids in deleted for match_id in ids} == {7}
+    assert [row["match_id"] for row in upserted["matches"]] == ["7"]
+    assert [row["match_id"] for row in upserted["events"]] == ["7"]
+
+
+def test_unsafe_override_requires_explicit_full_rebuild() -> None:
+    """The destructive safety bypass cannot leak into routine loading."""
+    with pytest.raises(ValueError, match="explicit full rebuild"):
+        raw_loader.load_raw_seasons_to_postgres(
+            ["2025-26"], allow_unsafe_season_reload=True
+        )

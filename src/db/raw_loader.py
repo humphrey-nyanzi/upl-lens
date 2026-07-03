@@ -32,6 +32,7 @@ from src.config import (
     raw_season_failed_matches_file,
     raw_season_file,
     raw_season_load_safety_file,
+    raw_season_refresh_plan_file,
     raw_season_source_preflight_file,
     season_key,
 )
@@ -820,6 +821,120 @@ def _enforce_safe_raw_season_load(
     return report
 
 
+@dataclass(frozen=True)
+class RawRefreshPlan:
+    """Validated scraper delta used by routine raw loading."""
+
+    affected_match_ids: frozenset[int]
+    affected_match_urls: frozenset[str]
+    attempted_match_urls: frozenset[str]
+    failed_match_urls: frozenset[str]
+
+
+def _read_raw_refresh_plan(season: str) -> RawRefreshPlan:
+    """Read and validate the scraper plan for one routine refresh."""
+    plan_path = raw_season_refresh_plan_file(season)
+    try:
+        payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Routine raw loading requires scraper refresh plan: {plan_path}"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid raw refresh plan JSON: {plan_path}") from exc
+
+    if payload.get("version") != 1:
+        raise ValueError(f"Unsupported raw refresh plan version: {plan_path}")
+    if payload.get("mode") != "routine-incremental":
+        raise ValueError(f"Raw refresh plan is not routine-incremental: {plan_path}")
+    if season_key(str(payload.get("season", ""))) != season_key(season):
+        raise ValueError(
+            f"Raw refresh plan season does not match {season}: {plan_path}"
+        )
+
+    try:
+        affected_ids = frozenset(int(value) for value in payload["affected_match_ids"])
+        affected_urls = frozenset(
+            str(value).strip() for value in payload["affected_match_urls"]
+        )
+        attempted_urls = frozenset(
+            str(value).strip() for value in payload["attempted_match_urls"]
+        )
+        failed_urls = frozenset(
+            str(value).strip() for value in payload["failed_match_urls"]
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(f"Malformed raw refresh plan: {plan_path}") from exc
+
+    if any(match_id < 0 for match_id in affected_ids):
+        raise ValueError(f"Raw refresh plan contains an invalid match_id: {plan_path}")
+    if "" in affected_urls | attempted_urls | failed_urls:
+        raise ValueError(f"Raw refresh plan contains an empty match URL: {plan_path}")
+    if not affected_urls <= attempted_urls or not failed_urls <= attempted_urls:
+        raise ValueError(f"Raw refresh plan URL sets are inconsistent: {plan_path}")
+
+    return RawRefreshPlan(
+        affected_match_ids=affected_ids,
+        affected_match_urls=affected_urls,
+        attempted_match_urls=attempted_urls,
+        failed_match_urls=failed_urls,
+    )
+
+
+def _validate_refresh_plan_rows(
+    plan: RawRefreshPlan,
+    match_rows: list[dict[str, str]],
+) -> None:
+    """Ensure affected IDs and URLs describe the same incoming match rows."""
+    affected_rows = [
+        row
+        for row in match_rows
+        if _to_int(row.get("match_id", "")) in plan.affected_match_ids
+    ]
+    row_ids = {_to_int(row["match_id"]) for row in affected_rows}
+    row_urls = {
+        str(row.get("match_url", "")).strip()
+        for row in affected_rows
+        if str(row.get("match_url", "")).strip()
+    }
+    if row_ids != set(plan.affected_match_ids) or row_urls != set(
+        plan.affected_match_urls
+    ):
+        raise ValueError(
+            "Raw refresh plan affected IDs/URLs do not match the season CSV rows."
+        )
+
+
+def _delete_affected_match_rows(
+    connection,
+    table_key: str,
+    *,
+    match_ids: frozenset[int],
+    attempted_match_urls: frozenset[str],
+) -> None:
+    """Delete only rows owned by matches attempted in this routine run."""
+    config = RAW_TABLE_CONFIGS[table_key]
+    if table_key == "failed_matches":
+        if not attempted_match_urls:
+            return
+        predicate_column = "match_url"
+        values = sorted(attempted_match_urls)
+    else:
+        if not match_ids:
+            return
+        predicate_column = "match_id"
+        values = sorted(match_ids)
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            sql.SQL("DELETE FROM raw.{table_name} WHERE {column} = ANY(%s);").format(
+                table_name=sql.Identifier(config.table_name),
+                column=sql.Identifier(predicate_column),
+            ),
+            (values,),
+        )
+
+
 def _delete_existing_season_rows(connection, table_key: str, season: str) -> None:
     """Delete one season slice from a raw table before reloading it.
 
@@ -846,30 +961,39 @@ def load_raw_seasons_to_postgres(
     seasons: list[str] | None = None,
     settings: DatabaseSettings | None = None,
     *,
+    full_rebuild: bool = False,
     allow_unsafe_season_reload: bool = False,
 ) -> dict[str, dict[str, int]]:
-    """Load one or more season folders into the Postgres `raw` schema.
+    """Load season folders into Postgres using routine or admin semantics.
 
     Parameters
     ----------
     seasons : list[str] | None, optional
-        Seasons such as `["2025-26", "2024_25"]`. If omitted, all detected
+        Seasons such as ``["2025-26", "2024_25"]``. If omitted, all detected
         season folders are loaded.
     settings : DatabaseSettings | None, optional
         Preloaded database settings object.
+    full_rebuild : bool, optional
+        Admin-only mode that deletes and reloads each complete season slice.
+        The default routine mode requires the scraper refresh plan and mutates
+        only its affected match IDs.
     allow_unsafe_season_reload : bool, optional
-        Admin recovery override that permits empty or low-confidence season
-        CSVs to delete/reload hosted raw rows. Routine automation should leave
-        this disabled.
+        Additional admin recovery override that permits low-confidence input
+        during a full rebuild. It cannot be enabled for routine loading.
 
     Returns
     -------
     dict[str, dict[str, int]]
-        Row counts loaded per season and per table.
+        Row counts processed per season and per table.
     """
+    if allow_unsafe_season_reload and not full_rebuild:
+        raise ValueError(
+            "--allow-unsafe-season-reload requires the explicit full rebuild path."
+        )
 
     season_names = resolve_seasons(seasons)
     season_counts: dict[str, dict[str, int]] = {}
+    any_database_writes = False
 
     with get_psycopg_connection(settings=settings) as connection:
         for season in season_names:
@@ -882,6 +1006,10 @@ def load_raw_seasons_to_postgres(
             matching_match_rows = [
                 row for row in match_rows if row_matches_expected_season(row, season)
             ]
+            refresh_plan = None if full_rebuild else _read_raw_refresh_plan(season)
+            if refresh_plan is not None:
+                _validate_refresh_plan_rows(refresh_plan, matching_match_rows)
+
             expected_rows, source_url, contract_valid, source_urls = (
                 _read_source_preflight_contract(season)
             )
@@ -922,9 +1050,11 @@ def load_raw_seasons_to_postgres(
                 status="override" if allow_unsafe_season_reload else "passed",
                 failure_reason=None,
             )
+            load_mode = "full-rebuild" if full_rebuild else "routine-incremental"
             print(
                 "[ok] Raw season safety check passed: "
-                f"season={season} incoming_rows={safety_report.incoming_match_rows} "
+                f"season={season} mode={load_mode} "
+                f"incoming_rows={safety_report.incoming_match_rows} "
                 f"distinct_match_urls={safety_report.incoming_distinct_match_urls} "
                 f"expected_matches={safety_report.expected_match_rows} "
                 f"existing_matches={safety_report.existing_match_rows} "
@@ -939,9 +1069,42 @@ def load_raw_seasons_to_postgres(
                 matching_rows = [
                     row for row in rows if row_matches_expected_season(row, season)
                 ]
-                _delete_existing_season_rows(connection, table_key, season)
+
+                if full_rebuild:
+                    _delete_existing_season_rows(connection, table_key, season)
+                    rows_to_load = matching_rows
+                    any_database_writes = True
+                else:
+                    assert refresh_plan is not None
+                    _delete_affected_match_rows(
+                        connection,
+                        table_key,
+                        match_ids=refresh_plan.affected_match_ids,
+                        attempted_match_urls=refresh_plan.attempted_match_urls,
+                    )
+                    if table_key == "failed_matches":
+                        rows_to_load = [
+                            row
+                            for row in matching_rows
+                            if str(row.get("match_url", "")).strip()
+                            in refresh_plan.attempted_match_urls
+                        ]
+                        any_database_writes = any_database_writes or bool(
+                            refresh_plan.attempted_match_urls
+                        )
+                    else:
+                        rows_to_load = [
+                            row
+                            for row in matching_rows
+                            if _to_int(row.get("match_id", ""))
+                            in refresh_plan.affected_match_ids
+                        ]
+                        any_database_writes = any_database_writes or bool(
+                            refresh_plan.affected_match_ids
+                        )
+
                 prepared_rows = [
-                    ROW_PREPARERS[table_key](row, csv_path) for row in matching_rows
+                    ROW_PREPARERS[table_key](row, csv_path) for row in rows_to_load
                 ]
                 table_counts[table_key] = _upsert_rows(
                     connection, table_key, prepared_rows
@@ -949,6 +1112,9 @@ def load_raw_seasons_to_postgres(
 
             season_counts[season] = table_counts
 
-        connection.commit()
+        if any_database_writes:
+            connection.commit()
+        else:
+            print("[ok] No affected matches; raw Postgres writes skipped.")
 
     return season_counts

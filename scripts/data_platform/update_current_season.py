@@ -113,6 +113,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--full-raw-rebuild",
+        action="store_true",
+        help=(
+            "Admin/backfill only: delete and reload the full raw season instead "
+            "of consuming the scraper match-level refresh plan."
+        ),
+    )
+    parser.add_argument(
         "--skip-raw-verification",
         action="store_true",
         help="Skip the raw CSV versus Postgres count check.",
@@ -152,7 +160,15 @@ def parse_args() -> argparse.Namespace:
             "the update. Useful for strict scheduled jobs."
         ),
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.skip_scrape and not args.skip_raw_load and not args.full_raw_rebuild:
+        parser.error(
+            "--skip-scrape with raw loading requires --full-raw-rebuild; "
+            "routine loading needs a fresh scraper plan."
+        )
+    if args.disable_postgres_change_detection and not args.full_raw_rebuild:
+        parser.error("--disable-postgres-change-detection requires --full-raw-rebuild.")
+    return args
 
 
 def _timestamp_slug() -> str:
@@ -812,9 +828,14 @@ def _run_update_pipeline(
             flush=True,
         )
     else:
+        raw_load_command = _python_command(
+            "load_raw_to_postgres.py", "--season", season
+        )
+        if args.full_raw_rebuild:
+            raw_load_command.append("--full-rebuild")
         step_logs["load_raw_to_postgres"] = _run_step(
             "load_raw_to_postgres",
-            _python_command("load_raw_to_postgres.py", "--season", season),
+            raw_load_command,
             log_dir,
         )
 

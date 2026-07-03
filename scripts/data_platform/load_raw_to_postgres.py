@@ -2,8 +2,8 @@
 
 Usage examples
 --------------
-python scripts/data_platform/load_raw_to_postgres.py
 python scripts/data_platform/load_raw_to_postgres.py --season 2025-26
+python scripts/data_platform/load_raw_to_postgres.py --season 2025-26 --full-rebuild
 python scripts/data_platform/load_raw_to_postgres.py --season 2024-25 --season 2025-26
 """
 
@@ -33,6 +33,14 @@ def parse_args() -> argparse.Namespace:
         help="Season to load, for example 2025-26. Repeat the flag to load multiple seasons.",
     )
     parser.add_argument(
+        "--full-rebuild",
+        action="store_true",
+        help=(
+            "Admin/backfill only: delete and reload the complete selected season. "
+            "Without this flag, loading uses the scraper match-level refresh plan."
+        ),
+    )
+    parser.add_argument(
         "--allow-unsafe-season-reload",
         action="store_true",
         help=(
@@ -54,6 +62,7 @@ def main() -> None:
 
     load_counts = load_raw_seasons_to_postgres(
         seasons=args.seasons,
+        full_rebuild=args.full_rebuild,
         allow_unsafe_season_reload=args.allow_unsafe_season_reload,
     )
 
@@ -63,8 +72,15 @@ def main() -> None:
         for table_name, row_count in table_counts.items():
             print(f"    {table_name}: {row_count} in-season rows processed")
 
-    print("\n[ok] Re-running this command is safe because each table uses upserts.")
-    print("[ok] Rows whose `season` value does not match the folder season are skipped.")
+    if args.full_rebuild:
+        print("\n[ok] Admin full rebuild completed for the selected season slice.")
+    else:
+        print(
+            "\n[ok] Routine load only processed match IDs from the scraper refresh plan."
+        )
+    print(
+        "[ok] Rows whose `season` value does not match the folder season are skipped."
+    )
 
 
 if __name__ == "__main__":

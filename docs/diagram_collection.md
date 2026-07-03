@@ -71,7 +71,7 @@ flowchart TD
 
     subgraph RAW_INGESTION["PRIMARY ② — Raw Ingestion"]
         direction TB
-        RAWLOAD["📥 load_raw_to_postgres.py\n→ src/db/raw_loader.py\nfor each season:\n  1. recheck reviewed baseline/version\n  2. reject duplicates; read hosted URLs\n  3. require hosted URLs ⊆ incoming URLs\n  4. report missing URLs, then delete\n  5. filter, fingerprint, upsert raw.*"]
+        RAWLOAD["📥 load_raw_to_postgres.py\n→ src/db/raw_loader.py\nroutine mode:\n  1. validate full source/identity set\n  2. read scraper refresh plan\n  3. delete affected match IDs only\n  4. upsert affected raw.* rows\nadmin --full-rebuild:\n  delete/reload full season"]
 
         RAWVERIFY["✅ verify_raw_postgres_counts.py\ncompares CSV row counts\nvs Postgres row counts\nflags mismatches"]
 

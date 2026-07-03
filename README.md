@@ -150,7 +150,7 @@ pip install -r requirements.txt
 
 # Apply database migrations and build trusted tables
 python scripts/data_platform/apply_db_migrations.py
-python scripts/data_platform/load_raw_to_postgres.py
+python scripts/data_platform/load_raw_to_postgres.py --season 2025-26 --full-rebuild
 python scripts/data_platform/build_staging_from_raw.py
 python scripts/data_platform/verify_staging_outputs.py
 

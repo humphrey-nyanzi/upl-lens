@@ -130,6 +130,7 @@ RAW_TABLE_FILE_PREFIXES = {
 FAILED_MATCHES_FILE_PREFIX = "upl_failed_matches"
 SOURCE_PREFLIGHT_FILE_PREFIX = "upl_source_preflight"
 RAW_LOAD_SAFETY_FILE_PREFIX = "upl_raw_load_safety"
+RAW_REFRESH_PLAN_FILE_PREFIX = "upl_raw_refresh_plan"
 
 
 def season_key(season: str) -> str:
@@ -169,4 +170,12 @@ def raw_season_load_safety_file(season: str) -> Path:
     return (
         raw_season_dir(season)
         / f"{RAW_LOAD_SAFETY_FILE_PREFIX}_{season_key(season)}.json"
+    )
+
+
+def raw_season_refresh_plan_file(season: str) -> Path:
+    """Return the scraper-to-loader match-level refresh plan."""
+    return (
+        raw_season_dir(season)
+        / f"{RAW_REFRESH_PLAN_FILE_PREFIX}_{season_key(season)}.json"
     )

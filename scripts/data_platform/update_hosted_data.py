@@ -192,7 +192,7 @@ def _build_update_current_season_command(
     if args.use_cache:
         command.append("--use-cache")
     if args.force_full_scrape:
-        command.append("--disable-postgres-change-detection")
+        command.extend(["--disable-postgres-change-detection", "--full-raw-rebuild"])
     if args.fail_on_remaining_failed_matches:
         command.append("--fail-on-remaining-failed-matches")
     return command
