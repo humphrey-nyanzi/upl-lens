@@ -41,7 +41,7 @@ type OverviewModulesViewState = {
   intelligenceState: RequestState;
   matchesState: OverviewModuleState;
   modules: OverviewModules;
-  requestKey: string;
+  requestKey: string | null;
 };
 
 const emptyModules: OverviewModules = {
@@ -104,16 +104,18 @@ export function OverviewPage({
   selectedSeasonInfo,
 }: PageProps) {
   const [modulesView, setModulesView] = useState<OverviewModulesViewState>({
-    intelligenceState: "success",
-    matchesState: "success",
+    intelligenceState: "loading",
+    matchesState: "loading",
     modules: emptyModules,
-    requestKey: "",
+    requestKey: null,
   });
   const apiSeason = toApiSeason(selectedSeason);
   const modulesRequestKey = selectedSeason;
   const seasonLabel = getSelectedSeasonLabel(selectedSeason, selectedSeasonInfo);
 
   useEffect(() => {
+    if (!modulesRequestKey) return;
+
     let ignore = false;
 
     Promise.allSettled([
