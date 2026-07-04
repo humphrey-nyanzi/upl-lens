@@ -98,6 +98,22 @@ def test_weekly_workflow_does_not_expose_unsafe_reload() -> None:
     assert "--allow-unsafe-season-reload" not in workflow
 
 
+def test_weekly_workflow_uses_node24_action_majors() -> None:
+    """Hosted automation should use native Node 24 actions without a force flag."""
+
+    workflow = (
+        update_hosted_data.PROJECT_ROOT
+        / ".github"
+        / "workflows"
+        / "current-season-update.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "actions/checkout@v6" in workflow
+    assert "actions/setup-python@v6" in workflow
+    assert workflow.count("actions/upload-artifact@v6") == 2
+    assert "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24" not in workflow
+
+
 def test_hosted_wrapper_reads_child_failure_evidence(tmp_path) -> None:
     """Child guard evidence should survive the hosted subprocess boundary."""
 
