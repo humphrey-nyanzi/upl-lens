@@ -909,27 +909,37 @@ def _delete_affected_match_rows(
     connection,
     table_key: str,
     *,
+    season: str,
     match_ids: frozenset[int],
-    attempted_match_urls: frozenset[str],
+    match_urls: frozenset[str],
 ) -> None:
-    """Delete only rows owned by matches attempted in this routine run."""
+    """Delete only rows owned by changed or failed matches in this routine run."""
     config = RAW_TABLE_CONFIGS[table_key]
     if table_key == "failed_matches":
-        if not attempted_match_urls:
+        if not match_urls:
             return
-        predicate_column = "match_url"
-        values = sorted(attempted_match_urls)
-    else:
-        if not match_ids:
-            return
-        predicate_column = "match_id"
-        values = sorted(match_ids)
+        values = sorted(match_urls)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                sql.SQL("""
+                    DELETE FROM raw.{table_name}
+                    WHERE match_url = ANY(%s)
+                      AND REPLACE(REPLACE({season_column}, '-', '_'), '/', '_') = %s;
+                    """).format(
+                    table_name=sql.Identifier(config.table_name),
+                    season_column=sql.Identifier(config.season_column),
+                ),
+                (values, season_key(season)),
+            )
+        return
 
+    if not match_ids:
+        return
+    values = sorted(match_ids)
     with connection.cursor() as cursor:
         cursor.execute(
-            sql.SQL("DELETE FROM raw.{table_name} WHERE {column} = ANY(%s);").format(
+            sql.SQL("DELETE FROM raw.{table_name} WHERE match_id = ANY(%s);").format(
                 table_name=sql.Identifier(config.table_name),
-                column=sql.Identifier(predicate_column),
             ),
             (values,),
         )
@@ -1009,6 +1019,11 @@ def load_raw_seasons_to_postgres(
             refresh_plan = None if full_rebuild else _read_raw_refresh_plan(season)
             if refresh_plan is not None:
                 _validate_refresh_plan_rows(refresh_plan, matching_match_rows)
+                failed_match_urls_to_replace = (
+                    refresh_plan.affected_match_urls | refresh_plan.failed_match_urls
+                )
+            else:
+                failed_match_urls_to_replace = frozenset()
 
             expected_rows, source_url, contract_valid, source_urls = (
                 _read_source_preflight_contract(season)
@@ -1079,18 +1094,19 @@ def load_raw_seasons_to_postgres(
                     _delete_affected_match_rows(
                         connection,
                         table_key,
+                        season=season,
                         match_ids=refresh_plan.affected_match_ids,
-                        attempted_match_urls=refresh_plan.attempted_match_urls,
+                        match_urls=failed_match_urls_to_replace,
                     )
                     if table_key == "failed_matches":
                         rows_to_load = [
                             row
                             for row in matching_rows
                             if str(row.get("match_url", "")).strip()
-                            in refresh_plan.attempted_match_urls
+                            in refresh_plan.failed_match_urls
                         ]
                         any_database_writes = any_database_writes or bool(
-                            refresh_plan.attempted_match_urls
+                            failed_match_urls_to_replace
                         )
                     else:
                         rows_to_load = [

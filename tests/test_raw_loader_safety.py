@@ -103,14 +103,34 @@ def test_incremental_delete_targets_match_ids_not_a_season() -> None:
     raw_loader._delete_affected_match_rows(
         connection,
         "events",
+        season="2025-26",
         match_ids=frozenset({7}),
-        attempted_match_urls=frozenset(),
+        match_urls=frozenset(),
     )
 
     assert connection.delete_cursor.params == ([7],)
     statement = str(connection.delete_cursor.statement)
     assert "match_id" in statement
     assert "season" not in statement
+
+
+def test_failed_match_delete_is_scoped_to_the_target_season() -> None:
+    """Calendar spill must not remove another season's failure record."""
+    connection = DeleteConnection()
+    match_url = "https://upl.co.ug/event/7/"
+
+    raw_loader._delete_affected_match_rows(
+        connection,
+        "failed_matches",
+        season="2025-26",
+        match_ids=frozenset(),
+        match_urls=frozenset({match_url}),
+    )
+
+    assert connection.delete_cursor.params == ([match_url], "2025_26")
+    statement = str(connection.delete_cursor.statement)
+    assert "match_url" in statement
+    assert "season" in statement
 
 
 def _match_urls(count: int) -> list[str]:
@@ -417,6 +437,8 @@ def _run_incremental_loader(
     incoming_count: int,
     existing_count: int,
     affected_match_ids: set[int],
+    attempted_match_ids: set[int] | None = None,
+    failed_match_ids: set[int] | None = None,
 ) -> tuple[FakeConnection, list[tuple[str, tuple[int, ...]]], dict[str, list[dict]]]:
     """Run routine loading with a match-level scraper plan."""
     season = "2025-26"
@@ -443,18 +465,39 @@ def _run_incremental_loader(
         }
         for match_id in affected_match_ids
     ]
+    failed_match_rows = [
+        {
+            "season": season,
+            "match_url": f"https://upl.co.ug/event/{match_id}/",
+            "last_error": "temporary source failure",
+        }
+        for match_id in (failed_match_ids or set())
+    ]
     rows_by_path = {
         table_paths["matches"]: match_rows,
         table_paths["events"]: event_rows,
+        table_paths["failed_matches"]: failed_match_rows,
     }
     affected_urls = frozenset(
         f"https://upl.co.ug/event/{match_id}/" for match_id in affected_match_ids
     )
+    attempted_urls = frozenset(
+        f"https://upl.co.ug/event/{match_id}/"
+        for match_id in (
+            attempted_match_ids
+            if attempted_match_ids is not None
+            else affected_match_ids
+        )
+    )
+    failed_urls = frozenset(
+        f"https://upl.co.ug/event/{match_id}/"
+        for match_id in (failed_match_ids or set())
+    )
     plan = raw_loader.RawRefreshPlan(
         affected_match_ids=frozenset(affected_match_ids),
         affected_match_urls=affected_urls,
-        attempted_match_urls=affected_urls,
-        failed_match_urls=frozenset(),
+        attempted_match_urls=attempted_urls,
+        failed_match_urls=failed_urls,
     )
     connection = FakeConnection()
     deleted: list[tuple[str, tuple[int, ...]]] = []
@@ -491,10 +534,13 @@ def _run_incremental_loader(
         _connection,
         table_key,
         *,
+        season,
         match_ids,
-        attempted_match_urls,
+        match_urls,
     ) -> None:
-        if match_ids or attempted_match_urls:
+        deletes_failed_matches = table_key == "failed_matches" and bool(match_urls)
+        deletes_match_rows = table_key != "failed_matches" and bool(match_ids)
+        if deletes_failed_matches or deletes_match_rows:
             deleted.append((table_key, tuple(sorted(match_ids))))
 
     monkeypatch.setattr(
@@ -538,6 +584,43 @@ def test_routine_no_change_skips_all_raw_database_writes(monkeypatch, tmp_path) 
     assert deleted == []
     assert connection.commit_count == 0
     assert all(rows == [] for rows in upserted.values())
+
+
+def test_routine_unchanged_recheck_skips_all_raw_database_writes(
+    monkeypatch, tmp_path
+) -> None:
+    """Re-fetched but unchanged recent matches should not create a transaction."""
+    connection, deleted, upserted = _run_incremental_loader(
+        monkeypatch,
+        tmp_path,
+        incoming_count=208,
+        existing_count=208,
+        affected_match_ids=set(),
+        attempted_match_ids={207},
+    )
+
+    assert deleted == []
+    assert connection.commit_count == 0
+    assert all(rows == [] for rows in upserted.values())
+
+
+def test_routine_failed_recheck_replaces_failure_state(monkeypatch, tmp_path) -> None:
+    """A current scrape failure should replace only its season-scoped record."""
+    connection, deleted, upserted = _run_incremental_loader(
+        monkeypatch,
+        tmp_path,
+        incoming_count=208,
+        existing_count=208,
+        affected_match_ids=set(),
+        attempted_match_ids={207},
+        failed_match_ids={207},
+    )
+
+    assert deleted == [("failed_matches", ())]
+    assert connection.commit_count == 1
+    assert [row["match_url"] for row in upserted["failed_matches"]] == [
+        "https://upl.co.ug/event/207/"
+    ]
 
 
 def test_routine_new_match_only_mutates_the_new_match(monkeypatch, tmp_path) -> None:
