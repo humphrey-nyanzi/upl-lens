@@ -208,7 +208,7 @@ current work area needs it.
 - Run scraper: `python scripts/data_platform/scrape_upl_matches.py --season 2025-26`
 - Build Feature 1 goal timing dataset: `python scripts/features/feature_01_goal_timing/build_goal_timing_dataset.py`
 - Apply database migrations: `python scripts/data_platform/apply_db_migrations.py`
-- Load raw CSVs into Postgres: `python scripts/data_platform/load_raw_to_postgres.py`
+- Full raw-season rebuild (admin/backfill): `python scripts/data_platform/load_raw_to_postgres.py --season 2025-26 --full-rebuild`
 - Verify raw CSVs against Postgres: `python scripts/data_platform/verify_raw_postgres_counts.py`
 - Build staging from raw Postgres tables: `python scripts/data_platform/build_staging_from_raw.py`
 - Verify staging outputs: `python scripts/data_platform/verify_staging_outputs.py`

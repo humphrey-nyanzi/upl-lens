@@ -6,6 +6,8 @@ Postgres change detection, and output DataFrame shaping for one season run.
 
 from __future__ import annotations
 
+import datetime as dt
+import json
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -53,6 +55,60 @@ def _fetch_and_parse_match(
     time.sleep(random.uniform(0.0, 0.25))
     match_html = client.get(url)
     return url, parse_match_page(match_html, url)
+
+
+def _canonical_refresh_value(column: str, value: Any) -> Any:
+    """Normalize scraper and Postgres values for match-payload comparison."""
+    if value is None or (not isinstance(value, (list, dict)) and pd.isna(value)):
+        return None
+    if column == "date":
+        try:
+            return pd.Timestamp(value).date().isoformat()
+        except (TypeError, ValueError):
+            pass
+    if column == "time":
+        try:
+            parsed = (
+                value if isinstance(value, dt.time) else pd.Timestamp(str(value)).time()
+            )
+            return parsed.isoformat(timespec="minutes")
+        except (TypeError, ValueError):
+            pass
+    if isinstance(value, (dt.date, dt.datetime, dt.time, pd.Timestamp)):
+        return value.isoformat()
+    return value.strip() if isinstance(value, str) else value
+
+
+def _canonical_match_rows(rows: list[dict[str, Any]]) -> list[str]:
+    """Return stable row signatures independent of database row ordering."""
+    signatures = []
+    for row in rows:
+        canonical = {
+            column: _canonical_refresh_value(column, value)
+            for column, value in row.items()
+        }
+        signatures.append(
+            json.dumps(canonical, sort_keys=True, default=str, separators=(",", ":"))
+        )
+    return sorted(signatures)
+
+
+def _match_payload_changed(
+    existing_tables: dict[str, list[dict[str, Any]]],
+    match_payload: dict[str, Any],
+    match_url: str,
+) -> bool:
+    """Return whether a fetched match differs from its hosted raw payload."""
+    for table_name in TABLE_NAMES:
+        existing_rows = [
+            row
+            for row in existing_tables[table_name]
+            if row.get("match_url") == match_url
+        ]
+        incoming_rows = match_payload.get(table_name, [])
+        if _canonical_match_rows(existing_rows) != _canonical_match_rows(incoming_rows):
+            return True
+    return False
 
 
 def scrape_season(
@@ -125,6 +181,8 @@ def scrape_season(
         completed_urls, all_tables, failed_urls = _load_checkpoint(season)
     starting_completed_count = len(completed_urls)
     pending_urls = [url for url in match_urls if url not in completed_urls]
+    attempted_urls = set(pending_urls)
+    affected_match_urls: set[str] = set()
     retry_first_urls = [url for url in pending_urls if url in failed_urls]
     new_pending_urls = [url for url in pending_urls if url not in failed_urls]
     pending_urls = retry_first_urls + new_pending_urls
@@ -159,6 +217,10 @@ def scrape_season(
 
                 try:
                     completed_url, match_payload = future.result()
+                    if postgres_plan is None or _match_payload_changed(
+                        all_tables, match_payload, completed_url
+                    ):
+                        affected_match_urls.add(completed_url)
                     _remove_match_rows(all_tables, completed_url)
                     _append_match_payload(all_tables, match_payload)
                     completed_urls.add(completed_url)
@@ -203,6 +265,9 @@ def scrape_season(
         "completed_matches": len(completed_urls),
         "successful_fetches": len(completed_urls) - starting_completed_count,
         "failed_matches": len(failed_urls),
+        "affected_match_urls": sorted(affected_match_urls),
+        "attempted_match_urls": sorted(attempted_urls),
+        "failed_match_urls": sorted(failed_urls),
         "spill_rows_filtered": spill_counts,
     }
     return season_tables, scrape_summary

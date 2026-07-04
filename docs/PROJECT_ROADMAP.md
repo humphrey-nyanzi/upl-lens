@@ -812,8 +812,8 @@ Implementation command pattern:
 
 - Create database: `psql -U postgres -c "CREATE DATABASE upl_lens;"`
 - Apply migrations: `python scripts/data_platform/apply_db_migrations.py`
-- Load raw CSVs: `python scripts/data_platform/load_raw_to_postgres.py`
-- Load one season only: `python scripts/data_platform/load_raw_to_postgres.py --season 2025-26`
+- Full raw rebuild: `python scripts/data_platform/load_raw_to_postgres.py --season 2025-26 --full-rebuild`
+- Routine loading is driven by the current-season orchestrator and its scraper-generated match plan.
 - Verify CSV counts against Postgres: `python scripts/data_platform/verify_raw_postgres_counts.py`
 
 Acceptance criteria:

@@ -71,6 +71,7 @@ def test_force_full_scrape_disables_postgres_change_detection() -> None:
     )
 
     assert "--disable-postgres-change-detection" in command
+    assert "--full-raw-rebuild" in command
 
 
 def test_routine_command_cannot_enable_unsafe_reload() -> None:

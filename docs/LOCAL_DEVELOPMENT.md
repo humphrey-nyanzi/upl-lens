@@ -59,7 +59,7 @@ Use `.venv\Scripts\python.exe` when the local virtual environment exists.
 | Install API-only dependencies | `.venv\Scripts\python.exe -m pip install -r requirements-api.txt` |
 | Install automation dependencies | `.venv\Scripts\python.exe -m pip install -r requirements-automation.txt` |
 | Apply database migrations | `.venv\Scripts\python.exe scripts\data_platform\apply_db_migrations.py` |
-| Load raw CSVs into Postgres | `.venv\Scripts\python.exe scripts\data_platform\load_raw_to_postgres.py` |
+| Full raw-season rebuild (admin/backfill) | `.venv\Scripts\python.exe scripts\data_platform\load_raw_to_postgres.py --season 2025-26 --full-rebuild` |
 | Verify raw Postgres counts | `.venv\Scripts\python.exe scripts\data_platform\verify_raw_postgres_counts.py` |
 | Build staging tables | `.venv\Scripts\python.exe scripts\data_platform\build_staging_from_raw.py` |
 | Verify staging outputs | `.venv\Scripts\python.exe scripts\data_platform\verify_staging_outputs.py` |
@@ -340,8 +340,8 @@ force_full_scrape=false
 ```
 
 Use `--force-full-scrape` only when you intentionally need a whole-season
-scrape. Full mode otherwise uses Postgres change detection so completed matches
-do not get re-fetched unnecessarily.
+scrape and admin raw rebuild. Full mode otherwise uses Postgres change detection,
+compares refreshed payloads, and loads only genuinely affected match IDs.
 
 ### Hosted Refresh Safety Guards
 
@@ -365,7 +365,13 @@ not trustworthy:
   are allowed, but shrinkage or same-count substitution is blocked
 - the count floors remain secondary source-health checks, but the 90% tolerance
   cannot authorize deleting a hosted match identity
-- all checks run before the first season delete; a blocked decision writes
+- after fetching candidates, the scraper compares each payload with hosted raw
+  rows and writes `upl_raw_refresh_plan_<season>.json`; unchanged candidates do
+  not enter the affected match-ID set
+- routine raw loading validates the complete season/source contract, then deletes
+  and upserts only affected `match_id` rows (plus failure records for attempted
+  URLs); a no-change plan performs no raw database write or commit
+- all checks run before the first raw write; a blocked decision writes
   `upl_raw_load_safety_<season>.json` with the missing-hosted count and a bounded
   URL sample, then skips raw, staging, and analytics writes
 
@@ -380,18 +386,24 @@ The normal hosted command should not use the override:
 .venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --season-scope current --run-type routine-refresh
 ```
 
-A direct raw load now also needs the season's valid source-preflight JSON. The
-raw-loader override exists only for manual recovery after the operator has
-confirmed that a missing contract, intentional removal/correction, or
-empty/partial input is safe:
+A direct raw load defaults to routine incremental mode. It requires both the
+season's valid source-preflight JSON and the scraper-generated refresh plan.
+Use the explicit full rebuild path only for reviewed admin/backfill work:
 
 ```powershell
-.venv\Scripts\python.exe scripts\data_platform\load_raw_to_postgres.py --season 2025-26 --allow-unsafe-season-reload
+.venv\Scripts\python.exe scripts\data_platform\load_raw_to_postgres.py --season 2025-26 --full-rebuild
 ```
 
-Treat that override as a Level 4 manual/admin action. Do not add it to the
-weekly GitHub Actions workflow.
+The unsafe override is narrower still: it is only valid together with
+`--full-rebuild`, after the operator confirms that a missing contract,
+intentional removal/correction, or empty/partial input is safe:
 
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\load_raw_to_postgres.py --season 2025-26 --full-rebuild --allow-unsafe-season-reload
+```
+
+Treat full rebuild and especially its unsafe override as Level 4 manual/admin
+actions. Do not add either flag to the weekly GitHub Actions workflow.
 ## Hosted Workflow Modes
 
 The GitHub workflow exposes operator-level choices:
