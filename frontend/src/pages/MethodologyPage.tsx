@@ -97,11 +97,10 @@ export function MethodologyPage({
   const freshnessRows: MethodologyFreshnessRow[] = [
     {
       icon: <RefreshCw size={16} />,
-      label: "Last checked",
+      label: "Latest staging refresh",
       value: health?.latest_staging_completed_at
         ? formatDate(health.latest_staging_completed_at)
         : "Unknown",
-      status: apiOnline ? "Current" : undefined,
     },
     {
       icon: <CalendarDays size={16} />,
