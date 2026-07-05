@@ -1,0 +1,153 @@
+.trends-lead {
+  display: grid;
+  gap: var(--space-3);
+  border-block: 1px solid var(--surface-border);
+  padding-block: var(--space-4);
+}
+
+.trends-lead-copy {
+  display: grid;
+  gap: 8px;
+  max-width: 78ch;
+}
+
+.trends-lead-copy h2,
+.trends-lead-copy p,
+.trends-scope-note p,
+.trends-scope-note small,
+.trends-panel-takeaway,
+.trends-season-coverage-meta,
+.trends-season-coverage-note {
+  margin: 0;
+}
+
+.trends-lead-copy h2 {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.trends-lead-copy p {
+  max-width: 70ch;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.trends-lead-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.trends-scope-note {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  color: var(--color-green-deep);
+}
+
+.trends-scope-note > div {
+  display: grid;
+  gap: 3px;
+}
+
+.trends-scope-note strong {
+  color: var(--color-text-primary);
+}
+
+.trends-scope-note p,
+.trends-scope-note small {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.trends-panel-takeaway {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--surface-border);
+  padding-top: 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.trends-panel-takeaway strong {
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+
+.trends-season-coverage-list {
+  display: grid;
+  gap: 12px;
+}
+
+.trends-season-coverage-row {
+  display: grid;
+  gap: 8px;
+  border-bottom: 1px solid var(--surface-border);
+  padding-bottom: 12px;
+}
+
+.trends-season-coverage-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.trends-season-coverage-heading,
+.trends-season-coverage-heading > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.trends-season-coverage-heading > div > span {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 700;
+}
+
+.trends-season-coverage-meta,
+.trends-season-coverage-note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.trends-season-coverage-note {
+  color: var(--color-text-secondary);
+}
+
+.trends-table-coverage-cell {
+  display: grid;
+  gap: 3px;
+}
+
+.trends-table-coverage-cell span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+@media (max-width: 860px) {
+  .trends-lead-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .trends-lead {
+    padding-block: var(--space-3);
+  }
+
+  .trends-lead-copy h2 {
+    font-size: 21px;
+  }
+
+  .trends-season-coverage-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
