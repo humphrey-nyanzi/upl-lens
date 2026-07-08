@@ -182,9 +182,9 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
             json.dumps(
                 {
                     "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
-                    "observed_link_count": 208,
-                    "minimum_link_count": 188,
-                    "expected_match_count": 208,
+                    "observed_link_count": 240,
+                    "minimum_link_count": 1,
+                    "expected_match_count": 240,
                     "failure_reason": None,
                 }
             ),
@@ -195,14 +195,14 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
             json.dumps(
                 {
                     "failure_reason": "incoming match set would remove or substitute existing hosted matches",
-                    "expected_match_rows": 208,
-                    "incoming_match_rows": 188,
-                    "incoming_distinct_match_urls": 188,
+                    "expected_match_rows": 240,
+                    "incoming_match_rows": 216,
+                    "incoming_distinct_match_urls": 216,
                     "duplicate_match_rows": 0,
-                    "existing_match_rows": 208,
-                    "missing_existing_match_url_count": 20,
+                    "existing_match_rows": 240,
+                    "missing_existing_match_url_count": 24,
                     "missing_existing_match_url_sample": [
-                        "https://upl.co.ug/event/188/"
+                        "https://upl.co.ug/event/216/"
                     ],
                     "override_enabled": False,
                 }
@@ -245,15 +245,15 @@ def test_failed_run_summary_identifies_failed_stage_and_artifacts(
         assert payload["raw_verification"] == "not_started"
         assert payload["staging_rebuild"] == "not_started"
         evidence = payload["failure_evidence"]
-        assert evidence["observed_link_count"] == 208
-        assert evidence["expected_match_count"] == 208
-        assert evidence["incoming_match_count"] == 188
-        assert evidence["incoming_distinct_match_count"] == 188
+        assert evidence["observed_link_count"] == 240
+        assert evidence["expected_match_count"] == 240
+        assert evidence["incoming_match_count"] == 216
+        assert evidence["incoming_distinct_match_count"] == 216
         assert evidence["duplicate_match_rows"] == 0
-        assert evidence["existing_hosted_count"] == 208
-        assert evidence["missing_existing_match_url_count"] == 20
+        assert evidence["existing_hosted_count"] == 240
+        assert evidence["missing_existing_match_url_count"] == 24
         assert evidence["missing_existing_match_url_sample"] == [
-            "https://upl.co.ug/event/188/"
+            "https://upl.co.ug/event/216/"
         ]
         assert evidence["override_enabled"] is False
         assert evidence["database_write_stages_skipped"] == [
@@ -286,7 +286,7 @@ def test_source_failure_ignores_stale_raw_loader_evidence(
                 "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
                 "failure_reason": "unexpected_calendar_structure",
                 "observed_link_count": 3,
-                "minimum_link_count": 188,
+                "minimum_link_count": 1,
                 "expected_match_count": 3,
             }
         ),
@@ -297,7 +297,7 @@ def test_source_failure_ignores_stale_raw_loader_evidence(
         json.dumps(
             {
                 "failure_reason": "stale loader failure",
-                "incoming_match_rows": 188,
+                "incoming_match_rows": 216,
                 "existing_match_rows": 200,
             }
         ),

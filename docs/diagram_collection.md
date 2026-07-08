@@ -48,7 +48,7 @@ flowchart TD
         SCRAPER <-->|"read/write\ncached HTML"| CACHE
 
         SCRAPER --> PREFLIGHT
-        PREFLIGHT["🛡️ source preflight\nHTTP · HTML type · source URL\nstructure + links vs reviewed baseline\nwrites attempt evidence JSON"]
+        PREFLIGHT["🛡️ source preflight\nHTTP · HTML type · source URL\nstructure + links vs reviewed baseline\nUPL max 240-match ceiling\nwrites attempt evidence JSON"]
         PREFLIGHT -->|"passed"| CSV
         PREFLIGHT -->|"blocked"| SOURCEFAIL
         SCRAPER -->|"match failure after retries"| FAILED

@@ -144,7 +144,7 @@ def _run_loader_boundary(
     incoming_urls: list[str],
     existing_urls: set[str],
     source_urls: set[str] | None = None,
-    expected_count: int = 208,
+    expected_count: int = 240,
     contract_valid: bool = True,
     override: bool = False,
     connection: FakeConnection | None = None,
@@ -228,8 +228,8 @@ def test_safe_raw_season_load_blocks_zero_match_input() -> None:
             incoming_match_rows=0,
             incoming_match_urls=set(),
             duplicate_match_rows=0,
-            existing_match_urls=set(_match_urls(208)),
-            expected_match_rows=208,
+            existing_match_urls=set(_match_urls(240)),
+            expected_match_rows=240,
             source_contract_valid=True,
             incoming_urls_match_source=True,
             allow_unsafe_season_reload=False,
@@ -238,8 +238,22 @@ def test_safe_raw_season_load_blocks_zero_match_input() -> None:
     assert "no in-season rows" in str(error.value)
 
 
-def test_fresh_host_partial_input_never_reaches_delete(monkeypatch, tmp_path) -> None:
-    """The trusted baseline protects an empty hosted database."""
+def test_fresh_host_early_season_input_can_proceed(monkeypatch, tmp_path) -> None:
+    """A new season may start with only the fixtures currently on the calendar."""
+
+    connection, deleted_tables = _run_loader_boundary(
+        monkeypatch,
+        tmp_path,
+        incoming_urls=_match_urls(8),
+        existing_urls=set(),
+    )
+
+    assert set(deleted_tables) == set(raw_loader.RAW_TABLE_CONFIGS)
+    assert connection.commit_count == 1
+
+
+def test_input_above_league_maximum_blocks_before_delete(monkeypatch, tmp_path) -> None:
+    """A source or CSV cannot authorize more than the 240-match UPL ceiling."""
 
     connection = FakeConnection()
     deleted_tables: list[str] = []
@@ -247,13 +261,14 @@ def test_fresh_host_partial_input_never_reaches_delete(monkeypatch, tmp_path) ->
         _run_loader_boundary(
             monkeypatch,
             tmp_path,
-            incoming_urls=_match_urls(20),
+            incoming_urls=_match_urls(raw_loader.UPL_MAX_SEASON_MATCH_COUNT + 1),
             existing_urls=set(),
+            source_urls=set(_match_urls(raw_loader.UPL_MAX_SEASON_MATCH_COUNT + 1)),
             connection=connection,
             deleted_tables=deleted_tables,
         )
 
-    assert "trusted season baseline" in str(error.value)
+    assert "trusted season maximum" in str(error.value)
     assert deleted_tables == []
     assert connection.commit_count == 0
 
@@ -267,16 +282,16 @@ def test_existing_host_shrinkage_blocks_before_delete(monkeypatch, tmp_path) -> 
         _run_loader_boundary(
             monkeypatch,
             tmp_path,
-            incoming_urls=_match_urls(188),
-            existing_urls=set(_match_urls(208)),
+            incoming_urls=_match_urls(216),
+            existing_urls=set(_match_urls(240)),
             connection=connection,
             deleted_tables=deleted_tables,
         )
 
     assert "remove or substitute existing hosted matches" in str(error.value)
-    assert error.value.report.incoming_distinct_match_urls == 188
-    assert error.value.report.existing_match_rows == 208
-    assert error.value.report.missing_existing_match_url_count == 20
+    assert error.value.report.incoming_distinct_match_urls == 216
+    assert error.value.report.existing_match_rows == 240
+    assert error.value.report.missing_existing_match_url_count == 24
     assert len(error.value.report.missing_existing_match_url_sample) == 10
     assert deleted_tables == []
     assert connection.commit_count == 0
@@ -284,9 +299,9 @@ def test_existing_host_shrinkage_blocks_before_delete(monkeypatch, tmp_path) -> 
     payload = json.loads(
         (tmp_path / "raw_load_safety.json").read_text(encoding="utf-8")
     )
-    assert payload["incoming_distinct_match_urls"] == 188
-    assert payload["existing_match_rows"] == 208
-    assert payload["missing_existing_match_url_count"] == 20
+    assert payload["incoming_distinct_match_urls"] == 216
+    assert payload["existing_match_rows"] == 240
+    assert payload["missing_existing_match_url_count"] == 24
     assert len(payload["missing_existing_match_url_sample"]) == 10
     assert payload["database_write_stages_skipped"] == ["raw", "staging", "analytics"]
 
@@ -294,8 +309,8 @@ def test_existing_host_shrinkage_blocks_before_delete(monkeypatch, tmp_path) -> 
 def test_equal_count_substitution_blocks_before_delete(monkeypatch, tmp_path) -> None:
     """Equal counts cannot hide replacement of one hosted match identity."""
 
-    existing_urls = set(_match_urls(208))
-    incoming_urls = _match_urls(207) + ["https://upl.co.ug/event/replacement/"]
+    existing_urls = set(_match_urls(240))
+    incoming_urls = _match_urls(239) + ["https://upl.co.ug/event/replacement/"]
     connection = FakeConnection()
     deleted_tables: list[str] = []
 
@@ -310,11 +325,11 @@ def test_equal_count_substitution_blocks_before_delete(monkeypatch, tmp_path) ->
             deleted_tables=deleted_tables,
         )
 
-    assert error.value.report.incoming_distinct_match_urls == 208
-    assert error.value.report.existing_match_rows == 208
+    assert error.value.report.incoming_distinct_match_urls == 240
+    assert error.value.report.existing_match_rows == 240
     assert error.value.report.missing_existing_match_url_count == 1
     assert (
-        "https://upl.co.ug/event/207/"
+        "https://upl.co.ug/event/239/"
         in error.value.report.missing_existing_match_url_sample
     )
     assert deleted_tables == []
@@ -326,7 +341,7 @@ def test_incoming_superset_preserves_existing_urls_and_proceeds(
 ) -> None:
     """Routine loading may add matches when all hosted identities remain present."""
 
-    incoming_urls = _match_urls(209)
+    incoming_urls = _match_urls(240)
     connection, deleted_tables = _run_loader_boundary(
         monkeypatch,
         tmp_path,
@@ -352,8 +367,8 @@ def test_loader_rejects_self_declared_ten_match_contract(monkeypatch, tmp_path) 
                 "source_structure_valid": True,
                 "expected_match_count": 10,
                 "observed_link_count": 10,
-                "minimum_link_count": 10,
-                "baseline_version": "2026-06-29",
+                "minimum_link_count": 1,
+                "baseline_version": "2026-07-08",
                 "match_urls": _match_urls(10),
             }
         ),
@@ -367,9 +382,52 @@ def test_loader_rejects_self_declared_ten_match_contract(monkeypatch, tmp_path) 
 
     expected, _, valid, urls = raw_loader._read_source_preflight_contract("2025-26")
 
-    assert expected == 208
+    assert expected == 240
     assert valid is False
     assert len(urls) == 10
+
+
+def test_loader_rejects_baseline_above_league_maximum(monkeypatch, tmp_path) -> None:
+    """The loader should not trust a preflight contract above the UPL ceiling."""
+
+    report_path = tmp_path / "source.json"
+    over_maximum = raw_loader.UPL_MAX_SEASON_MATCH_COUNT + 1
+    report_path.write_text(
+        json.dumps(
+            {
+                "status": "passed",
+                "target_season": "2025-26",
+                "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
+                "source_structure_valid": True,
+                "expected_match_count": over_maximum,
+                "observed_link_count": raw_loader.UPL_MAX_SEASON_MATCH_COUNT,
+                "minimum_link_count": 1,
+                "baseline_version": "test-over-max",
+                "match_urls": _match_urls(raw_loader.UPL_MAX_SEASON_MATCH_COUNT),
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setitem(
+        raw_loader.TRUSTED_SEASON_CALENDAR_BASELINES,
+        "2025_26",
+        {
+            "expected_match_count": over_maximum,
+            "version": "test-over-max",
+            "evidence": "intentional invalid test baseline",
+        },
+    )
+    monkeypatch.setattr(
+        raw_loader,
+        "raw_season_source_preflight_file",
+        lambda season: report_path,
+    )
+
+    expected, _, valid, urls = raw_loader._read_source_preflight_contract("2025-26")
+
+    assert expected == over_maximum
+    assert valid is False
+    assert len(urls) == raw_loader.UPL_MAX_SEASON_MATCH_COUNT
 
 
 def test_duplicate_inflation_never_reaches_delete_or_commit(
@@ -383,7 +441,7 @@ def test_duplicate_inflation_never_reaches_delete_or_commit(
         _run_loader_boundary(
             monkeypatch,
             tmp_path,
-            incoming_urls=["https://upl.co.ug/event/0/"] * 188,
+            incoming_urls=["https://upl.co.ug/event/0/"] * 216,
             existing_urls=set(),
             source_urls={"https://upl.co.ug/event/0/"},
             connection=connection,
@@ -392,7 +450,7 @@ def test_duplicate_inflation_never_reaches_delete_or_commit(
 
     assert "duplicate match records" in str(error.value)
     assert error.value.report.incoming_distinct_match_urls == 1
-    assert error.value.report.duplicate_match_rows == 187
+    assert error.value.report.duplicate_match_rows == 215
     assert deleted_tables == []
     assert connection.commit_count == 0
 
@@ -405,7 +463,7 @@ def test_valid_fresh_host_input_reaches_delete_and_commit(
     connection, deleted_tables = _run_loader_boundary(
         monkeypatch,
         tmp_path,
-        incoming_urls=_match_urls(208),
+        incoming_urls=_match_urls(240),
         existing_urls=set(),
     )
 
@@ -421,8 +479,8 @@ def test_named_admin_override_deliberately_permits_reviewed_shrinkage(
     connection, deleted_tables = _run_loader_boundary(
         monkeypatch,
         tmp_path,
-        incoming_urls=_match_urls(188),
-        existing_urls=set(_match_urls(208)),
+        incoming_urls=_match_urls(216),
+        existing_urls=set(_match_urls(240)),
         override=True,
     )
 
@@ -513,7 +571,7 @@ def _run_incremental_loader(
         raw_loader,
         "_read_source_preflight_contract",
         lambda _season: (
-            incoming_count,
+            raw_loader.UPL_MAX_SEASON_MATCH_COUNT,
             "https://upl.co.ug/calendar/2025-26-fixtures-results/",
             True,
             set(_match_urls(incoming_count)),
@@ -576,8 +634,8 @@ def test_routine_no_change_skips_all_raw_database_writes(monkeypatch, tmp_path) 
     connection, deleted, upserted = _run_incremental_loader(
         monkeypatch,
         tmp_path,
-        incoming_count=208,
-        existing_count=208,
+        incoming_count=240,
+        existing_count=240,
         affected_match_ids=set(),
     )
 
@@ -593,8 +651,8 @@ def test_routine_unchanged_recheck_skips_all_raw_database_writes(
     connection, deleted, upserted = _run_incremental_loader(
         monkeypatch,
         tmp_path,
-        incoming_count=208,
-        existing_count=208,
+        incoming_count=240,
+        existing_count=240,
         affected_match_ids=set(),
         attempted_match_ids={207},
     )
@@ -609,8 +667,8 @@ def test_routine_failed_recheck_replaces_failure_state(monkeypatch, tmp_path) ->
     connection, deleted, upserted = _run_incremental_loader(
         monkeypatch,
         tmp_path,
-        incoming_count=208,
-        existing_count=208,
+        incoming_count=240,
+        existing_count=240,
         affected_match_ids=set(),
         attempted_match_ids={207},
         failed_match_ids={207},
@@ -628,15 +686,15 @@ def test_routine_new_match_only_mutates_the_new_match(monkeypatch, tmp_path) -> 
     connection, deleted, upserted = _run_incremental_loader(
         monkeypatch,
         tmp_path,
-        incoming_count=209,
-        existing_count=208,
-        affected_match_ids={208},
+        incoming_count=240,
+        existing_count=239,
+        affected_match_ids={239},
     )
 
     assert connection.commit_count == 1
-    assert {match_id for _, ids in deleted for match_id in ids} == {208}
-    assert [row["match_id"] for row in upserted["matches"]] == ["208"]
-    assert [row["match_id"] for row in upserted["events"]] == ["208"]
+    assert {match_id for _, ids in deleted for match_id in ids} == {239}
+    assert [row["match_id"] for row in upserted["matches"]] == ["239"]
+    assert [row["match_id"] for row in upserted["events"]] == ["239"]
 
 
 def test_routine_changed_match_replaces_only_that_match_children(
@@ -646,8 +704,8 @@ def test_routine_changed_match_replaces_only_that_match_children(
     connection, deleted, upserted = _run_incremental_loader(
         monkeypatch,
         tmp_path,
-        incoming_count=208,
-        existing_count=208,
+        incoming_count=240,
+        existing_count=240,
         affected_match_ids={7},
     )
 

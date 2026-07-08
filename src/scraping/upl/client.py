@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import threading
 import time
 from dataclasses import asdict, dataclass
@@ -20,12 +19,12 @@ from urllib3.util.retry import Retry
 from src.config import (
     MAX_CONCURRENT_REQUESTS,
     MIN_CALENDAR_MATCH_LINKS,
-    MIN_RAW_SEASON_SOURCE_RATIO,
     REQUEST_TIMEOUT,
     RETRY_BACKOFF_SECONDS,
     SCRAPE_RETRY_ATTEMPTS,
     SCRAPER_STATUS_FORCELIST,
     TRUSTED_SEASON_CALENDAR_BASELINES,
+    UPL_MAX_SEASON_MATCH_COUNT,
     UPL_CALENDAR_URL,
     UPL_EVENT_URL_PREFIX,
     season_key,
@@ -284,14 +283,7 @@ def fetch_match_urls(
     checked_at = datetime.now(timezone.utc).isoformat()
     baseline = TRUSTED_SEASON_CALENDAR_BASELINES.get(season_key(season))
     expected_match_count = int(baseline["expected_match_count"]) if baseline else 0
-    minimum_authorized_count = (
-        max(
-            minimum_match_links,
-            math.ceil(expected_match_count * MIN_RAW_SEASON_SOURCE_RATIO),
-        )
-        if expected_match_count > 0
-        else minimum_match_links
-    )
+    minimum_authorized_count = minimum_match_links
     baseline_version = str(baseline["version"]) if baseline else None
     baseline_evidence = str(baseline["evidence"]) if baseline else None
     print(f"Fetching match calendar from: {calendar_url}")
@@ -371,8 +363,12 @@ def fetch_match_urls(
     print(f"[ok] Found {len(unique_match_urls)} unique matches")
     if failure_reason is None and baseline is None:
         failure_reason = "trusted_season_baseline_missing"
+    elif failure_reason is None and expected_match_count > UPL_MAX_SEASON_MATCH_COUNT:
+        failure_reason = "trusted_season_baseline_above_league_maximum"
     elif failure_reason is None and len(unique_match_urls) < minimum_authorized_count:
-        failure_reason = "match_link_count_below_trusted_baseline"
+        failure_reason = "match_link_count_below_minimum"
+    elif failure_reason is None and len(unique_match_urls) > expected_match_count:
+        failure_reason = "match_link_count_above_trusted_maximum"
 
     report = SourceCalendarPreflightReport(
         status="failed" if failure_reason else "passed",
@@ -397,7 +393,7 @@ def fetch_match_urls(
         print(
             "[error] Source calendar preflight failed: "
             f"{failure_reason}; found {len(unique_match_urls)} match link(s), "
-            f"trusted expected={expected_match_count}, minimum={minimum_authorized_count}."
+            f"trusted maximum={expected_match_count}, minimum={minimum_authorized_count}."
         )
         raise SourceCalendarPreflightError(report)
     return unique_match_urls
