@@ -7,7 +7,11 @@ import json
 import pytest
 import requests
 
-from src.config import TRUSTED_SEASON_CALENDAR_BASELINES, UPL_CALENDAR_URL
+from src.config import (
+    TRUSTED_SEASON_CALENDAR_BASELINES,
+    UPL_CALENDAR_URL,
+    UPL_MAX_SEASON_MATCH_COUNT,
+)
 from src.scraping.upl.client import (
     SourceCalendarPreflightError,
     SourceDocument,
@@ -71,14 +75,15 @@ def test_fetch_match_urls_reports_http_failure(tmp_path) -> None:
     assert error.value.report.failure_reason == "http_failure: 415 Client Error"
     assert payload["status"] == "failed"
     assert payload["observed_link_count"] == 0
-    assert payload["expected_match_count"] == 208
+    assert payload["expected_match_count"] == UPL_MAX_SEASON_MATCH_COUNT
 
 
 def test_fetch_match_urls_rejects_plausible_links_without_calendar_structure() -> None:
     """A generic HTML page cannot pass by merely containing event-like links."""
 
     links = "".join(
-        f'<a href="https://upl.co.ug/event/{index}/">Event</a>' for index in range(208)
+        f'<a href="https://upl.co.ug/event/{index}/">Event</a>'
+        for index in range(UPL_MAX_SEASON_MATCH_COUNT)
     )
     client = FakeClient(f"<html><body>{links}</body></html>")
 
@@ -86,13 +91,16 @@ def test_fetch_match_urls_rejects_plausible_links_without_calendar_structure() -
         fetch_match_urls(client, "2025-26")
 
     assert error.value.report.failure_reason == "unexpected_calendar_structure"
-    assert error.value.match_count == 208
+    assert error.value.match_count == UPL_MAX_SEASON_MATCH_COUNT
 
 
 def test_fetch_match_urls_rejects_non_html_content() -> None:
     """A successful status with the wrong content type is still unsafe."""
 
-    client = FakeClient(_valid_calendar_html(208), content_type="application/json")
+    client = FakeClient(
+        _valid_calendar_html(UPL_MAX_SEASON_MATCH_COUNT),
+        content_type="application/json",
+    )
 
     with pytest.raises(SourceCalendarPreflightError) as error:
         fetch_match_urls(client, "2025-26")
@@ -102,30 +110,51 @@ def test_fetch_match_urls_rejects_non_html_content() -> None:
     )
 
 
-def test_truncated_valid_calendar_cannot_define_or_rotate_its_baseline(
-    tmp_path,
-) -> None:
-    """Ten valid links cannot self-certify a fresh-host season load."""
+def test_early_season_calendar_can_pass_without_rotating_baseline(tmp_path) -> None:
+    """A valid early-season calendar may contain far fewer than 240 fixtures."""
 
     trusted_before = dict(TRUSTED_SEASON_CALENDAR_BASELINES["2025_26"])
     report_path = tmp_path / "source.json"
 
-    with pytest.raises(SourceCalendarPreflightError) as error:
-        fetch_match_urls(
-            FakeClient(_valid_calendar_html(10)),
-            "2025-26",
-            report_path=report_path,
-        )
+    urls = fetch_match_urls(
+        FakeClient(_valid_calendar_html(8)),
+        "2025-26",
+        report_path=report_path,
+    )
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
-    assert (
-        error.value.report.failure_reason == "match_link_count_below_trusted_baseline"
-    )
-    assert payload["observed_link_count"] == 10
-    assert payload["expected_match_count"] == 208
-    assert payload["minimum_link_count"] == 188
-    assert payload["baseline_version"] == "2026-06-29"
+    assert len(urls) == 8
+    assert payload["status"] == "passed"
+    assert payload["observed_link_count"] == 8
+    assert payload["expected_match_count"] == UPL_MAX_SEASON_MATCH_COUNT
+    assert payload["minimum_link_count"] == 1
+    assert payload["baseline_version"] == "2026-07-08"
     assert TRUSTED_SEASON_CALENDAR_BASELINES["2025_26"] == trusted_before
+
+
+def test_configured_baseline_above_league_maximum_fails_closed(monkeypatch) -> None:
+    """A typo above the 240-match UPL ceiling must not authorize a scrape."""
+
+    monkeypatch.setitem(
+        TRUSTED_SEASON_CALENDAR_BASELINES,
+        "2025_26",
+        {
+            "expected_match_count": UPL_MAX_SEASON_MATCH_COUNT + 1,
+            "version": "test-over-max",
+            "evidence": "intentional invalid test baseline",
+        },
+    )
+
+    with pytest.raises(SourceCalendarPreflightError) as error:
+        fetch_match_urls(
+            FakeClient(_valid_calendar_html(UPL_MAX_SEASON_MATCH_COUNT)),
+            "2025-26",
+        )
+
+    assert (
+        error.value.report.failure_reason
+        == "trusted_season_baseline_above_league_maximum"
+    )
 
 
 def test_missing_trusted_baseline_fails_closed() -> None:
@@ -133,7 +162,9 @@ def test_missing_trusted_baseline_fails_closed() -> None:
 
     with pytest.raises(SourceCalendarPreflightError) as error:
         fetch_match_urls(
-            FakeClient(_valid_calendar_html(208, season="2026-27")),
+            FakeClient(
+                _valid_calendar_html(UPL_MAX_SEASON_MATCH_COUNT, season="2026-27")
+            ),
             "2026-27",
         )
 
@@ -141,20 +172,32 @@ def test_missing_trusted_baseline_fails_closed() -> None:
     assert error.value.report.expected_match_count == 0
 
 
-def test_fetch_match_urls_accepts_trusted_208_link_snapshot(tmp_path) -> None:
-    """The validated 2025-26 snapshot size should pass the reviewed baseline."""
+def test_source_calendar_above_league_maximum_fails_closed() -> None:
+    """The official calendar should never authorize more than 240 UPL matches."""
+
+    with pytest.raises(SourceCalendarPreflightError) as error:
+        fetch_match_urls(
+            FakeClient(_valid_calendar_html(UPL_MAX_SEASON_MATCH_COUNT + 1)),
+            "2025-26",
+        )
+
+    assert error.value.report.failure_reason == "match_link_count_above_trusted_maximum"
+
+
+def test_fetch_match_urls_accepts_trusted_240_link_snapshot(tmp_path) -> None:
+    """The validated full 2025-26 snapshot size should pass the reviewed baseline."""
 
     report_path = tmp_path / "source.json"
     urls = fetch_match_urls(
-        FakeClient(_valid_calendar_html(208)),
+        FakeClient(_valid_calendar_html(UPL_MAX_SEASON_MATCH_COUNT)),
         "2025-26",
         report_path=report_path,
     )
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
-    assert len(urls) == 208
+    assert len(urls) == UPL_MAX_SEASON_MATCH_COUNT
     assert payload["status"] == "passed"
     assert payload["source_structure_valid"] is True
-    assert payload["observed_link_count"] == 208
-    assert payload["expected_match_count"] == 208
-    assert payload["minimum_link_count"] == 188
+    assert payload["observed_link_count"] == UPL_MAX_SEASON_MATCH_COUNT
+    assert payload["expected_match_count"] == UPL_MAX_SEASON_MATCH_COUNT
+    assert payload["minimum_link_count"] == 1

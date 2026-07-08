@@ -353,18 +353,20 @@ not trustworthy:
   plausible number of official event links
 - authorization uses the reviewed baseline in
   `TRUSTED_SEASON_CALENDAR_BASELINES`, never a count learned from the current
-  response; the 2025-26 baseline is 208 and its 90% authorization floor is 188
+  response; the 2025-26 baseline is 240 as a maximum, the UPL league
+  maximum is 240, and routine weekly runs may load a smaller non-empty
+  early-season calendar
 - every attempt writes `data/raw/<season>/upl_source_preflight_<season>.json`
-  as evidence, but a failed or truncated attempt cannot create or rotate the
-  version-controlled baseline
-- the loader independently checks the report's baseline count/version, counts
-  distinct validated match URLs, and rejects duplicate match records before
-  any delete; a 10-link response therefore fails on a fresh hosted database
+  as evidence, but a failed, malformed, or over-limit attempt cannot create or
+  rotate the version-controlled baseline
+- the loader independently checks the report's baseline maximum/version, counts
+  distinct validated match URLs, rejects duplicate match records, and blocks
+  sources above the 240-match maximum before any delete
 - when hosted rows already exist, routine mode reads their distinct match URLs
   and requires every hosted identity to remain in the incoming set; additions
   are allowed, but shrinkage or same-count substitution is blocked
-- the count floors remain secondary source-health checks, but the 90% tolerance
-  cannot authorize deleting a hosted match identity
+- a smaller early-season source is allowed only when it is non-empty, under
+  the 240-match maximum, and does not remove hosted match identities
 - after fetching candidates, the scraper compares each payload with hosted raw
   rows and writes `upl_raw_refresh_plan_<season>.json`; unchanged candidates do
   not enter the affected match-ID set
@@ -376,9 +378,10 @@ not trustworthy:
   URL sample, then skips raw, staging, and analytics writes
 
 To add or rotate a season baseline, validate a known-good official calendar,
-update its count, version, and evidence in `src/config.py`, and review that code
-change before the season can run routinely. Unknown seasons fail closed. The
-current HTTP response and its JSON artifact never mutate this baseline.
+update its maximum count, version, and evidence in `src/config.py`, and review
+that code change before the season can run routinely. Unknown seasons fail
+closed until their reviewed maximum is added. The current HTTP response and its
+JSON artifact never mutate this baseline.
 
 The normal hosted command should not use the override:
 

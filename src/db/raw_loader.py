@@ -24,9 +24,9 @@ from src.config import (
     MIN_CALENDAR_MATCH_LINKS,
     MIN_RAW_SEASON_MATCH_RATIO,
     MIN_RAW_SEASON_MATCH_ROWS,
-    MIN_RAW_SEASON_SOURCE_RATIO,
     RAW_TABLE_FILE_PREFIXES,
     TRUSTED_SEASON_CALENDAR_BASELINES,
+    UPL_MAX_SEASON_MATCH_COUNT,
     UPL_CALENDAR_URL,
     raw_season_dir,
     raw_season_failed_matches_file,
@@ -118,17 +118,10 @@ class RawSeasonSafetyReport:
     missing_existing_match_url_sample: tuple[str, ...]
     expected_match_rows: int
     minimum_match_rows: int
-    minimum_source_ratio: float
     minimum_existing_ratio: float
     source_contract_valid: bool
     incoming_urls_match_source: bool
     override_enabled: bool
-
-    @property
-    def minimum_source_rows(self) -> int:
-        """Return the season-aware floor derived from the validated calendar."""
-
-        return math.ceil(self.expected_match_rows * self.minimum_source_ratio)
 
 
 class RawSeasonLoadSafetyError(RuntimeError):
@@ -145,9 +138,8 @@ class RawSeasonLoadSafetyError(RuntimeError):
             f"duplicate match rows={report.duplicate_match_rows}, "
             f"existing raw matches={report.existing_match_rows}, "
             f"missing existing URLs={report.missing_existing_match_url_count}, "
-            f"expected matches={report.expected_match_rows}, "
-            f"minimum source matches={report.minimum_source_rows}, "
-            f"minimum fixed matches={report.minimum_match_rows}, "
+            f"maximum season matches={report.expected_match_rows}, "
+            f"minimum match rows={report.minimum_match_rows}, "
             f"minimum existing ratio={report.minimum_existing_ratio:.0%}, "
             f"override enabled={report.override_enabled})."
         )
@@ -646,14 +638,7 @@ def _read_source_preflight_contract(
     trusted_expected_rows = (
         int(trusted_baseline["expected_match_count"]) if trusted_baseline else 0
     )
-    trusted_minimum_rows = (
-        max(
-            MIN_CALENDAR_MATCH_LINKS,
-            math.ceil(trusted_expected_rows * MIN_RAW_SEASON_SOURCE_RATIO),
-        )
-        if trusted_expected_rows > 0
-        else MIN_CALENDAR_MATCH_LINKS
-    )
+    trusted_minimum_rows = MIN_CALENDAR_MATCH_LINKS
     report_path = raw_season_source_preflight_file(season)
     if not report_path.exists():
         return trusted_expected_rows, expected_source_url, False, set()
@@ -671,6 +656,7 @@ def _read_source_preflight_contract(
     source_urls = set(match_urls) if isinstance(match_urls, list) else set()
     contract_valid = (
         trusted_baseline is not None
+        and 0 < trusted_expected_rows <= UPL_MAX_SEASON_MATCH_COUNT
         and payload.get("status") == "passed"
         and season_key(str(payload.get("target_season", ""))) == season_key(season)
         and source_url == expected_source_url
@@ -679,6 +665,7 @@ def _read_source_preflight_contract(
         and reported_minimum_rows == trusted_minimum_rows
         and observed_link_count == len(source_urls)
         and observed_link_count >= trusted_minimum_rows
+        and observed_link_count <= trusted_expected_rows
         and str(payload.get("baseline_version")) == str(trusted_baseline["version"])
     )
     return trusted_expected_rows, source_url, contract_valid, source_urls
@@ -698,7 +685,7 @@ def _write_raw_load_safety_artifact(
         "status": status,
         "failure_reason": failure_reason,
         **asdict(report),
-        "minimum_source_rows": report.minimum_source_rows,
+        "minimum_source_rows": report.minimum_match_rows,
         "database_write_stages_skipped": (
             ["raw", "staging", "analytics"] if status == "blocked" else []
         ),
@@ -741,7 +728,6 @@ def _enforce_safe_raw_season_load(
     incoming_urls_match_source: bool,
     allow_unsafe_season_reload: bool,
     minimum_match_rows: int = MIN_RAW_SEASON_MATCH_ROWS,
-    minimum_source_ratio: float = MIN_RAW_SEASON_SOURCE_RATIO,
     minimum_existing_ratio: float = MIN_RAW_SEASON_MATCH_RATIO,
 ) -> RawSeasonSafetyReport:
     """Block unsafe raw loads before any season rows are deleted."""
@@ -758,7 +744,6 @@ def _enforce_safe_raw_season_load(
         missing_existing_match_url_sample=tuple(missing_existing_urls[:10]),
         expected_match_rows=expected_match_rows,
         minimum_match_rows=minimum_match_rows,
-        minimum_source_ratio=minimum_source_ratio,
         minimum_existing_ratio=minimum_existing_ratio,
         source_contract_valid=source_contract_valid,
         incoming_urls_match_source=incoming_urls_match_source,
@@ -796,10 +781,10 @@ def _enforce_safe_raw_season_load(
             "incoming match CSV is below the minimum trusted match count",
         )
 
-    if len(incoming_match_urls) < report.minimum_source_rows:
+    if len(incoming_match_urls) > expected_match_rows:
         raise RawSeasonLoadSafetyError(
             report,
-            "incoming distinct match URLs are below the trusted season baseline",
+            "incoming match CSV exceeds the trusted season maximum",
         )
 
     if missing_existing_urls:

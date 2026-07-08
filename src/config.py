@@ -58,18 +58,22 @@ MAX_CONCURRENT_REQUESTS = 4
 CHECKPOINT_EVERY = 25
 USE_HTML_CACHE = True
 SCRAPER_STATUS_FORCELIST = (429, 500, 502, 503, 504)
-MIN_CALENDAR_MATCH_LINKS = 10
-MIN_RAW_SEASON_MATCH_ROWS = 10
+MIN_CALENDAR_MATCH_LINKS = 1
+MIN_RAW_SEASON_MATCH_ROWS = 1
 MIN_RAW_SEASON_MATCH_RATIO = 0.5
-MIN_RAW_SEASON_SOURCE_RATIO = 0.9
+UPL_MAX_SEASON_MATCH_COUNT = 240
 # Trusted baselines are reviewed operational data, not values learned from the
 # current HTTP response. Rotate a baseline only after validating a known-good
 # official calendar snapshot and recording the evidence in the same code review.
+# Uganda Premier League seasons should not exceed the 240-match league maximum.
 TRUSTED_SEASON_CALENDAR_BASELINES = {
     "2025_26": {
-        "expected_match_count": 208,
-        "version": "2026-06-29",
-        "evidence": "validated official 2025-26 calendar snapshot",
+        "expected_match_count": 240,
+        "version": "2026-07-08",
+        "evidence": (
+            "validated official 2025-26 calendar snapshot and hosted raw match "
+            "identity set from GitHub Actions run 28786442845"
+        ),
     },
 }
 
