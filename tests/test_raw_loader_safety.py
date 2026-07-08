@@ -387,6 +387,44 @@ def test_loader_rejects_self_declared_ten_match_contract(monkeypatch, tmp_path) 
     assert len(urls) == 10
 
 
+def test_loader_accepts_hyphenated_source_url_for_normalized_season(
+    monkeypatch, tmp_path
+) -> None:
+    """Hosted runs pass normalized season keys while source URLs keep hyphens."""
+
+    report_path = tmp_path / "source.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "status": "passed",
+                "target_season": "2025-26",
+                "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
+                "source_structure_valid": True,
+                "expected_match_count": raw_loader.UPL_MAX_SEASON_MATCH_COUNT,
+                "observed_link_count": raw_loader.UPL_MAX_SEASON_MATCH_COUNT,
+                "minimum_link_count": 1,
+                "baseline_version": "2026-07-08",
+                "match_urls": _match_urls(raw_loader.UPL_MAX_SEASON_MATCH_COUNT),
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        raw_loader,
+        "raw_season_source_preflight_file",
+        lambda season: report_path,
+    )
+
+    expected, source_url, valid, urls = raw_loader._read_source_preflight_contract(
+        "2025_26"
+    )
+
+    assert expected == raw_loader.UPL_MAX_SEASON_MATCH_COUNT
+    assert source_url == "https://upl.co.ug/calendar/2025-26-fixtures-results/"
+    assert valid is True
+    assert len(urls) == raw_loader.UPL_MAX_SEASON_MATCH_COUNT
+
+
 def test_loader_rejects_baseline_above_league_maximum(monkeypatch, tmp_path) -> None:
     """The loader should not trust a preflight contract above the UPL ceiling."""
 

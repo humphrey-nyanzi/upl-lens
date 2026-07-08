@@ -633,7 +633,8 @@ def _read_source_preflight_contract(
 ) -> tuple[int, str, bool, set[str]]:
     """Validate scraper evidence against the version-controlled season baseline."""
 
-    expected_source_url = UPL_CALENDAR_URL.format(season=season)
+    source_season = season_key(season).replace("_", "-")
+    expected_source_url = UPL_CALENDAR_URL.format(season=source_season)
     trusted_baseline = TRUSTED_SEASON_CALENDAR_BASELINES.get(season_key(season))
     trusted_expected_rows = (
         int(trusted_baseline["expected_match_count"]) if trusted_baseline else 0
