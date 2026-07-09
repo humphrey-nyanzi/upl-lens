@@ -15,7 +15,7 @@ import {
   type DataQualityTone,
 } from "../components/intelligence/DataQualityNote";
 import { InsightEmptyState } from "../components/intelligence/InsightEmptyState";
-import { MiniBarChart } from "../components/intelligence/MiniBarChart";
+import { MiniTrendLineChart } from "../components/intelligence/MiniTrendLineChart";
 import {
   SignalChip,
   type SignalTone,
@@ -179,9 +179,9 @@ function TrendsChartGrid({
       aria-label="League trend charts"
     >
       <article className="panel trends-chart-panel">
-        <MiniBarChart
+        <MiniTrendLineChart
           data={highScoringData}
-          description="Share of recorded matches with at least three scoreline goals."
+          description="Line shows the share of recorded matches with at least three scoreline goals."
           emptyLabel="High-scoring match share is not available yet."
           height="regular"
           title="High-scoring match share"
@@ -191,9 +191,9 @@ function TrendsChartGrid({
       </article>
 
       <article className="panel trends-chart-panel">
-        <MiniBarChart
+        <MiniTrendLineChart
           data={goalsData}
-          description="Timeline-recorded goals per match. Muted bars mark seasons with limited timeline evidence."
+          description="Line shows timeline-recorded goals per match. Muted dots mark seasons with limited timeline evidence."
           emptyLabel="Timeline scoring-rate data is not available yet."
           height="regular"
           title="Scoring over time"
@@ -244,9 +244,9 @@ function TrendsChartGrid({
       </article>
 
       <article className="panel trends-chart-panel">
-        <MiniBarChart
+        <MiniTrendLineChart
           data={cardsData}
-          description="Timeline-recorded cards per match. Muted bars mark seasons with limited timeline evidence."
+          description="Line shows timeline-recorded cards per match. Muted dots mark seasons with limited timeline evidence."
           emptyLabel="Card-rate trend data is not available yet."
           height="regular"
           title="Discipline over time"
@@ -296,6 +296,8 @@ function TrendsCoveragePanel({
         <SeasonCoverageRows rows={rows} />
         <DataQualityNote
           title="Trend reading note"
+          topic="timeline"
+          variant="caveat"
           tone={qualityToneForStatus(overallStatus)}
           note={
             timelineGoalGap > 0

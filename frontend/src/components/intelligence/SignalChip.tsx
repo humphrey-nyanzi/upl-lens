@@ -19,24 +19,37 @@ export type SignalChipGroupProps = {
   emptyLabel?: string;
   size?: "small" | "medium";
   maxVisible?: number;
+  overflowLabel?: string;
 };
 
 export function SignalChip({ description, label, size = "medium", tone = "neutral" }: SignalChipProps) {
+  const accessibleLabel = description ? `${label}: ${description}` : label;
+
   return (
-    <span className={`signal-chip signal-chip-${tone} signal-chip-${size}`} title={description ?? undefined}>
+    <span
+      aria-label={accessibleLabel}
+      className={`signal-chip signal-chip-${tone} signal-chip-${size}`}
+      title={description ?? undefined}
+    >
       {label}
-      {description ? <span className="visually-hidden">: {description}</span> : null}
     </span>
   );
 }
 
-export function SignalChipGroup({ emptyLabel, items, maxVisible, size = "medium" }: SignalChipGroupProps) {
+export function SignalChipGroup({
+  emptyLabel,
+  items,
+  maxVisible,
+  overflowLabel = "Additional signals",
+  size = "medium",
+}: SignalChipGroupProps) {
   if (items.length === 0) {
     return emptyLabel ? <span className="signal-chip-group-empty">{emptyLabel}</span> : null;
   }
 
   const visibleItems = maxVisible ? items.slice(0, maxVisible) : items;
-  const remainingCount = maxVisible && items.length > maxVisible ? items.length - maxVisible : 0;
+  const overflowItems = maxVisible ? items.slice(maxVisible) : [];
+  const remainingCount = overflowItems.length;
 
   return (
     <div className="signal-chip-group">
@@ -49,7 +62,23 @@ export function SignalChipGroup({ emptyLabel, items, maxVisible, size = "medium"
           tone={item.tone}
         />
       ))}
-      {remainingCount ? <SignalChip label={`+${remainingCount}`} size={size} tone="muted" /> : null}
+      {remainingCount ? (
+        <details className={`signal-chip-overflow signal-chip-overflow-${size}`}>
+          <summary
+            aria-label={`Show ${remainingCount} more ${remainingCount === 1 ? "signal" : "signals"}`}
+            className={`signal-chip signal-chip-muted signal-chip-${size}`}
+          >
+            +{remainingCount}
+          </summary>
+          <ul className="signal-chip-overflow-list" aria-label={overflowLabel}>
+            {overflowItems.map((item, index) => (
+              <li key={item.key ?? `${item.label}-overflow-${index}`}>
+                <SignalChip description={item.description} label={item.label} size={size} tone={item.tone} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </div>
   );
 }

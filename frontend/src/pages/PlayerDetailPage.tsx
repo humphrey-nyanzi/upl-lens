@@ -375,6 +375,8 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
 
       <DataQualityNote
         compact
+        topic="lineups"
+        variant="caveat"
         note={
           player.data_quality_note ??
           "This player profile is built from available lineups and event timelines, so treat it as a source-backed contribution summary rather than an official ranking."
@@ -395,6 +397,8 @@ export default function PlayerDetailPage({ selectedSeason }: Pick<PageProps, "se
         title="How reliable is this profile?"
       >
         <DataQualityNote
+          topic="players"
+          variant="evidence"
           metrics={[
             { detail: "Available lineup records in the selected scope.", label: "Appearances", value: player.appearances },
             { detail: "Starts as a share of appearances.", label: "Starts share", value: formatStartsShare(player.starts_share) },

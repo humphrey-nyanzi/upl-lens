@@ -7,7 +7,8 @@ pages map FastAPI response fields into these props.
 - `DataQualityNote`: compact or full caveats near charts, profiles, and detail views.
 - `MetricDelta`: neutral metric value plus optional context or delta.
 - `HorizontalComparisonBar`: compact multi-value comparison for teams, stats, and contributions.
-- `MiniBarChart`: responsive Recharts bar chart for small trends and distributions.
+- `MiniBarChart`: responsive Recharts bar chart for categorical comparisons and distributions.
+- `MiniTrendLineChart`: responsive Recharts line/dot chart for season movement and teaser trends.
 - `StackedShareBar`: share-of-whole bar for result splits, cards, and coverage.
 - `ScatterComparisonPlot`: two-axis Recharts comparison for teams or players.
 - `TimelineRail`: key match moments across 0-90+ minutes.
