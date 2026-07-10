@@ -4499,6 +4499,7 @@ p {
 
 /* Reusable intelligence components */
 .signal-chip-group {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -4519,6 +4520,8 @@ p {
   font-weight: 700;
   line-height: 1.1;
   padding: 5px 9px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   white-space: normal;
 }
 
@@ -4530,6 +4533,58 @@ p {
 
 .signal-chip-medium {
   min-height: 28px;
+}
+.signal-chip-overflow {
+  display: inline-grid;
+  max-width: 100%;
+  gap: 6px;
+  min-width: 0;
+}
+
+.signal-chip-overflow[open] {
+  flex-basis: 100%;
+}
+
+.signal-chip-overflow summary {
+  width: fit-content;
+  cursor: pointer;
+  list-style: none;
+}
+
+.signal-chip-overflow summary::-webkit-details-marker {
+  display: none;
+}
+
+.signal-chip-overflow-summary {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.signal-chip-overflow summary:hover,
+.signal-chip-overflow summary:focus-visible {
+  border-color: var(--color-green-muted);
+  color: var(--color-green-deep);
+}
+
+.signal-chip-overflow-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-soft);
+  padding: 8px;
+}
+
+.signal-chip-overflow-list li {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
 }
 
 .signal-chip-positive {
@@ -4552,6 +4607,7 @@ p {
 
 .signal-chip-muted,
 .signal-chip-group-empty {
+  border-color: rgba(15, 23, 32, 0.1);
   background: rgba(15, 23, 32, 0.035);
   color: var(--color-text-muted);
 }
@@ -4586,6 +4642,24 @@ p {
 .data-quality-note-copy {
   display: grid;
   gap: 5px;
+}
+
+.data-quality-note-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.data-quality-note-heading span {
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-pill);
+  background: rgba(15, 23, 32, 0.035);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 7px;
 }
 
 .data-quality-note-copy strong,
@@ -4847,6 +4921,7 @@ p {
 }
 
 .mini-bar-chart,
+.mini-trend-line-chart,
 .scatter-comparison-plot,
 .timeline-rail,
 .score-progression {
@@ -4866,7 +4941,8 @@ p {
   min-width: 0;
 }
 
-.mini-bar-chart-compact .mini-chart-canvas {
+.mini-bar-chart-compact .mini-chart-canvas,
+.mini-trend-line-chart-compact .mini-chart-canvas {
   height: 160px;
 }
 

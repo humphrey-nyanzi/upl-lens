@@ -4,6 +4,7 @@ export * from "./FormStrip";
 export * from "./InsightEmptyState";
 export * from "./MetricDelta";
 export * from "./MiniBarChart";
+export * from "./MiniTrendLineChart";
 export * from "./ScatterComparisonPlot";
 export * from "./ScoreProgression";
 export * from "./SignalChip";

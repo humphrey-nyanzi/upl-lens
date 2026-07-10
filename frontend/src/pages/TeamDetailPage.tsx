@@ -431,6 +431,8 @@ export default function TeamDetailPage({ onRefresh, selectedSeason, selectedSeas
           />
           <DataQualityNote
             compact
+            topic="timeline"
+            variant="caveat"
             note="Timeline-based goal timing depends on event coverage."
             title="Goal timing caveat"
             tone={qualityToneForStatus(dataStatus)}
@@ -455,6 +457,8 @@ export default function TeamDetailPage({ onRefresh, selectedSeason, selectedSeas
       </section>
 
       <DataQualityNote
+        topic="coverage"
+        variant="evidence"
         metrics={[
           { label: "Timeline coverage", value: formatNullablePercent(profile.data_quality.timeline_coverage_share) },
           { label: "Covered matches", value: profile.data_quality.timeline_coverage_matches.toLocaleString(), detail: `${profile.data_quality.total_matches} total` },

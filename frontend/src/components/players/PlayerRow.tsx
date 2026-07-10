@@ -27,7 +27,13 @@ export function PlayerRow({ player }: { player: PlayerSummary }) {
         <strong>{player.player_name}</strong>
         <TeamName className="player-row-team" label={teamLabel} size="small" />
         <span>{player.teams.length > 1 ? player.teams.join(", ") : formatShare(player.starts_share)}</span>
-        <SignalChipGroup emptyLabel="No contribution labels yet" items={labels} maxVisible={3} size="small" />
+        <SignalChipGroup
+          emptyLabel="No contribution labels yet"
+          items={labels}
+          maxVisible={3}
+          overflowMode="inline-summary"
+          size="small"
+        />
       </div>
       <div className="player-row-stats">
         <StatCell label="Goals" value={player.goals} />

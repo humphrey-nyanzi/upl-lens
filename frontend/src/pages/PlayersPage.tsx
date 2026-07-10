@@ -201,7 +201,13 @@ function LeaderboardRow({
           <TeamName className="player-row-team" label={teamLabel} size="small" />
         </div>
         <span>{player.teams.length > 1 ? player.teams.join(", ") : formatLeaderboardSecondary(player, leaderboardKey)}</span>
-        <SignalChipGroup emptyLabel="No contribution labels yet" items={getPlayerLabels(player.profile_labels)} maxVisible={3} size="small" />
+        <SignalChipGroup
+          emptyLabel="No contribution labels yet"
+          items={getPlayerLabels(player.profile_labels)}
+          maxVisible={3}
+          overflowMode="inline-summary"
+          size="small"
+        />
       </div>
       <div className="player-board-row-metrics">
         <MetricDelta
