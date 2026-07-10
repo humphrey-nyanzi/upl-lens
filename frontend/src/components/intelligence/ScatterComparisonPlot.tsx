@@ -23,11 +23,20 @@ export type ScatterComparisonPlotProps = {
   xFormatter?: (value: number) => string;
   yFormatter?: (value: number) => string;
   emptyLabel?: string;
+  maxPreviewPoints?: number;
+  showReferenceGuides?: boolean;
 };
 
 const ScatterComparisonChart = lazy(() =>
   import("./ScatterComparisonChart").then((module) => ({ default: module.ScatterComparisonChart })),
 );
+
+function median(values: number[]) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const midpoint = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[midpoint] : (sorted[midpoint - 1] + sorted[midpoint]) / 2;
+}
 
 function PointLabel({
   item,
@@ -50,10 +59,36 @@ function PointLabel({
   );
 }
 
+function ScatterPointListItem({
+  formatPointValue,
+  item,
+  xFormatter,
+  yFormatter,
+}: {
+  formatPointValue: (item: ScatterDatum) => string;
+  item: ScatterDatum;
+  xFormatter?: (value: number) => string;
+  yFormatter?: (value: number) => string;
+}) {
+  return (
+    <li>
+      {item.href ? (
+        <Link to={item.href} aria-label={`Open ${item.label}: ${formatPointValue(item)}`}>
+          <PointLabel item={item} xFormatter={xFormatter} yFormatter={yFormatter} />
+        </Link>
+      ) : (
+        <PointLabel item={item} xFormatter={xFormatter} yFormatter={yFormatter} />
+      )}
+    </li>
+  );
+}
+
 export function ScatterComparisonPlot({
   data,
   description,
   emptyLabel = "No comparison data available yet.",
+  maxPreviewPoints = 8,
+  showReferenceGuides = true,
   title,
   xFormatter,
   xLabel,
@@ -61,6 +96,14 @@ export function ScatterComparisonPlot({
   yLabel,
 }: ScatterComparisonPlotProps) {
   const chartData = data.filter((item) => Number.isFinite(item.x) && Number.isFinite(item.y));
+  const previewPoints = chartData.slice(0, maxPreviewPoints);
+  const overflowPoints = chartData.slice(maxPreviewPoints);
+  const referenceX = showReferenceGuides && chartData.length > 1 ? median(chartData.map((item) => item.x)) : null;
+  const referenceY = showReferenceGuides && chartData.length > 1 ? median(chartData.map((item) => item.y)) : null;
+  const hasReferenceGuides = referenceX !== null || referenceY !== null;
+  const comparisonContext = hasReferenceGuides
+    ? "Median guides mark the middle of this filtered comparison, so points beyond a guide sit above the typical value shown here."
+    : "Each point compares the two axis values for one visible item in this filtered view.";
   const formatPointValue = (item: ScatterDatum) =>
     `${xFormatter ? xFormatter(item.x) : item.x.toLocaleString()} / ${yFormatter ? yFormatter(item.y) : item.y.toLocaleString()}`;
 
@@ -78,6 +121,10 @@ export function ScatterComparisonPlot({
             <Suspense fallback={<ChartEmptyState message="Loading comparison chart." />}>
               <ScatterComparisonChart
                 chartData={chartData}
+                referenceX={referenceX}
+                referenceXLabel={`Median ${xLabel}`}
+                referenceY={referenceY}
+                referenceYLabel={`Median ${yLabel}`}
                 xFormatter={xFormatter}
                 xLabel={xLabel}
                 yFormatter={yFormatter}
@@ -89,19 +136,34 @@ export function ScatterComparisonPlot({
             <span>{xLabel}</span>
             <span>{yLabel}</span>
           </div>
-          <ul className="scatter-point-list" aria-label="Comparison points">
-            {chartData.slice(0, 8).map((item) => (
-              <li key={item.id}>
-                {item.href ? (
-                  <Link to={item.href} aria-label={`Open ${item.label}: ${formatPointValue(item)}`}>
-                    <PointLabel item={item} xFormatter={xFormatter} yFormatter={yFormatter} />
-                  </Link>
-                ) : (
-                  <PointLabel item={item} xFormatter={xFormatter} yFormatter={yFormatter} />
-                )}
-              </li>
+          <p className="scatter-reference-note">{comparisonContext}</p>
+          <ul className="scatter-point-list" aria-label="Comparison point preview">
+            {previewPoints.map((item) => (
+              <ScatterPointListItem
+                formatPointValue={formatPointValue}
+                item={item}
+                key={item.id}
+                xFormatter={xFormatter}
+                yFormatter={yFormatter}
+              />
             ))}
           </ul>
+          {overflowPoints.length ? (
+            <details className="scatter-point-overflow">
+              <summary>Show {overflowPoints.length} more comparison points</summary>
+              <ul className="scatter-point-list" aria-label="Additional comparison points">
+                {overflowPoints.map((item) => (
+                  <ScatterPointListItem
+                    formatPointValue={formatPointValue}
+                    item={item}
+                    key={item.id}
+                    xFormatter={xFormatter}
+                    yFormatter={yFormatter}
+                  />
+                ))}
+              </ul>
+            </details>
+          ) : null}
         </>
       ) : (
         <ChartEmptyState message={emptyLabel} />

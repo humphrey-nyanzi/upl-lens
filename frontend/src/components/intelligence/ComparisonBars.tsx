@@ -11,6 +11,7 @@ export type HorizontalComparisonBarProps = {
   segments: ComparisonBarSegment[];
   total?: number;
   showValues?: boolean;
+  showShares?: boolean;
   valueFormatter?: (value: number) => string;
 };
 
@@ -33,9 +34,16 @@ function safePositiveValue(value: number) {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
+function formatShare(share: number) {
+  if (!Number.isFinite(share) || share <= 0) return "0%";
+  const percent = share * 100;
+  return percent < 1 ? "<1%" : `${Math.round(percent)}%`;
+}
+
 export function HorizontalComparisonBar({
   label,
   segments,
+  showShares = true,
   showValues = true,
   total,
   valueFormatter = defaultValueFormatter,
@@ -50,12 +58,15 @@ export function HorizontalComparisonBar({
         <div className="comparison-bar-track">
           {safeSegments.map((segment) => {
             const share = segment.value / safeTotal;
+            const formattedShare = formatShare(share);
             return (
               <span
-                aria-label={`${segment.label}: ${valueFormatter(segment.value)}`}
-                className={`comparison-bar-segment tone-${segment.tone ?? "muted"}`}
+                aria-label={`${segment.label}: ${valueFormatter(segment.value)} (${formattedShare} of this comparison)`}
+                className={`comparison-bar-segment tone-${segment.tone ?? "muted"} ${
+                  share > 0 && share < 0.04 ? "is-tiny-value" : ""
+                }`}
                 key={segment.label}
-                style={{ width: `${Math.max(share * 100, segment.value > 0 ? 4 : 0)}%` }}
+                style={{ width: `${share * 100}%` }}
               />
             );
           })}
@@ -65,11 +76,18 @@ export function HorizontalComparisonBar({
       )}
       {showValues ? (
         <div className="comparison-bar-values">
-          {safeSegments.map((segment) => (
-            <span key={segment.label}>
-              {segment.label} <strong>{valueFormatter(segment.value)}</strong>
-            </span>
-          ))}
+          {safeSegments.map((segment) => {
+            const share = safeTotal > 0 ? segment.value / safeTotal : 0;
+            return (
+              <span className={`tone-marker-${segment.tone ?? "muted"}`} key={segment.label}>
+                {segment.label}{" "}
+                <strong>
+                  {valueFormatter(segment.value)}
+                  {showShares && safeTotal > 0 ? <em>{formatShare(share)}</em> : null}
+                </strong>
+              </span>
+            );
+          })}
         </div>
       ) : null}
     </div>

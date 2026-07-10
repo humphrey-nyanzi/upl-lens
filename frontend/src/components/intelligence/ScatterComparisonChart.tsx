@@ -1,6 +1,7 @@
 import {
   CartesianGrid,
   Cell,
+  ReferenceLine,
   Scatter,
   ScatterChart,
   Tooltip,
@@ -14,6 +15,10 @@ import type { ScatterDatum } from "./ScatterComparisonPlot";
 
 type ScatterComparisonChartProps = {
   chartData: ScatterDatum[];
+  referenceX?: number | null;
+  referenceXLabel?: string;
+  referenceY?: number | null;
+  referenceYLabel?: string;
   xFormatter?: (value: number) => string;
   xLabel: string;
   yFormatter?: (value: number) => string;
@@ -28,8 +33,17 @@ const scatterColors: Record<IntelligenceTone, string> = {
   risk: "var(--color-risk)",
 };
 
+const referenceLabelStyle = {
+  fill: "var(--color-text-muted)",
+  fontSize: 10,
+};
+
 export function ScatterComparisonChart({
   chartData,
+  referenceX,
+  referenceXLabel,
+  referenceY,
+  referenceYLabel,
   xFormatter,
   xLabel,
   yFormatter,
@@ -53,6 +67,22 @@ export function ScatterComparisonChart({
           tickFormatter={(value) => (yFormatter ? yFormatter(Number(value)) : String(value))}
           type="number"
         />
+        {typeof referenceX === "number" ? (
+          <ReferenceLine
+            label={referenceXLabel ? { ...referenceLabelStyle, position: "insideTopRight", value: referenceXLabel } : undefined}
+            stroke="rgba(15, 23, 32, 0.34)"
+            strokeDasharray="4 4"
+            x={referenceX}
+          />
+        ) : null}
+        {typeof referenceY === "number" ? (
+          <ReferenceLine
+            label={referenceYLabel ? { ...referenceLabelStyle, position: "insideTopLeft", value: referenceYLabel } : undefined}
+            stroke="rgba(15, 23, 32, 0.34)"
+            strokeDasharray="4 4"
+            y={referenceY}
+          />
+        ) : null}
         <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--color-chart-grid)" }} />
         <Scatter data={chartData} name={`${xLabel} / ${yLabel}`}>
           {chartData.map((item) => (
