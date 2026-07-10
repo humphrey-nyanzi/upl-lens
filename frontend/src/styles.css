@@ -6582,6 +6582,22 @@ p {
   gap: 6px;
   min-width: 0;
 }
+.team-ranking-signal,
+.team-board-signal {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.team-ranking-signal > span,
+.team-board-signal p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
 
 .team-ranking-copy strong,
 .team-board-title strong,
@@ -6598,7 +6614,7 @@ p {
 }
 
 .team-ranking-metric span,
-.team-board-card-stats span,
+.team-board-card-stats dt,
 .team-split-stats,
 .team-dossier-match-row span,
 .team-dossier-match-row small {
@@ -6668,19 +6684,16 @@ p {
 .team-board-card-stats div {
   display: grid;
   gap: 4px;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius-control);
-  background: var(--surface-muted-gradient);
-  padding: 8px 10px;
+  min-width: 0;
 }
 
-.team-board-card-stats strong {
+.team-board-card-stats dd {
+  margin: 0;
   color: var(--color-text-primary);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums lining-nums;
 }
-
 .team-dossier-hero {
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-panel);

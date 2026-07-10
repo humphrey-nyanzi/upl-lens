@@ -12,7 +12,7 @@ import { DataQualityNote } from "../components/intelligence/DataQualityNote";
 import { MetricDelta } from "../components/intelligence/MetricDelta";
 import { ScatterComparisonPlot } from "../components/intelligence/ScatterComparisonPlot";
 import { SignalChip, SignalChipGroup, type SignalChipItem, type SignalTone as ComponentSignalTone } from "../components/intelligence/SignalChip";
-import { formatPercent, formatSeason } from "../utils/format";
+import { formatSeason } from "../utils/format";
 import { getSelectedSeasonLabel } from "../utils/seasonScope";
 import { formatGoalDifference, getTeamFixtureNote, getTeamPoints, getTeamPointsNote, getTeamSlug } from "../utils/teams";
 
@@ -48,10 +48,6 @@ function formatRate(value: number | null | undefined) {
   return value.toFixed(2);
 }
 
-function formatNullablePercent(value: number | null | undefined) {
-  if (value === null || value === undefined) return "Unavailable";
-  return formatPercent(value);
-}
 
 function getTeamHref(team: TeamResponse) {
   return `/teams/${team.team_slug ?? getTeamSlug(team.team_name)}`;
@@ -160,19 +156,23 @@ function RankingRow({
   team: TeamResponse;
   value: string;
 }) {
+  const signalItems = getLabelItems(team.profile_labels);
+  const primarySignal = signalItems.at(0);
+  const supportingSignals = signalItems.slice(1);
+
   return (
     <Link className="team-ranking-row" to={getTeamHref(team)}>
       <span className="team-ranking-rank">{rank}</span>
       <TeamMarker label={team.team_name} size="small" />
       <div className="team-ranking-copy">
         <strong>{team.team_name}</strong>
-        <SignalChipGroup
-          emptyLabel="No labels yet"
-          items={getLabelItems(team.profile_labels)}
-          maxVisible={2}
-          overflowMode="inline-summary"
-          size="small"
-        />
+        <div className="team-ranking-signal">
+          {primarySignal ? <SignalChip description={primarySignal.description} label={primarySignal.label} size="small" tone={primarySignal.tone} /> : null}
+          <span>{primarySignal?.description ?? support}</span>
+        </div>
+        {supportingSignals.length ? (
+          <SignalChipGroup items={supportingSignals} maxVisible={1} overflowMode="inline-summary" size="small" />
+        ) : null}
       </div>
       <div className="team-ranking-metric">
         <span>{metricLabel}</span>
@@ -186,6 +186,9 @@ function RankingRow({
 function TeamBoardCard({ rank, team }: { rank: number; team: TeamResponse }) {
   const fixtureNote = getTeamFixtureNote(team);
   const pointsNote = getTeamPointsNote(team);
+  const signalItems = getLabelItems(team.profile_labels);
+  const primarySignal = signalItems.at(0);
+  const supportingSignals = signalItems.slice(1);
 
   return (
     <article className="team-board-card">
@@ -195,9 +198,6 @@ function TeamBoardCard({ rank, team }: { rank: number; team: TeamResponse }) {
           <TeamMarker label={team.team_name} size="small" />
           <div>
             <strong>{team.team_name}</strong>
-            <span>
-              {team.wins}W {team.draws}D {team.losses}L · {getTeamPoints(team)} pts
-            </span>
           </div>
         </div>
         <Link className="text-button compact-result-link" to={getTeamHref(team)}>
@@ -205,32 +205,33 @@ function TeamBoardCard({ rank, team }: { rank: number; team: TeamResponse }) {
         </Link>
       </div>
 
-      <div className="team-board-card-stats" aria-label={`${team.team_name} intelligence summary`}>
-        <div>
-          <span>GF / GA</span>
-          <strong>
-            {team.goals_for} / {team.goals_against}
-          </strong>
-        </div>
-        <div>
-          <span>GD</span>
-          <strong>{formatGoalDifference(team.goal_difference)}</strong>
-        </div>
-        <div>
-          <span>Goals/match</span>
-          <strong>{formatRate(team.goals_per_match)}</strong>
-        </div>
-        <div>
-          <span>Conceded/match</span>
-          <strong>{formatRate(team.conceded_per_match)}</strong>
-        </div>
-        <div>
-          <span>Win rate</span>
-          <strong>{formatNullablePercent(team.win_rate)}</strong>
-        </div>
+      <div className="team-board-signal">
+        {primarySignal ? <SignalChip description={primarySignal.description} label={primarySignal.label} size="small" tone={primarySignal.tone} /> : null}
+        <p>
+          {primarySignal?.description ?? `${team.wins}W ${team.draws}D ${team.losses}L, with ${getTeamPoints(team)} official points.`}
+        </p>
       </div>
 
-      <SignalChipGroup emptyLabel="No profile labels yet" items={getLabelItems(team.profile_labels)} maxVisible={4} size="small" />
+      <dl className="team-board-card-stats" aria-label={`${team.team_name} supporting team facts`}>
+        <div>
+          <dt>Record</dt>
+          <dd>{team.wins}W {team.draws}D {team.losses}L, {getTeamPoints(team)} pts</dd>
+        </div>
+        <div>
+          <dt>Goal difference</dt>
+          <dd>{formatGoalDifference(team.goal_difference)}</dd>
+        </div>
+        <div>
+          <dt>Goals per match</dt>
+          <dd>{formatRate(team.goals_per_match)}</dd>
+        </div>
+        <div>
+          <dt>Conceded per match</dt>
+          <dd>{formatRate(team.conceded_per_match)}</dd>
+        </div>
+      </dl>
+
+      {supportingSignals.length ? <SignalChipGroup items={supportingSignals} maxVisible={3} size="small" /> : null}
 
       {fixtureNote || pointsNote ? (
         <DataQualityNote
