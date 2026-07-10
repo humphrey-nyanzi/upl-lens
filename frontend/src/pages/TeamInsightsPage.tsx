@@ -166,7 +166,13 @@ function RankingRow({
       <TeamMarker label={team.team_name} size="small" />
       <div className="team-ranking-copy">
         <strong>{team.team_name}</strong>
-        <SignalChipGroup emptyLabel="No labels yet" items={getLabelItems(team.profile_labels)} maxVisible={2} size="small" />
+        <SignalChipGroup
+          emptyLabel="No labels yet"
+          items={getLabelItems(team.profile_labels)}
+          maxVisible={2}
+          overflowMode="inline-summary"
+          size="small"
+        />
       </div>
       <div className="team-ranking-metric">
         <span>{metricLabel}</span>

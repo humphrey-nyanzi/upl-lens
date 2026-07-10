@@ -20,6 +20,7 @@ export type SignalChipGroupProps = {
   size?: "small" | "medium";
   maxVisible?: number;
   overflowLabel?: string;
+  overflowMode?: "disclosure" | "inline-summary";
 };
 
 export function SignalChip({ description, label, size = "medium", tone = "neutral" }: SignalChipProps) {
@@ -41,6 +42,7 @@ export function SignalChipGroup({
   items,
   maxVisible,
   overflowLabel = "Additional signals",
+  overflowMode = "disclosure",
   size = "medium",
 }: SignalChipGroupProps) {
   if (items.length === 0) {
@@ -62,7 +64,17 @@ export function SignalChipGroup({
           tone={item.tone}
         />
       ))}
-      {remainingCount ? (
+      {remainingCount && overflowMode === "inline-summary" ? (
+        <span
+          aria-label={`${remainingCount} more ${remainingCount === 1 ? "signal" : "signals"}: ${overflowItems
+            .map((item) => (item.description ? `${item.label}: ${item.description}` : item.label))
+            .join(", ")}`}
+          className={`signal-chip signal-chip-muted signal-chip-${size} signal-chip-overflow-summary`}
+        >
+          +{remainingCount}: {overflowItems.map((item) => item.label).join(", ")}
+        </span>
+      ) : null}
+      {remainingCount && overflowMode === "disclosure" ? (
         <details className={`signal-chip-overflow signal-chip-overflow-${size}`}>
           <summary
             aria-label={`Show ${remainingCount} more ${remainingCount === 1 ? "signal" : "signals"}`}

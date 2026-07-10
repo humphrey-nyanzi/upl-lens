@@ -4555,6 +4555,11 @@ p {
   display: none;
 }
 
+.signal-chip-overflow-summary {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .signal-chip-overflow summary:hover,
 .signal-chip-overflow summary:focus-visible {
   border-color: var(--color-green-muted);
