@@ -4997,16 +4997,43 @@ p {
 .timeline-rail-track {
   position: relative;
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
+  gap: 6px;
+  min-height: 54px;
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 700;
 }
 
-.timeline-rail-track i {
+.timeline-rail-scale,
+.timeline-rail-line {
+  position: relative;
+}
+
+.timeline-rail-scale {
+  height: 14px;
+}
+
+.timeline-rail-scale span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.timeline-rail-scale span:first-child {
+  transform: translateX(0);
+}
+
+.timeline-rail-scale span:last-child {
+  transform: translateX(-100%);
+}
+
+.timeline-rail-line {
+  display: grid;
+  min-height: 40px;
+  align-items: center;
+}
+
+.timeline-rail-line i {
   display: block;
   width: 100%;
   height: 3px;
@@ -5017,32 +5044,99 @@ p {
 .timeline-rail-marker {
   position: absolute;
   top: 50%;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+
+.timeline-rail-marker::after {
+  position: absolute;
+  inset: 50% auto auto 50%;
   width: 13px;
   height: 13px;
   border: 2px solid var(--color-surface);
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--surface-border);
+  content: "";
   transform: translate(-50%, -50%);
 }
 
-.timeline-rail-marker.tone-goal {
+.timeline-rail-marker.tone-goal::after {
   background: var(--color-green);
 }
 
-.timeline-rail-marker.tone-card,
-.timeline-rail-marker.tone-warning {
+.timeline-rail-marker.tone-card::after,
+.timeline-rail-marker.tone-warning::after {
   background: var(--color-gold);
 }
 
-.timeline-rail-marker.tone-red {
+.timeline-rail-marker.tone-red::after {
   background: var(--color-risk);
 }
 
-.timeline-rail-marker.tone-substitution,
-.timeline-rail-marker.tone-neutral {
+.timeline-rail-marker.tone-substitution::after,
+.timeline-rail-marker.tone-neutral::after {
   background: var(--color-text-muted);
 }
 
+.timeline-rail-marker:hover::after,
+.timeline-rail-marker[aria-pressed="true"]::after {
+  box-shadow: 0 0 0 3px var(--color-surface), 0 0 0 5px var(--state-green-border);
+}
+
+.timeline-rail-marker:focus-visible {
+  border-radius: 50%;
+  outline: 2px solid var(--state-green-border-strong);
+  outline-offset: 2px;
+}
+
+.timeline-rail-marker-detail {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 10px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted-gradient);
+  padding: 8px 10px;
+}
+
+.timeline-rail-marker-detail strong {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.timeline-rail-marker-detail span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.timeline-rail-marker-detail small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+.timeline-rail-marker-detail ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-rail-marker-detail li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 8px;
+}
 .timeline-rail-events {
   display: grid;
   gap: 8px;
@@ -8110,11 +8204,13 @@ p {
 
   .key-moment-card,
   .score-progression li,
-  .timeline-rail-events li {
+  .timeline-rail-events li,
+  .timeline-rail-marker-detail {
     grid-template-columns: 1fr;
   }
 
   .timeline-rail-events small,
+  .timeline-rail-marker-detail small,
   .score-progression-teams span:last-child {
     text-align: left;
   }

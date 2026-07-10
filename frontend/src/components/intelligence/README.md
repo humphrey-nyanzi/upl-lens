@@ -11,7 +11,7 @@ pages map FastAPI response fields into these props.
 - `MiniTrendLineChart`: responsive Recharts line/dot chart for season movement and teaser trends.
 - `StackedShareBar`: share-of-whole bar for result splits, cards, and coverage.
 - `ScatterComparisonPlot`: two-axis Recharts comparison for teams or players.
-- `TimelineRail`: key match moments across 0-90+ minutes.
+- `TimelineRail`: key match moments across a labeled 0-90+ minute scale, with keyboard- and touch-readable marker details.
 - `FormStrip`: W/D/L/N/A recent form display.
 - `ScoreProgression`: readable score-change sequence after goals.
 - `InsightEmptyState`: analytical empty state for pages and cards.
