@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { ChartEmptyState } from "../charts/ChartPrimitives";
 
@@ -34,12 +34,17 @@ export function TimelineRail({
   maxMinute,
   title,
 }: TimelineRailProps) {
+  const instanceId = useId();
+  const markerDetailId = `timeline-rail-marker-detail-${instanceId}`;
   const timedEvents = events.filter((event) => typeof event.minute === "number");
   const untimedEvents = events.filter((event) => event.minute === null);
   const safeMaxMinute = maxMinute ?? (timedEvents.some((event) => (event.minute ?? 0) > 90) ? 100 : 90);
   const markerGroups = timedEvents.reduce<TimelineMarkerGroup[]>((groups, event) => {
     const minute = event.minute ?? 0;
-    const group = groups.find((candidate) => candidate.minute === minute);
+    const minuteLabel = event.minuteText ?? `${minute}'`;
+    const group = groups.find(
+      (candidate) => candidate.minute === minute && candidate.minuteLabel === minuteLabel,
+    );
 
     if (group) {
       group.events.push(event);
@@ -47,9 +52,9 @@ export function TimelineRail({
     }
 
     groups.push({
-      id: `minute-${minute}`,
+      id: event.id,
       minute,
-      minuteLabel: event.minuteText ?? `${minute}'`,
+      minuteLabel,
       events: [event],
     });
     return groups;
@@ -87,7 +92,7 @@ export function TimelineRail({
                 const tone = group.events.at(0)?.tone ?? "neutral";
                 return (
                   <button
-                    aria-controls={`timeline-rail-marker-detail-${group.id}`}
+                    aria-controls={markerDetailId}
                     aria-label={markerLabel}
                     aria-pressed={selectedMarkerGroup?.id === group.id}
                     className={`timeline-rail-marker tone-${tone}`}
@@ -101,7 +106,7 @@ export function TimelineRail({
             </div>
           </div>
           {selectedMarkerGroup ? (
-            <div aria-live="polite" className={`timeline-rail-marker-detail tone-${selectedMarkerGroup.events.at(0)?.tone ?? "neutral"}`} id={`timeline-rail-marker-detail-${selectedMarkerGroup.id}`}>
+            <div aria-live="polite" className={`timeline-rail-marker-detail tone-${selectedMarkerGroup.events.at(0)?.tone ?? "neutral"}`} id={markerDetailId}>
               <strong>{selectedMarkerGroup.minuteLabel}</strong>
               <ul>
                 {selectedMarkerGroup.events.map((event) => (
