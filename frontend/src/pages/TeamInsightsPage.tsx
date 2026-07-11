@@ -30,6 +30,7 @@ type RankingSection = {
   description: string;
   teams: TeamResponse[];
   metricLabel: string;
+  signalKeys: string[];
   getMetric: (team: TeamResponse) => string;
   getSupport: (team: TeamResponse) => string;
 };
@@ -145,20 +146,24 @@ function TeamBoardSkeleton() {
 
 function RankingRow({
   metricLabel,
+  preferredSignalKeys,
   rank,
   support,
   team,
   value,
 }: {
   metricLabel: string;
+  preferredSignalKeys: string[];
   rank: number;
   support: string;
   team: TeamResponse;
   value: string;
 }) {
   const signalItems = getLabelItems(team.profile_labels);
-  const primarySignal = signalItems.at(0);
-  const supportingSignals = signalItems.slice(1);
+  const primarySignal = preferredSignalKeys
+    .map((key) => signalItems.find((signal) => signal.key === key))
+    .find((signal) => signal !== undefined);
+  const supportingSignals = signalItems.filter((signal) => signal !== primarySignal);
 
   return (
     <Link className="team-ranking-row" to={getTeamHref(team)}>
@@ -305,6 +310,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
       description: "Official points and results context.",
       teams: sortTeamsForBoard(teams, "points").slice(0, 5),
       metricLabel: "Points",
+      signalKeys: ["results_team", "needs_results"],
       getMetric: (team) => getTeamPoints(team).toLocaleString(),
       getSupport: (team) => `${team.wins}W ${team.draws}D ${team.losses}L`,
     },
@@ -314,6 +320,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
       description: "Scoring rate across available matches.",
       teams: sortTeamsForBoard(teams, "goals_per_match").slice(0, 5),
       metricLabel: "G/match",
+      signalKeys: ["strong_attack"],
       getMetric: (team) => formatRate(team.goals_per_match),
       getSupport: (team) => `${team.goals_for} goals for`,
     },
@@ -323,6 +330,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
       description: "Lower conceded rate is stronger here.",
       teams: sortTeamsForBoard(teams, "conceded_per_match").slice(0, 5),
       metricLabel: "Conceded/match",
+      signalKeys: ["tight_defence"],
       getMetric: (team) => formatRate(team.conceded_per_match),
       getSupport: (team) => `${team.goals_against} goals against`,
     },
@@ -335,6 +343,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
         .sort((left, right) => (right.points_per_match ?? 0) - (left.points_per_match ?? 0))
         .slice(0, 5),
       metricLabel: "Pts/match",
+      signalKeys: ["results_team", "needs_results"],
       getMetric: (team) => formatRate(team.points_per_match),
       getSupport: (team) => `${getTeamPoints(team)} official points`,
     },
@@ -344,6 +353,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
       description: "Teams with administrative, missing, or points notes.",
       teams: dataCaveatTeams.slice(0, 5),
       metricLabel: "Caveat",
+      signalKeys: ["data_caveat"],
       getMetric: (team) => `${team.administrative_matches + team.missing_matches}`,
       getSupport: (team) => getTeamFixtureNote(team) || getTeamPointsNote(team) || "Review note",
     },
@@ -461,6 +471,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
                       <RankingRow
                         key={team.team_name}
                         metricLabel={section.metricLabel}
+                        preferredSignalKeys={section.signalKeys}
                         rank={index + 1}
                         support={section.getSupport(team)}
                         team={team}
