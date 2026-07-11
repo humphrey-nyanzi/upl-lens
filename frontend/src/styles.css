@@ -4217,6 +4217,14 @@ p {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.player-recent-summary {
+  margin: -4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .player-profile-error {
   display: grid;
   gap: var(--space-3);

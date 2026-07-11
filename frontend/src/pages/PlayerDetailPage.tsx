@@ -48,9 +48,32 @@ function getLabelItems(labels: PlayerProfileLabel[]) {
     key: label.key,
     label: label.label,
     tone: label.tone as SignalTone,
+
   }));
 }
 
+function getRecentInvolvementSummary(player: PlayerDetailResponse) {
+  const matches = player.recent_matches;
+  const contributions = matches.reduce((total, match) => total + match.goals + match.assists, 0);
+  const starts = matches.filter((match) => match.squad_role === "starting_lineup").length;
+
+  if (matches.length === 0) return "No recent match evidence is available in this scope.";
+  if (contributions > 0) return `${contributions} recorded goal contribution${contributions === 1 ? "" : "s"} across the latest ${matches.length} match record${matches.length === 1 ? "" : "s"}.`;
+  if (starts > 0) return `${starts} start${starts === 1 ? "" : "s"} across the latest ${matches.length} match record${matches.length === 1 ? "" : "s"}, without a recorded goal contribution.`;
+  return `Recent records show involvement from the bench or squad list, without a recorded goal contribution.`;
+}
+
+function getPlayerLabelDescription(label: PlayerProfileLabel) {
+  const descriptions: Record<string, string> = {
+    goal_threat: "Recorded goals identify a player who has supplied direct finishing output in this scope.",
+    creative_output: "Recorded assists identify a player who has supplied the final pass in available event timelines.",
+    regular_starter: "A high starts share points to a player regularly trusted from the opening whistle in available lineup records.",
+    bench_impact: "Substitute appearances and direct output suggest influence without a consistently starting role.",
+    discipline_flag: "Recorded cards make discipline part of the interpretation, alongside output and involvement.",
+  };
+
+  return descriptions[label.key] ?? `${label.label} is a contribution pattern surfaced from the available lineup and event data.`;
+}
 function getPlayerDataTone(player: PlayerDetailResponse) {
   if (player.data_quality_note) return "caution" as const;
   if (player.appearances <= 3) return "limited" as const;
@@ -115,7 +138,7 @@ function PlayerIdentityPanel({ player }: { player: PlayerDetailResponse }) {
         {player.profile_labels.map((label) => (
           <article key={label.key}>
             <SignalChip label={label.label} tone={label.tone as SignalTone} />
-            <p>{label.label} is one of the contribution categories surfaced from the available lineup and event data.</p>
+            <p>{getPlayerLabelDescription(label)}</p>
           </article>
         ))}
       </div>
@@ -203,9 +226,9 @@ function PlayerSeasonEvidence({
   return (
     <section className="player-profile-grid">
       <article className="panel player-profile-panel">
-        <ReportSectionHeader eyebrow="Season trend" title="How output changes by season" text="Goal contribution totals by season keep the trend easy to scan while still staying anchored to the available player records." />
+        <ReportSectionHeader eyebrow="Season trend" title="How output changes by season" text="Goal contributions are read alongside appearance volume, so a higher total is not mistaken for the same role or sample size across seasons." />
         {seasonTrendData.length > 0 ? (
-          <MiniBarChart data={seasonTrendData} description="Bars show goal contributions in each season. Appearance totals remain important context when comparing seasons." emptyLabel="No season trend data is available yet." title="Goal contributions by season" valueFormatter={(value) => value.toLocaleString()} />
+          <MiniBarChart data={seasonTrendData} description="Bars show goal contributions; each season row alongside the chart keeps appearances visible for context." emptyLabel="No season trend data is available yet." title="Goal contributions with appearance context" valueFormatter={(value) => value.toLocaleString()} />
         ) : (
           <EmptyState message="No season trend is available for this player yet." />
         )}
@@ -248,6 +271,7 @@ function RecentInvolvementPanel({ player }: { player: PlayerDetailResponse }) {
   return (
     <section className="panel player-profile-panel">
       <ReportSectionHeader eyebrow="Recent involvement" title="Latest match evidence" text="These match rows show how the recent evidence lines up with the wider contribution profile." />
+      <p className="player-recent-summary">{getRecentInvolvementSummary(player)}</p>
       {player.recent_matches.length > 0 ? (
         <ShowMoreList
           className="player-match-list"
