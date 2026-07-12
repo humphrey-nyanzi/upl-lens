@@ -197,6 +197,7 @@ function getLeaderboardComparison(player: PlayerSummary, key: LeaderboardKey) {
       segments: [
         { label: "Starts", value: player.starts, tone: "green" as const },
         { label: "Sub on", value: player.substitutions_on, tone: "gold" as const },
+        { label: "Bench listed", value: player.bench_listings, tone: "muted" as const },
       ],
     };
   }
