@@ -70,14 +70,11 @@ function timelineLabel(status: string | null) {
   return "Timeline status unavailable";
 }
 
-function matchQualityTone(match: MatchIntelligenceSummary): DataQualityTone {
-  if (match.is_source_anomaly || match.is_administrative_result) return "risk";
-  if (match.timeline_status === "complete") return "good";
-  if (match.timeline_status === "partial") return "caution";
-  if (match.timeline_status === "unavailable") return "limited";
-  return "neutral";
+function matchEvidenceLabel(match: MatchIntelligenceSummary) {
+  if (match.is_administrative_result) return "Administrative result";
+  if (match.is_source_anomaly) return "Source anomaly";
+  return timelineLabel(match.timeline_status);
 }
-
 export function OverviewNoticePanel({
   notices,
   state,
@@ -150,15 +147,13 @@ function SignalMatchCard({ match }: { match: MatchIntelligenceSummary }) {
         maxVisible={3}
         size="small"
       />
-      <DataQualityNote
-        compact
-        metrics={[
-          { label: "Interest", value: match.interest_score },
-          { label: "Evidence", value: timelineLabel(match.timeline_status) },
-        ]}
-        note={match.data_quality_note}
-        tone={matchQualityTone(match)}
-      />
+      <div className="overview-signal-evidence">
+        <span>
+          Interest <strong>{match.interest_score}</strong>
+        </span>
+        <span>{matchEvidenceLabel(match)}</span>
+      </div>
+      {match.data_quality_note ? <p className="overview-signal-caveat">{match.data_quality_note}</p> : null}
       <Link className="text-button compact-result-link" to={`/matches/${match.match_id}`}>
         Open match brief
       </Link>
@@ -167,14 +162,16 @@ function SignalMatchCard({ match }: { match: MatchIntelligenceSummary }) {
 }
 
 export function RecentSignalMatchesPanel({
+  className,
   matches,
   state,
 }: {
+  className?: string;
   matches: MatchIntelligenceSummary[];
   state: OverviewModuleState;
 }) {
   return (
-    <section className="panel overview-matches-card">
+    <section className={`panel overview-matches-card ${className ?? ""}`.trim()}>
       <ReportSectionHeader
         title="Recent signal matches"
         text="Matches worth opening because a scoring, timing, discipline, or evidence signal stands out."
@@ -188,7 +185,7 @@ export function RecentSignalMatchesPanel({
       ) : null}
       <div className="overview-signal-match-list">
         {matches.length > 0 ? (
-          matches.slice(0, 5).map((match) => <SignalMatchCard key={match.match_id} match={match} />)
+          matches.slice(0, 3).map((match) => <SignalMatchCard key={match.match_id} match={match} />)
         ) : (
           <EmptyState
             message={moduleMessage(
@@ -225,14 +222,16 @@ function TeamSignalCard({ signal }: { signal: TeamSignalSummary }) {
 }
 
 export function TeamSignalsPanel({
+  className,
   signals,
   state,
 }: {
+  className?: string;
   signals: TeamSignalSummary[];
   state: OverviewModuleState;
 }) {
   return (
-    <section className="panel overview-signal-card">
+    <section className={`panel overview-signal-card ${className ?? ""}`.trim()}>
       <ReportSectionHeader
         title="Team signals"
         text="Football-facing signals returned by the Overview intelligence layer, with the supporting value second."
