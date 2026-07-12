@@ -55,7 +55,7 @@ function getLabelItems(labels: PlayerProfileLabel[]) {
 function getRecentInvolvementSummary(player: PlayerDetailResponse) {
   const matches = player.recent_matches;
   const contributions = matches.reduce((total, match) => total + match.goals + match.assists, 0);
-  const starts = matches.filter((match) => match.squad_role === "starting_lineup").length;
+  const starts = matches.filter((match) => match.squad_role === "starting_xi").length;
 
   if (matches.length === 0) return "No recent match evidence is available in this scope.";
   if (contributions > 0) return `${contributions} recorded goal contribution${contributions === 1 ? "" : "s"} across the latest ${matches.length} match record${matches.length === 1 ? "" : "s"}.`;
