@@ -180,6 +180,37 @@ function formatLeaderboardPrimary(player: PlayerSummary, key: LeaderboardKey) {
   return player.substitutions_on.toLocaleString();
 }
 
+function getLeaderboardComparison(player: PlayerSummary, key: LeaderboardKey) {
+  if (key === "cards") {
+    return {
+      label: "Discipline split",
+      segments: [
+        { label: "Yellow", value: player.yellow_cards, tone: "gold" as const },
+        { label: "Red", value: player.red_cards, tone: "risk" as const },
+      ],
+    };
+  }
+
+  if (key === "appearances" || key === "starts") {
+    return {
+      label: "Role split",
+      segments: [
+        { label: "Starts", value: player.starts, tone: "green" as const },
+        { label: "Sub on", value: player.substitutions_on, tone: "gold" as const },
+        { label: "Bench listed", value: player.bench_listings, tone: "muted" as const },
+      ],
+    };
+  }
+
+  return {
+    label: "Output mix",
+    segments: [
+      { label: "Goals", value: player.goals, tone: "green" as const },
+      { label: "Assists", value: player.assists, tone: "gold" as const },
+    ],
+  };
+}
+
 function LeaderboardRow({
   player,
   leaderboardKey,
@@ -192,6 +223,7 @@ function LeaderboardRow({
   secondaryLabel: string;
 }) {
   const teamLabel = player.primary_team ?? player.teams[0] ?? "Team TBC";
+  const comparison = getLeaderboardComparison(player, leaderboardKey);
 
   return (
     <Link className="player-board-row" to={`/players/${player.player_slug}`}>
@@ -217,18 +249,8 @@ function LeaderboardRow({
           tone={leaderboardKey === "cards" ? "risk" : leaderboardKey === "assists" ? "warning" : "positive"}
         />
         <HorizontalComparisonBar
-          label={leaderboardKey === "cards" ? "Discipline split" : "Output mix"}
-          segments={
-            leaderboardKey === "cards"
-              ? [
-                  { label: "Yellow", value: player.yellow_cards, tone: "gold" },
-                  { label: "Red", value: player.red_cards, tone: "risk" },
-                ]
-              : [
-                  { label: "Goals", value: player.goals, tone: "green" },
-                  { label: "Assists", value: player.assists, tone: "gold" },
-                ]
-          }
+          label={comparison.label}
+          segments={comparison.segments}
           valueFormatter={(value) => value.toLocaleString()}
         />
       </div>
@@ -241,6 +263,7 @@ function LeaderboardSection({
   leaderboard,
   primaryLabel,
   secondaryLabel,
+  state,
   text,
   title,
 }: {
@@ -250,7 +273,27 @@ function LeaderboardSection({
   secondaryLabel: string;
   text: string;
   title: string;
+  state: LeaderboardState;
 }) {
+  if (state === "loading") {
+    return (
+      <article className="panel player-board-panel leaderboard-module-state" aria-busy="true">
+        <ReportSectionHeader title={title} text={text} />
+        <p>Loading this contribution module.</p>
+      </article>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <article className="panel player-board-panel leaderboard-module-state leaderboard-module-error" role="alert">
+        <ReportSectionHeader title={title} text={text} />
+        <strong>Leaderboard unavailable</strong>
+        <p>This grouped module could not load. The contribution list below is still available from the season player summaries.</p>
+      </article>
+    );
+  }
+
   if (!leaderboard.length) {
     return (
       <article className="panel player-board-panel">
@@ -351,33 +394,40 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
   }, [deferredSearchTerm, minimumAppearances, players, sortKey, teamFilter]);
 
   const contributionSummary = useMemo(() => {
-    const goalContributors = players.filter((player) => player.goals > 0).length;
-    const assistContributors = players.filter((player) => player.assists > 0).length;
-    const regularStarters = players.filter((player) => (player.starts_share ?? 0) >= 0.6).length;
-    const playersWithCards = players.filter((player) => player.cards > 0).length;
-    const multiTeamPlayers = players.filter((player) => player.teams.length > 1).length;
+    const highOutputRegulars = players.filter((player) => (player.starts_share ?? 0) >= 0.6 && player.goal_contributions >= 3).length;
+    const benchContributors = players.filter((player) => player.substitutions_on > player.starts && player.goal_contributions > 0).length;
+    const disciplineFlags = players.filter((player) => player.cards > 0).length;
+    const coverageLimitedProfiles = players.filter((player) => player.appearances < 3).length;
 
     return {
-      assistContributors,
-      goalContributors,
-      multiTeamPlayers,
-      playersWithCards,
-      regularStarters,
+      benchContributors,
+      coverageLimitedProfiles,
+      disciplineFlags,
+      highOutputRegulars,
     };
   }, [players]);
 
   const scatterData = useMemo(() => {
     return filteredPlayers
-      .filter((player) => player.starts > 0 || player.goals > 0)
+      .filter((player) => player.appearances >= 3 && player.goal_contributions_per_appearance !== null)
+      .toSorted((left, right) =>
+        (right.goal_contributions_per_appearance ?? 0) - (left.goal_contributions_per_appearance ?? 0) || right.appearances - left.appearances,
+      )
       .slice(0, 24)
       .map((player) => ({
         group: player.primary_team,
         href: `/players/${player.player_slug}`,
         id: player.player_slug,
         label: player.player_name,
-        tone: (player.goal_contributions > 0 ? "green" : player.cards > 0 ? "gold" : "muted") as IntelligenceTone,
-        x: player.starts,
-        y: player.goals,
+        tone: ((player.starts_share ?? 0) >= 0.6 && player.goal_contributions >= 3
+          ? "green"
+          : player.substitutions_on > player.starts && player.goal_contributions > 0
+            ? "gold"
+            : player.cards > 0
+              ? "risk"
+              : "muted") as IntelligenceTone,
+        x: player.appearances,
+        y: player.goal_contributions_per_appearance ?? 0,
       }));
   }, [filteredPlayers]);
 
@@ -397,14 +447,10 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
       <DataQualityNote compact note={qualityNote} title="Source-backed player summaries" tone="caution" />
 
       <section className="metric-grid compact-metrics" aria-label="Player contribution summary">
-        <KpiCard label="Players tracked" value={players.length} context={`Distinct player profiles in ${seasonLabel.toLowerCase()}.`} variant="compact" />
-        <KpiCard accent="green" label="Goal contributors" value={contributionSummary.goalContributors} context="Players with at least one recorded goal in available data." variant="compact" />
-        <KpiCard accent="gold" label="Assist contributors" value={contributionSummary.assistContributors} context="Players credited with at least one assist in the source timeline." variant="compact" />
-        <KpiCard label="Regular starters" value={contributionSummary.regularStarters} context="Starts share of 60% or higher in available lineup records." variant="compact" />
-        <KpiCard label="Players with cards" value={contributionSummary.playersWithCards} context="Visible discipline signals from recorded yellow and red cards." variant="compact" />
-        {contributionSummary.multiTeamPlayers > 0 ? (
-          <KpiCard label="Multi-team profiles" value={contributionSummary.multiTeamPlayers} context="Players whose selected-season summary spans more than one listed team." variant="compact" />
-        ) : null}
+        <KpiCard accent="green" label="High-output regulars" value={contributionSummary.highOutputRegulars} context="At least three G+A and a starts share of 60% or higher." variant="compact" />
+        <KpiCard accent="gold" label="Bench contributors" value={contributionSummary.benchContributors} context="More substitute appearances than starts, with recorded G+A." variant="compact" />
+        <KpiCard accent="risk" label="Discipline flags" value={contributionSummary.disciplineFlags} context="Profiles with at least one recorded card." variant="compact" />
+        <KpiCard label="Coverage-limited profiles" value={contributionSummary.coverageLimitedProfiles} context="Fewer than three appearances, so rate comparisons stay limited." variant="compact" />
       </section>
 
       <section className="player-board-grid" aria-label="Grouped player leaderboards">
@@ -415,6 +461,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
             leaderboard={leaderboards?.[section.key] ?? []}
             primaryLabel={section.primaryLabel}
             secondaryLabel={section.secondaryLabel}
+            state={leaderboardState}
             text={section.text}
             title={section.title}
           />
@@ -423,16 +470,16 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
 
       <section className="panel player-board-panel">
         <ReportSectionHeader
-          title="Goals versus starts"
-          text="This comparison helps separate regular starters from players with visible scoring output in available data. It is a contribution view, not a quality verdict."
+          title="Contribution rate versus involvement"
+          text="This comparison highlights direct contribution rate alongside appearance volume. It includes only players with at least three appearances, selected by contribution rate and then appearances."
         />
         <ScatterComparisonPlot
           data={scatterData}
-          description="Higher starts often signal a stable role. Higher goals signal recorded finishing output. Some players appear in one dimension more than the other."
-          emptyLabel="No player comparison points fit the current filters yet."
-          title="Starts on one axis, goals on the other"
-          xLabel="Starts"
-          yLabel="Goals"
+          description="More appearances show a larger observed role. Higher G+A per appearance shows stronger recorded direct output. Green marks high-output regulars, gold marks bench contributors, and red marks players with discipline flags."
+          emptyLabel="No players with at least three appearances and a recorded contribution rate fit the current filters yet."
+          title="Contribution output and involvement"
+          xLabel="Appearances"
+          yLabel="G+A per appearance"
         />
       </section>
 
@@ -554,11 +601,6 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
         tone={leaderboardState === "error" ? "risk" : "caution"}
       />
 
-      {leaderboardState === "error" ? (
-        <p className="player-board-footnote">
-          Grouped leaderboards could not be loaded, so the page is relying on the season player summaries that were already available.
-        </p>
-      ) : null}
 
       {players.length === 0 && loadState !== "loading" ? (
         <section className="panel player-board-panel">
