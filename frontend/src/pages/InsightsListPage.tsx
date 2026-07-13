@@ -91,8 +91,8 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
               </div>
             </article>
 
-            <div className="insights-library-side">
-              <article className="panel insight-support-card">
+            <aside className="insights-library-side" aria-label="How to read the library">
+              <section className="insight-support-note">
                 <div className="insight-support-icon" aria-hidden="true">
                   <ShieldCheck size={18} />
                 </div>
@@ -103,8 +103,8 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
                     it, and the season context that shapes the finding.
                   </p>
                 </div>
-              </article>
-              <article className="panel insight-support-card">
+              </section>
+              <section className="insight-support-note">
                 <div className="insight-support-icon" aria-hidden="true">
                   <SlidersHorizontal size={18} />
                 </div>
@@ -115,11 +115,11 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
                     notes, and selected-season context in more detail.
                   </p>
                 </div>
-              </article>
-            </div>
+              </section>
+            </aside>
           </section>
 
-          <section className="panel">
+          <section className="insight-library-section">
             <div className="section-heading compact">
               <div>
                 <h2>Library shelf</h2>
@@ -128,7 +128,7 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
             </div>
 
             <div className="insight-library-shelf">
-              <article className="surface-muted insight-library-card">
+              <article className="insight-library-card">
                 <div className="insight-library-icon" aria-hidden="true">
                   <LineChart size={18} />
                 </div>
@@ -152,7 +152,7 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
                 </Link>
               </article>
 
-              <article className="surface-muted insight-library-note">
+              <article className="insight-library-note">
                 <div className="insight-library-note-icon" aria-hidden="true">
                   <NotebookPen size={18} />
                 </div>
@@ -165,7 +165,7 @@ export function InsightsListPage({ featuredGoalTiming, loadState }: PageProps) {
                 </div>
               </article>
 
-              <article className="surface-muted insight-library-note">
+              <article className="insight-library-note">
                 <div className="insight-library-note-icon" aria-hidden="true">
                   <BookOpen size={18} />
                 </div>

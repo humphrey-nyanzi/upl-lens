@@ -6,12 +6,13 @@ import { useNavigate } from "react-router-dom";
 import { ChartLegend, DistributionBarChart, InsightChartCard } from "../charts/ChartPrimitives";
 
 type FeaturedInsightProps = {
+  className?: string;
   goalTiming: GoalTimingInsightResponse | null;
   loadState: LoadState;
   onPageChange: (page: PageKey) => void;
 };
 
-export function FeaturedInsight({ goalTiming, loadState, onPageChange }: FeaturedInsightProps) {
+export function FeaturedInsight({ className, goalTiming, loadState, onPageChange }: FeaturedInsightProps) {
   const navigate = useNavigate();
   const peakInterval = goalTiming ? getPeakRegularTimeInterval(goalTiming.intervals) : null;
   const chartData = getRegularTimeIntervals(goalTiming?.intervals ?? []).map((interval) => ({
@@ -54,7 +55,7 @@ export function FeaturedInsight({ goalTiming, loadState, onPageChange }: Feature
           </div>
         ) : null
       }
-      className="featured-insight overview-goal-card"
+      className={`featured-insight overview-goal-card ${className ?? ""}`.trim()}
       emptyMessage="Goal timing insight is unavailable for this season yet."
       eyebrow="Featured Insight"
       isEmpty={!goalTiming && loadState !== "loading"}

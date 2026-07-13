@@ -243,25 +243,22 @@ export function OverviewPage({
       />
 
       <section className="overview-story-grid">
-        <div className="overview-story-card overview-story-card-recent">
-          <RecentSignalMatchesPanel
-            matches={modules.matches}
-            state={matchesState}
-          />
-        </div>
-        <div className="overview-story-card overview-story-card-featured">
-          <FeaturedInsight
-            goalTiming={featuredGoalTiming}
-            loadState={loadState}
-            onPageChange={onPageChange}
-          />
-        </div>
-        <div className="overview-story-card overview-story-card-signals">
-          <TeamSignalsPanel
-            signals={modules.intelligence?.team_signals ?? []}
-            state={intelligenceState}
-          />
-        </div>
+        <RecentSignalMatchesPanel
+          className="overview-story-module overview-story-module-recent"
+          matches={modules.matches}
+          state={matchesState}
+        />
+        <FeaturedInsight
+          className="overview-story-module overview-story-module-featured"
+          goalTiming={featuredGoalTiming}
+          loadState={loadState}
+          onPageChange={onPageChange}
+        />
+        <TeamSignalsPanel
+          className="overview-story-module overview-story-module-signals"
+          signals={modules.intelligence?.team_signals ?? []}
+          state={intelligenceState}
+        />
       </section>
 
       <OverviewCoveragePanel
