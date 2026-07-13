@@ -124,7 +124,7 @@ export function MethodologyHero() {
 
 export function MethodologyBoundary() {
   return (
-    <section className="panel methodology-boundary-panel">
+    <section className="methodology-boundary-section">
       <ReportSectionHeader
         title="Source record vs intelligence layer"
         text="The official website preserves the source record. UPL Lens adds analytical meaning without claiming to replace that archive."
@@ -158,7 +158,7 @@ export function MethodologyCollection({
 }) {
   return (
     <section className="methodology-summary-grid">
-      <section className="panel methodology-collection-card">
+      <section className="methodology-collection-card methodology-collection-section">
         <ReportSectionHeader
           title="How the data is collected"
           text="A clear view of how public source records become readable football intelligence."
@@ -235,7 +235,7 @@ export function MethodologyCollection({
 export function MethodologyInterpretation() {
   return (
     <>
-      <section className="panel">
+      <section className="methodology-interpretation-section">
         <ReportSectionHeader
           title="How UPL Lens uses source material"
           text="Every source detail is transformed, summarized, or left with the official archive."
@@ -250,7 +250,7 @@ export function MethodologyInterpretation() {
         </div>
       </section>
 
-      <section className="panel methodology-inline-panel">
+      <section className="methodology-inline-panel methodology-comparison-section">
         <ReportSectionHeader
           title="Scoreline goals and timeline goals"
           text="These counts answer different questions, so they can differ without the final result being wrong."
@@ -285,7 +285,7 @@ export function MethodologyTrust({
 }) {
   return (
     <section className="methodology-trust-grid">
-      <section className="panel methodology-status-card">
+      <section className="methodology-status-card methodology-status-section">
         <ReportSectionHeader
           title="Current service status"
           text="This is the latest available API health response, not an uptime percentage or availability guarantee."
@@ -307,7 +307,7 @@ export function MethodologyTrust({
         </div>
       </section>
 
-      <section className="panel methodology-limitations-card">
+      <section className="methodology-limitations-card methodology-limitations-section">
         <ReportSectionHeader
           title="Known limitations"
           text="These constraints affect interpretation and remain visible throughout the product."
@@ -319,7 +319,7 @@ export function MethodologyTrust({
         </ul>
       </section>
 
-      <section className="panel methodology-confidence-card">
+      <section className="methodology-confidence-card methodology-confidence-section">
         <ReportSectionHeader
           title="How to read UPL Lens"
           text="Trust comes from traceability, consistent definitions, and visible limits."
@@ -346,7 +346,7 @@ export function MethodologyTrust({
 export function MethodologyContact() {
   return (
     <section className="methodology-two-column">
-      <section className="panel">
+      <section className="methodology-contact-section">
         <ReportSectionHeader
           title="Maintainer"
           text="The football questions lead the product; the technical system supports their public presentation."
@@ -360,7 +360,7 @@ export function MethodologyContact() {
         </div>
       </section>
 
-      <section className="panel">
+      <section className="methodology-contact-section">
         <ReportSectionHeader
           title="Contact and follow"
           text="Use the same public project links available from the app navigation."
