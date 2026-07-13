@@ -5921,8 +5921,8 @@ p {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  min-height: 228px;
-  padding: 22px 0 28px;
+  min-height: 244px;
+  padding: 24px 0 30px;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -5940,21 +5940,22 @@ p {
 .lens-fused-hero::before {
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(245, 243, 238, 0.95) 0%, rgba(245, 243, 238, 0.78) 34%, rgba(245, 243, 238, 0.18) 58%, rgba(245, 243, 238, 0.02) 84%),
+    linear-gradient(90deg, rgba(245, 243, 238, 0.98) 0%, rgba(245, 243, 238, 0.9) 36%, rgba(245, 243, 238, 0.54) 58%, rgba(245, 243, 238, 0.16) 78%, rgba(245, 243, 238, 0.02) 100%),
+    linear-gradient(180deg, rgba(245, 243, 238, 0) 0%, rgba(245, 243, 238, 0.16) 48%, var(--color-bg) 100%),
     radial-gradient(circle at 82% 14%, rgba(31, 122, 58, 0.1) 0%, rgba(31, 122, 58, 0.04) 28%, transparent 58%);
 }
 
 .lens-fused-hero::after {
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(245, 243, 238, 0) 0%, rgba(245, 243, 238, 0) 66%, rgba(245, 243, 238, 0.22) 86%, rgba(245, 243, 238, 0) 100%),
+    linear-gradient(180deg, rgba(245, 243, 238, 0) 0%, rgba(245, 243, 238, 0.08) 38%, rgba(245, 243, 238, 0.68) 78%, var(--color-bg) 100%),
     url("./assets/upl-lens-overview-hero.jpg");
   background-repeat: no-repeat;
-  background-position: right -24px top -14px;
-  background-size: min(860px, 64vw) auto;
-  opacity: 0.88;
-  mask-image: linear-gradient(90deg, transparent 0%, transparent 42%, rgba(0, 0, 0, 0.72) 58%, rgba(0, 0, 0, 1) 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 42%, rgba(0, 0, 0, 0.72) 58%, rgba(0, 0, 0, 1) 100%);
+  background-position: right -42px top -24px;
+  background-size: min(940px, 74vw) auto;
+  opacity: 0.86;
+  mask-image: linear-gradient(90deg, transparent 0%, transparent 34%, rgba(0, 0, 0, 0.56) 54%, rgba(0, 0, 0, 0.9) 76%, rgba(0, 0, 0, 1) 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 34%, rgba(0, 0, 0, 0.56) 54%, rgba(0, 0, 0, 0.9) 76%, rgba(0, 0, 0, 1) 100%);
 }
 
 .lens-fused-hero > * {
@@ -6030,7 +6031,13 @@ p {
 }
 
 .page-intro.lens-fused-hero {
-  min-height: 236px;
+  min-height: 248px;
+}
+
+.page-intro.lens-fused-hero::after {
+  background-position: right -34px top -26px;
+  background-size: min(900px, 70vw) auto;
+  opacity: 0.8;
 }
 
 .methodology-hero.lens-fused-hero {
@@ -6039,9 +6046,9 @@ p {
 }
 
 .methodology-hero.lens-fused-hero::after {
-  background-position: right -34px top -22px;
-  background-size: min(980px, 74vw) auto;
-  opacity: 0.92;
+  background-position: right -58px top -28px;
+  background-size: min(1080px, 80vw) auto;
+  opacity: 0.84;
 }
 
 .methodology-hero-copy,
@@ -6053,7 +6060,7 @@ p {
 .team-dossier-hero.lens-fused-hero,
 .player-profile-hero.lens-fused-hero,
 .match-brief-hero.lens-fused-hero {
-  padding: 24px 0 30px;
+  padding: 26px 0 34px;
 }
 
 .team-dossier-hero.lens-fused-hero,
@@ -6063,13 +6070,19 @@ p {
 
 .team-dossier-hero.lens-fused-hero::after,
 .player-profile-hero.lens-fused-hero::after {
-  background-position: right -20px top -18px;
-  background-size: min(820px, 62vw) auto;
+  background-position: right -72px top -26px;
+  background-size: min(960px, 76vw) auto;
+  opacity: 0.76;
+  mask-image: linear-gradient(90deg, transparent 0%, transparent 46%, rgba(0, 0, 0, 0.46) 64%, rgba(0, 0, 0, 0.86) 82%, rgba(0, 0, 0, 1) 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 46%, rgba(0, 0, 0, 0.46) 64%, rgba(0, 0, 0, 0.86) 82%, rgba(0, 0, 0, 1) 100%);
 }
 
 .match-brief-hero.lens-fused-hero::after {
-  background-position: right -26px top -16px;
-  background-size: min(900px, 66vw) auto;
+  background-position: right -84px top -20px;
+  background-size: min(1160px, 88vw) auto;
+  opacity: 0.74;
+  mask-image: linear-gradient(90deg, transparent 0%, transparent 48%, rgba(0, 0, 0, 0.42) 66%, rgba(0, 0, 0, 0.84) 84%, rgba(0, 0, 0, 1) 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 48%, rgba(0, 0, 0, 0.42) 66%, rgba(0, 0, 0, 0.84) 84%, rgba(0, 0, 0, 1) 100%);
 }
 
 .methodology-hero-copy p:last-child {
@@ -8652,5 +8665,53 @@ p {
 
   .app-shell {
     display: block;
+  }
+}
+
+@media (max-width: 860px) {
+  .page-intro.lens-fused-hero {
+    min-height: 216px;
+  }
+
+  .page-intro.lens-fused-hero::after {
+    background-position: right -52px top -12px;
+    background-size: min(720px, 90vw) auto;
+    opacity: 0.74;
+  }
+
+  .team-dossier-hero.lens-fused-hero::after,
+  .player-profile-hero.lens-fused-hero::after,
+  .match-brief-hero.lens-fused-hero::after {
+    background-position: 72% top -12px;
+    background-size: min(780px, 104vw) auto;
+    opacity: 0.68;
+    mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.2) 24%, rgba(0, 0, 0, 0.68) 58%, rgba(0, 0, 0, 1) 88%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.2) 24%, rgba(0, 0, 0, 0.68) 58%, rgba(0, 0, 0, 1) 88%);
+  }
+
+  .match-brief-hero.lens-fused-hero::after {
+    background-size: min(860px, 114vw) auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-intro.lens-fused-hero {
+    min-height: 188px;
+  }
+
+  .page-intro.lens-fused-hero::after {
+    background-position: 70% top -8px;
+    background-size: 640px auto;
+  }
+
+  .team-dossier-hero.lens-fused-hero::after,
+  .player-profile-hero.lens-fused-hero::after,
+  .match-brief-hero.lens-fused-hero::after {
+    background-position: 72% top -8px;
+    background-size: 680px auto;
+  }
+
+  .match-brief-hero.lens-fused-hero::after {
+    background-size: 740px auto;
   }
 }
