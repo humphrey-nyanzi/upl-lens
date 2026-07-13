@@ -6,7 +6,6 @@ import type { PlayerLeaderboardsResponse, PlayerProfileLabel, PlayerSummary } fr
 import type { PageProps } from "../app/types";
 import { EditorialTable, EditorialTableHeader } from "../components/common/EditorialTable";
 import { EmptyState } from "../components/common/EmptyState";
-import { KpiCard } from "../components/common/KpiCard";
 import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
 import { ShowMoreList } from "../components/common/ShowMoreList";
@@ -296,7 +295,7 @@ function LeaderboardSection({
 
   if (!leaderboard.length) {
     return (
-      <article className="panel player-board-panel">
+      <article className="player-board-panel">
         <ReportSectionHeader title={title} text={text} />
         <EmptyState message="No leaderboard data is available for this module yet." />
       </article>
@@ -304,7 +303,7 @@ function LeaderboardSection({
   }
 
   return (
-    <article className="panel player-board-panel">
+    <article className="player-board-panel">
       <ReportSectionHeader title={title} text={text} />
       <ShowMoreList
         className="player-board-list"
@@ -446,11 +445,11 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
 
       <DataQualityNote compact note={qualityNote} title="Source-backed player summaries" tone="caution" />
 
-      <section className="metric-grid compact-metrics" aria-label="Player contribution summary">
-        <KpiCard accent="green" label="High-output regulars" value={contributionSummary.highOutputRegulars} context="At least three G+A and a starts share of 60% or higher." variant="compact" />
-        <KpiCard accent="gold" label="Bench contributors" value={contributionSummary.benchContributors} context="More substitute appearances than starts, with recorded G+A." variant="compact" />
-        <KpiCard accent="risk" label="Discipline flags" value={contributionSummary.disciplineFlags} context="Profiles with at least one recorded card." variant="compact" />
-        <KpiCard label="Coverage-limited profiles" value={contributionSummary.coverageLimitedProfiles} context="Fewer than three appearances, so rate comparisons stay limited." variant="compact" />
+      <section className="player-intelligence-summary" aria-label="Player contribution summary">
+        <MetricDelta label="High-output regulars" value={contributionSummary.highOutputRegulars} context="At least three G+A and a starts share of 60% or higher." tone="positive" />
+        <MetricDelta label="Bench contributors" value={contributionSummary.benchContributors} context="More substitute appearances than starts, with recorded G+A." tone="warning" />
+        <MetricDelta label="Discipline flags" value={contributionSummary.disciplineFlags} context="Profiles with at least one recorded card." tone="risk" />
+        <MetricDelta label="Coverage-limited profiles" value={contributionSummary.coverageLimitedProfiles} context="Fewer than three appearances, so rate comparisons stay limited." tone="neutral" />
       </section>
 
       <section className="player-board-grid" aria-label="Grouped player leaderboards">
@@ -468,7 +467,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
         ))}
       </section>
 
-      <section className="panel player-board-panel">
+      <section className="panel player-analysis-panel">
         <ReportSectionHeader
           title="Contribution rate versus involvement"
           text="This comparison highlights direct contribution rate alongside appearance volume. It includes only players with at least three appearances, selected by contribution rate and then appearances."
@@ -483,7 +482,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
         />
       </section>
 
-      <section className="panel player-board-panel">
+      <section className="player-filter-section">
         <ReportSectionHeader
           title="Filter the player pool"
           text="Narrow the board by name, team, contribution sort, or a minimum appearance floor before opening an individual profile."
@@ -570,7 +569,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
         )}
       </section>
 
-      <section className="panel player-board-panel">
+      <section className="player-reading-section">
         <ReportSectionHeader
           title="How to read this board"
           text="Use goals, assists, starts, bench listings, and cards together. A high placement in one list does not make this an official ranking or award."
@@ -603,7 +602,7 @@ export function PlayersPage({ data, loadState, selectedSeason, selectedSeasonInf
 
 
       {players.length === 0 && loadState !== "loading" ? (
-        <section className="panel player-board-panel">
+        <section className="player-empty-section">
           <EmptyState message="No player contribution summaries are available in the selected season yet." />
           <Link className="text-button" to="/matches">
             View match briefs
