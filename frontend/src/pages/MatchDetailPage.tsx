@@ -436,7 +436,7 @@ export default function MatchDetailPage(_props: PageProps) {
         ]}
       />
 
-      <section className="panel match-intelligence-summary-panel">
+      <section className="match-intelligence-summary-panel">
         <ReportSectionHeader
           eyebrow="Why it matters"
           title="Match intelligence summary"

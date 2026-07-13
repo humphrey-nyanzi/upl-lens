@@ -10,7 +10,7 @@ import { PageIntro } from "../components/common/PageIntro";
 import { ReportSectionHeader } from "../components/common/ReportSectionHeader";
 import { ShowMoreList } from "../components/common/ShowMoreList";
 import { TeamMarker } from "../components/common/TeamMarker";
-import { DataQualityNote, type DataQualityTone } from "../components/intelligence/DataQualityNote";
+import { DataQualityNote } from "../components/intelligence/DataQualityNote";
 import { MetricDelta } from "../components/intelligence/MetricDelta";
 import { SignalChipGroup, type SignalChipItem } from "../components/intelligence/SignalChip";
 import { StackedShareBar, type ShareSegment } from "../components/intelligence/ComparisonBars";
@@ -99,13 +99,6 @@ function getTeamOptions(rows: MatchIntelligenceSummary[], fallbackMatches: PageP
   return Array.from(names).toSorted((left, right) => left.localeCompare(right));
 }
 
-function getTimelineTone(status: string | null): DataQualityTone {
-  if (status === "complete") return "good";
-  if (status === "partial") return "caution";
-  if (status === "unavailable") return "limited";
-  return "neutral";
-}
-
 function getTimelineLabel(status: string | null) {
   if (status === "complete") return "Timeline complete";
   if (status === "partial") return "Partial timeline";
@@ -114,10 +107,14 @@ function getTimelineLabel(status: string | null) {
   return "Timeline status TBC";
 }
 
+function getMatchEvidenceLabel(match: MatchIntelligenceSummary) {
+  if (match.is_administrative_result) return "Administrative result";
+  if (match.is_source_anomaly) return "Source anomaly";
+  return getTimelineLabel(match.timeline_status);
+}
 function MatchSignalCard({ match }: { match: MatchIntelligenceSummary }) {
   const homeTeam = match.home_team ?? "Home team TBC";
   const awayTeam = match.away_team ?? "Away team TBC";
-  const noteTone = match.is_source_anomaly || match.is_administrative_result ? "risk" : getTimelineTone(match.timeline_status);
 
   return (
     <article className="match-intelligence-card">
@@ -151,15 +148,13 @@ function MatchSignalCard({ match }: { match: MatchIntelligenceSummary }) {
         <MetricDelta label="Late goals" value={match.late_goal_count} context={`${match.final_15_goal_count} final-15`} />
       </div>
 
-      <DataQualityNote
-        compact
-        note={match.data_quality_note}
-        tone={noteTone}
-        metrics={[
-          { label: "Events", value: match.event_count },
-          { label: "Evidence", value: getTimelineLabel(match.timeline_status) },
-        ]}
-      />
+      <div className="match-card-evidence">
+        <span>
+          Events <strong>{match.event_count}</strong>
+        </span>
+        <span>{getMatchEvidenceLabel(match)}</span>
+      </div>
+      {match.data_quality_note ? <p className="match-card-caveat">{match.data_quality_note}</p> : null}
 
       <Link className="text-button match-card-link" to={`/matches/${match.match_id}`}>
         Open match brief
@@ -324,7 +319,7 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
       </section>
 
       <section className="match-triage-layout">
-        <div className="panel">
+        <section className="match-triage-list-section">
           <ReportSectionHeader
             title="Signal-led matches"
             text="Cards lead with the football reason to open the match, then show the supporting counts and evidence caveats."
@@ -359,9 +354,9 @@ export function MatchExplorerPage({ data, loadState, selectedSeason }: PageProps
               }
             />
           )}
-        </div>
+        </section>
 
-        <aside className="panel match-evidence-summary">
+        <aside className="match-evidence-summary">
           <ReportSectionHeader
             eyebrow="Evidence quality"
             title="Coverage context"
