@@ -956,6 +956,7 @@ p {
   isolation: isolate;
   display: grid;
   gap: var(--space-5);
+  overflow-x: clip;
 }
 
 .overview-page::before,
