@@ -458,7 +458,7 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
 
           <section className="team-rankings-grid" aria-label="Team signal rankings">
             {rankingSections.map((section) => (
-              <article className="panel team-ranking-panel" key={section.key}>
+              <section className="team-ranking-panel" key={section.key}>
                 <div className="section-heading compact">
                   <div>
                     <h2>{section.title}</h2>
@@ -482,11 +482,11 @@ export function TeamInsightsPage({ data, loadState, onRefresh, selectedSeason, s
                 ) : (
                   <EmptyState message="No teams match this signal yet." />
                 )}
-              </article>
+              </section>
             ))}
           </section>
 
-          <section className="panel team-board-panel">
+          <section className="team-profile-list-section">
             <ReportSectionHeader
               title="Team profile list"
               text="Search, sort, and open team dossiers with record, scoring profile, labels, and caveats kept visible."
