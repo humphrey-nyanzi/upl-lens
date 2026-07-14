@@ -747,6 +747,39 @@ Every frontend redesign pass should be reviewed against these checks:
 - The implementation uses shared tokens and reusable patterns instead of
   page-by-page styling drift.
 
+### Cross-Route QA Checklist
+
+Use this as the Definition-of-Done companion for every Product Experience
+issue and PR. Check the routes and states the change touches; do not turn it
+into a blanket visual rewrite. The aim is a calm football intelligence product
+where analytical meaning, not dashboard decoration, leads the page.
+
+- **Reading path and hierarchy:** The route answers its football question in
+  the first meaningful viewport. One primary module leads; supporting modules,
+  controls, links, and caveats do not compete with it. Cards and panels are
+  used only when their framing carries meaning, with no non-meaningful nested
+  surfaces.
+- **Headers, imagery, and spacing:** Page headers and `PageIntro` variants
+  have deliberate spacing at desktop and mobile widths. Shared imagery blends
+  into the page rather than becoming a separate photo card, and it never
+  compromises readable copy.
+- **Shell and navigation:** The desktop sidebar remains visually consistent
+  with the page and indicates the active route. Mobile navigation is reachable
+  and stable. The footer remains at the page bottom through loading, empty,
+  error, and sparse-content states.
+- **Controls and state changes:** Interactive icons have a visible icon or a
+  usable fallback, clear labels where needed, and no empty placeholder boxes.
+  Loading skeletons preserve the incoming layout; empty and error states are
+  distinguishable and do not make the page jump or lose its reading path.
+- **Data trust:** Season context, source-record boundaries, freshness, and
+  data-quality caveats remain visible next to the affected interpretation.
+  React continues consuming FastAPI JSON only; the UI does not invent data or
+  certainty beyond the available records.
+- **Responsive and browser verification:** Check a common narrow viewport and
+  a desktop workspace width for wrapping, overlap, touch targets, and
+  horizontal scrolling. Record the routes and states checked, run `npm run
+  build`, and include browser findings in the PR.
+
 ## UPL Lens Public Launch Acceptance Checklist
 
 Use this checklist to confirm a release build is ready for the UPL Lens public
