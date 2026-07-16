@@ -282,8 +282,9 @@ FastAPI server.
 The Pages Function also caches public, unauthenticated `GET` responses for short
 periods. This reduces repeat reads against Render and Supabase without changing
 where the source data lives. Requests with `Authorization` or `Cookie` headers
-bypass this cache. Use the `x-upl-lens-cache` response header to check whether a
-request was a `HIT`, `MISS`, or `BYPASS`.
+bypass this cache and return `cache-control: no-store` instead of public cache
+headers. Use the `x-upl-lens-cache` response header to check whether a request
+was a `HIT`, `MISS`, or `BYPASS`.
 
 ### `npm run dev` or `npm run build` fails
 
