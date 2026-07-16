@@ -61,5 +61,8 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Run API proxy cache tests
+        run: npm run test:api-proxy
+
       - name: Build frontend
         run: npm run build
