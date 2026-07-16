@@ -33,6 +33,8 @@ flowchart TD
     GA -->|"runs"| ORCH
 
     ORCH["🎛️ update_hosted_data.py\noperator wrapper\n→ update_current_season.py\nscrape · migrate/load · verify · staging"]
+    SUMMARY["📄 hosted update summaries\nJSON + Markdown\noutcome · source/safety counts\nrow mutations · staging run\nuploaded in automation logs"]
+    ORCH -->|"writes"| SUMMARY
 
     %% ═══════════════════════════════
     %% STEP 1: SCRAPING
@@ -219,7 +221,7 @@ flowchart TD
     classDef source    fill:#172554,stroke:#93c5fd,color:#dbeafe,stroke-width:3px
 
     class WEB source
-    class SCRAPER,CACHE,CSV,FAILED,RAWLOAD,RAWVERIFY,STAGLOAD,STAGVERIFY,ORCH primary
+    class SCRAPER,CACHE,CSV,FAILED,RAWLOAD,RAWVERIFY,STAGLOAD,STAGVERIFY,ORCH,SUMMARY primary
     class R1,R2,R3,R4 rawdb
     class S1,S2,S3,S4 stagedb
     class NB,RB,PP,REG,INSIGHTS research

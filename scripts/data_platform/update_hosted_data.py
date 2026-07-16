@@ -17,13 +17,25 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config import CURRENT_SEASON, season_key
+from src.config import (
+    CURRENT_SEASON,
+    raw_season_load_safety_file,
+    raw_season_refresh_plan_file,
+    raw_season_source_preflight_file,
+    season_key,
+)
 from src.operations.command_runner import display_path, run_logged_step, timestamp_slug
+from scripts.data_platform.update_current_season import (
+    _extract_raw_load_counts,
+    _extract_staging_row_counts,
+    _staging_verification_status,
+)
 
 SCRIPT_DIR = PROJECT_ROOT / "scripts" / "data_platform"
 DEFAULT_LOG_DIR = PROJECT_ROOT / "outputs" / "automation"
@@ -251,24 +263,465 @@ def _run_per_season_pipeline(
         )
 
 
+def _read_json_artifact(path: Path) -> dict[str, Any] | None:
+    """Read a JSON artifact and return only object payloads."""
+
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _displayed_path_to_path(value: str | None) -> Path | None:
+    """Resolve a repo-relative display path back to a local Path when possible."""
+
+    if not value:
+        return None
+    candidate = Path(value)
+    if candidate.is_absolute():
+        return candidate
+    return PROJECT_ROOT / candidate
+
+
+def _latest_json_artifact(
+    log_dir: Path, patterns: tuple[str, ...]
+) -> tuple[Path, dict[str, Any]] | None:
+    """Return the newest JSON payload matching any of the supplied patterns."""
+
+    matches: list[Path] = []
+    for pattern in patterns:
+        matches.extend(log_dir.rglob(pattern))
+    for path in sorted(
+        set(matches), key=lambda item: item.stat().st_mtime, reverse=True
+    ):
+        payload = _read_json_artifact(path)
+        if payload is not None:
+            return path, payload
+    return None
+
+
+def _latest_child_run_summary(
+    log_dir: Path, *, failed: bool, season: str | None = None
+) -> dict[str, Any] | None:
+    """Return the newest child operations summary from update_current_season.py."""
+
+    patterns = (
+        ("*_run_summary_failed.json", "*_failed_run_summary.json")
+        if failed
+        else ("*_run_summary.json",)
+    )
+    search_dir = log_dir / season_key(season) if season else log_dir
+    result = _latest_json_artifact(search_dir, patterns)
+    if result is None and season:
+        result = _latest_json_artifact(log_dir, patterns)
+    if result is None:
+        return None
+    path, payload = result
+    if not failed and path.name.endswith("_hosted_update_summary.json"):
+        return None
+    payload = dict(payload)
+    payload["path"] = _display_path(path)
+    return payload
+
+
+def _int_or_none(value: object) -> int | None:
+    """Return an integer for count-like values without raising in summaries."""
+
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _list_count(payload: dict[str, Any] | None, key: str) -> int | None:
+    """Return the length of a list field when the artifact supplies one."""
+
+    if not payload:
+        return None
+    value = payload.get(key)
+    return len(value) if isinstance(value, list) else None
+
+
+def _list_sample(
+    payload: dict[str, Any] | None, key: str, *, limit: int = 20
+) -> list[object]:
+    """Return a bounded sample of a list field for artifact readability."""
+
+    if not payload:
+        return []
+    value = payload.get(key)
+    if not isinstance(value, list):
+        return []
+    return value[:limit]
+
+
+def _sum_counts(counts: object) -> int:
+    """Sum dictionary count values while ignoring missing or non-numeric entries."""
+
+    if not isinstance(counts, dict):
+        return 0
+    return sum(int(value) for value in counts.values() if isinstance(value, int))
+
+
+def _extract_staging_metadata(log_path: Path | None) -> dict[str, Any]:
+    """Read lightweight staging run metadata from the staging build log."""
+
+    metadata: dict[str, Any] = {
+        "run_id": None,
+        "target_seasons": [],
+        "validation_issue_counts": {},
+        "verification_status": _staging_verification_status(log_path),
+    }
+    if log_path is None or not log_path.exists():
+        return metadata
+
+    in_issue_counts = False
+    with log_path.open("r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if stripped.startswith("Run ID:"):
+                metadata["run_id"] = stripped.split(":", 1)[1].strip()
+            elif stripped.startswith("Target seasons:"):
+                seasons = stripped.split(":", 1)[1].strip()
+                metadata["target_seasons"] = [
+                    season.strip() for season in seasons.split(",") if season.strip()
+                ]
+            elif stripped == "Validation issues logged to staging.validation_issues:":
+                in_issue_counts = True
+            elif in_issue_counts and not stripped:
+                in_issue_counts = False
+            elif in_issue_counts and ":" in stripped:
+                severity, count = stripped.split(":", 1)
+                parsed_count = _int_or_none(count.strip())
+                if parsed_count is not None:
+                    metadata["validation_issue_counts"][severity.strip()] = parsed_count
+    return metadata
+
+
+def _season_observability_payload(
+    *,
+    season: str,
+    child_summary: dict[str, Any] | None,
+    child_failure_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Assemble one season's hosted-refresh evidence from existing artifacts."""
+
+    source = _read_json_artifact(raw_season_source_preflight_file(season))
+    safety = _read_json_artifact(raw_season_load_safety_file(season))
+    refresh_plan = _read_json_artifact(raw_season_refresh_plan_file(season))
+    failure_evidence = (
+        child_failure_summary.get("failure_evidence") if child_failure_summary else None
+    )
+    if not isinstance(failure_evidence, dict):
+        failure_evidence = {}
+
+    child_step_logs = child_summary.get("step_logs") if child_summary else {}
+    if not isinstance(child_step_logs, dict):
+        child_step_logs = {}
+    raw_load_log = _displayed_path_to_path(child_step_logs.get("load_raw_to_postgres"))
+    staging_log = _displayed_path_to_path(child_step_logs.get("build_staging_from_raw"))
+    raw_loader_rows = (
+        child_summary.get("raw_loader_rows")
+        if child_summary and isinstance(child_summary.get("raw_loader_rows"), dict)
+        else _extract_raw_load_counts(raw_load_log)
+    )
+    staging_rows = (
+        child_summary.get("staging_rows")
+        if child_summary and isinstance(child_summary.get("staging_rows"), dict)
+        else _extract_staging_row_counts(staging_log)
+    )
+    staging_metadata = _extract_staging_metadata(staging_log)
+    source_url = (
+        (source or {}).get("source_url")
+        or failure_evidence.get("source_url")
+        or (safety or {}).get("source_url")
+    )
+
+    affected_ids = _list_sample(refresh_plan, "affected_match_ids", limit=50)
+    affected_urls = _list_sample(refresh_plan, "affected_match_urls", limit=20)
+    attempted_count = _list_count(refresh_plan, "attempted_match_urls") or 0
+    affected_count = _list_count(refresh_plan, "affected_match_urls") or 0
+    failed_count = _list_count(refresh_plan, "failed_match_urls") or 0
+    skipped_unchanged_count = max(0, attempted_count - affected_count - failed_count)
+
+    return {
+        "season": season,
+        "source": {
+            "report_path": _display_path(raw_season_source_preflight_file(season)),
+            "status": (source or {}).get("status"),
+            "source_url": source_url,
+            "final_source_url": (source or {}).get("final_source_url"),
+            "http_status": (source or {}).get("http_status"),
+            "content_type": (source or {}).get("content_type"),
+            "observed_link_count": (source or {}).get("observed_link_count"),
+            "minimum_link_count": (source or {}).get("minimum_link_count"),
+            "expected_match_count": (source or {}).get("expected_match_count")
+            or (safety or {}).get("expected_match_rows")
+            or failure_evidence.get("expected_match_count"),
+            "failure_reason": (source or {}).get("failure_reason")
+            or failure_evidence.get("failure_reason"),
+            "source_structure_valid": (source or {}).get("source_structure_valid"),
+            "baseline_version": (source or {}).get("baseline_version"),
+        },
+        "hosted_safety": {
+            "report_path": _display_path(raw_season_load_safety_file(season)),
+            "status": (safety or {}).get("status"),
+            "failure_reason": (safety or {}).get("failure_reason")
+            or failure_evidence.get("failure_reason"),
+            "existing_match_count": (safety or {}).get("existing_match_rows")
+            or failure_evidence.get("existing_hosted_count"),
+            "incoming_match_count": (safety or {}).get("incoming_match_rows")
+            or failure_evidence.get("incoming_match_count"),
+            "incoming_distinct_match_count": (safety or {}).get(
+                "incoming_distinct_match_urls"
+            )
+            or failure_evidence.get("incoming_distinct_match_count"),
+            "duplicate_match_rows": (safety or {}).get("duplicate_match_rows")
+            or failure_evidence.get("duplicate_match_rows"),
+            "missing_existing_match_url_count": (safety or {}).get(
+                "missing_existing_match_url_count"
+            )
+            or failure_evidence.get("missing_existing_match_url_count"),
+            "missing_existing_match_url_sample": (safety or {}).get(
+                "missing_existing_match_url_sample"
+            )
+            or failure_evidence.get("missing_existing_match_url_sample"),
+            "override_enabled": bool(
+                (safety or {}).get("override_enabled")
+                or failure_evidence.get("override_enabled", False)
+            ),
+            "database_write_stages_skipped": (safety or {}).get(
+                "database_write_stages_skipped"
+            )
+            or failure_evidence.get("database_write_stages_skipped")
+            or [],
+        },
+        "refresh_plan": {
+            "report_path": _display_path(raw_season_refresh_plan_file(season)),
+            "mode": (refresh_plan or {}).get("mode"),
+            "affected_match_count": affected_count,
+            "affected_match_ids": affected_ids,
+            "affected_match_url_sample": affected_urls,
+            "attempted_match_url_count": attempted_count,
+            "failed_match_url_count": failed_count,
+            "skipped_unchanged_match_url_count": skipped_unchanged_count,
+        },
+        "failed_matches": {
+            "remaining_count": (
+                child_summary.get("remaining_failed_matches") if child_summary else None
+            ),
+            "failed_match_url_count": failed_count,
+            "failed_match_url_sample": _list_sample(refresh_plan, "failed_match_urls"),
+        },
+        "row_mutations": {
+            "raw": {
+                "processed_rows_by_table": raw_loader_rows,
+                "processed_rows_total": _sum_counts(raw_loader_rows),
+                "inserted_or_updated_rows_by_table": raw_loader_rows,
+                "inserted_or_updated_rows_total": _sum_counts(raw_loader_rows),
+                "delete_scope_match_count": affected_count,
+                "exact_insert_update_split_available": False,
+            },
+            "staging": {
+                "rebuilt_rows_by_table": staging_rows,
+                "rebuilt_rows_total": _sum_counts(staging_rows),
+                "inserted_rows_by_table": staging_rows,
+                "inserted_rows_total": _sum_counts(staging_rows),
+                "deleted_and_rebuilt_season_slice": bool(staging_rows),
+                "stage_state": (
+                    child_summary.get("staging_rebuild") if child_summary else None
+                ),
+            },
+            "analytics": {
+                "refreshed_with_staging_rebuild": bool(staging_rows),
+                "row_counts_available": False,
+            },
+        },
+        "staging_run": staging_metadata,
+    }
+
+
+def _classify_outcome(
+    *,
+    args: argparse.Namespace,
+    status: str,
+    season_summaries: list[dict[str, Any]],
+    child_failure_summary: dict[str, Any] | None,
+) -> str:
+    """Return the operator-facing hosted refresh outcome bucket."""
+
+    if status == "failed":
+        if any(
+            summary["source"].get("status") == "failed" for summary in season_summaries
+        ):
+            return "source-health failure"
+        if any(
+            summary["hosted_safety"].get("status") == "blocked"
+            for summary in season_summaries
+        ):
+            return "guard blocked write"
+        failed_stage = (child_failure_summary or {}).get("failed_stage")
+        if failed_stage == "scrape_current_season":
+            return "source-health failure"
+        if failed_stage == "load_raw_to_postgres":
+            return "guard blocked write"
+        return "failed"
+    if args.run_type == "rebuild-from-existing-raw" or args.force_full_scrape:
+        return "admin rebuild"
+    affected = sum(
+        _int_or_none(summary["refresh_plan"].get("affected_match_count")) or 0
+        for summary in season_summaries
+    )
+    raw_processed = sum(
+        _int_or_none(summary["row_mutations"]["raw"].get("processed_rows_total")) or 0
+        for summary in season_summaries
+    )
+    if affected == 0 and raw_processed == 0:
+        return "no changes"
+    return "routine updates applied"
+
+
+def _hosted_observability_payload(
+    *,
+    args: argparse.Namespace,
+    seasons: list[str],
+    log_dir: Path,
+    step_logs: dict[str, str],
+    status: str,
+    failure: str | None,
+) -> dict[str, Any]:
+    """Build the full hosted summary payload uploaded by GitHub Actions."""
+
+    child_failure_summary = (
+        _latest_child_failure_summary(log_dir) if status == "failed" else None
+    )
+    child_summaries = {
+        season: _latest_child_run_summary(log_dir, failed=False, season=season)
+        for season in seasons
+    }
+    latest_child_summary = _latest_child_run_summary(log_dir, failed=False)
+    season_summaries = [
+        _season_observability_payload(
+            season=season,
+            child_summary=(
+                child_summaries[season]
+                if child_summaries[season]
+                and child_summaries[season].get("season") == season
+                else None
+            ),
+            child_failure_summary=child_failure_summary,
+        )
+        for season in seasons
+    ]
+    outcome = _classify_outcome(
+        args=args,
+        status=status,
+        season_summaries=season_summaries,
+        child_failure_summary=child_failure_summary,
+    )
+    return {
+        "status": status,
+        "outcome": outcome,
+        "season_scope": args.season_scope,
+        "run_type": args.run_type,
+        "seasons": seasons,
+        "apply_migrations": args.apply_migrations,
+        "use_cache": args.use_cache,
+        "force_full_scrape": args.force_full_scrape,
+        "io_verification": {
+            "routine_uses_live_source": not args.use_cache,
+            "routine_skips_migrations": not args.apply_migrations,
+            "force_full_scrape": args.force_full_scrape,
+            "unsafe_reload_override_exposed_by_wrapper": False,
+            "artifacts_uploaded_by_workflow": "outputs/automation/ and data/raw/",
+        },
+        "step_logs": step_logs,
+        "failure": failure,
+        "child_run_summary": latest_child_summary,
+        "child_run_summaries": child_summaries,
+        "child_failure_summary": child_failure_summary,
+        "season_summaries": season_summaries,
+    }
+
+
+def _format_count(value: object) -> str:
+    """Return a readable count for Markdown summaries."""
+
+    return "unknown" if value is None else str(value)
+
+
+def _write_markdown_summary(summary_path: Path, payload: dict[str, Any]) -> Path:
+    """Write a human-readable hosted update summary beside the JSON artifact."""
+
+    markdown_path = summary_path.with_suffix(".md")
+    lines = [
+        "# Hosted Data Update Summary",
+        "",
+        f"- Status: {payload['status']}",
+        f"- Outcome: {payload['outcome']}",
+        f"- Season scope: {payload['season_scope']}",
+        f"- Run type: {payload['run_type']}",
+        f"- Seasons: {', '.join(payload['seasons'])}",
+        f"- Migrations: {'applied' if payload['apply_migrations'] else 'skipped'}",
+        f"- Cache: {'allowed' if payload['use_cache'] else 'bypassed for live source'}",
+        f"- Force full scrape: {payload['force_full_scrape']}",
+        "",
+    ]
+    if payload.get("failure"):
+        lines.extend(["## Failure", "", str(payload["failure"]), ""])
+
+    for summary in payload["season_summaries"]:
+        source = summary["source"]
+        safety = summary["hosted_safety"]
+        plan = summary["refresh_plan"]
+        raw = summary["row_mutations"]["raw"]
+        staging = summary["row_mutations"]["staging"]
+        staging_run = summary["staging_run"]
+        lines.extend(
+            [
+                f"## Season {summary['season']}",
+                "",
+                f"- Source URL: {source.get('source_url') or 'unknown'}",
+                f"- Source status: {source.get('status') or 'unknown'}; HTTP {source.get('http_status') or 'unknown'}; links { _format_count(source.get('observed_link_count')) } of expected { _format_count(source.get('expected_match_count')) }",
+                f"- Source failure reason: {source.get('failure_reason') or 'none'}",
+                f"- Hosted existing matches: {_format_count(safety.get('existing_match_count'))}",
+                f"- Incoming distinct matches: {_format_count(safety.get('incoming_distinct_match_count'))}",
+                f"- Safety status: {safety.get('status') or 'unknown'}; skipped stages: {', '.join(safety.get('database_write_stages_skipped') or []) or 'none'}",
+                f"- Missing hosted URLs: {_format_count(safety.get('missing_existing_match_url_count'))}",
+                f"- Affected match IDs: {plan.get('affected_match_count')} total; sample {plan.get('affected_match_ids') or []}",
+                f"- Attempted URLs: {plan.get('attempted_match_url_count')}; failed URLs: {plan.get('failed_match_url_count')}; skipped unchanged URLs: {plan.get('skipped_unchanged_match_url_count')}",
+                f"- Raw rows inserted/updated: {raw.get('inserted_or_updated_rows_total')} across {raw.get('inserted_or_updated_rows_by_table') or {}}; delete match scope: {raw.get('delete_scope_match_count')}",
+                f"- Staging rows inserted after rebuild: {staging.get('inserted_rows_total')} across {staging.get('inserted_rows_by_table') or {}}",
+                f"- Staging run ID: {staging_run.get('run_id') or 'unknown'}; verification: {staging_run.get('verification_status')}",
+                "",
+            ]
+        )
+
+    lines.extend(["## Step Logs", ""])
+    if payload["step_logs"]:
+        for step_name, log_path in payload["step_logs"].items():
+            lines.append(f"- {step_name}: {log_path}")
+    else:
+        lines.append("- none recorded")
+    lines.append("")
+
+    markdown_path.write_text("\n".join(lines), encoding="utf-8")
+    return markdown_path
+
+
 def _latest_child_failure_summary(log_dir: Path) -> dict[str, object] | None:
     """Return the newest child failure summary produced before subprocess exit."""
 
-    summaries = sorted(
-        log_dir.rglob("*_failed_run_summary.json"),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    if not summaries:
-        return None
-    try:
-        payload = json.loads(summaries[0].read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(payload, dict):
+    payload = _latest_child_run_summary(log_dir, failed=True)
+    if payload is None:
         return None
     return {
-        "path": _display_path(summaries[0]),
+        "path": payload.get("path"),
         "failure_evidence": payload.get("failure_evidence"),
         "failed_stage": payload.get("failed_stage"),
         "failure_reason": payload.get("failure_reason"),
@@ -284,28 +737,25 @@ def _write_summary(
     status: str,
     failure: str | None = None,
 ) -> Path:
-    """Write a compact summary for GitHub artifacts and local troubleshooting."""
+    """Write JSON and Markdown summaries for hosted troubleshooting."""
 
     log_dir.mkdir(parents=True, exist_ok=True)
     summary_path = log_dir / f"{_timestamp_slug()}_hosted_update_summary.json"
-    payload = {
-        "status": status,
-        "season_scope": args.season_scope,
-        "run_type": args.run_type,
-        "seasons": seasons,
-        "apply_migrations": args.apply_migrations,
-        "use_cache": args.use_cache,
-        "force_full_scrape": args.force_full_scrape,
-        "step_logs": step_logs,
-        "failure": failure,
-        "child_failure_summary": (
-            _latest_child_failure_summary(log_dir) if status == "failed" else None
-        ),
-    }
+    payload = _hosted_observability_payload(
+        args=args,
+        seasons=seasons,
+        log_dir=log_dir,
+        step_logs=step_logs,
+        status=status,
+        failure=failure,
+    )
+    markdown_path = _write_markdown_summary(summary_path, payload)
+    payload["readable_summary_path"] = _display_path(markdown_path)
     summary_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
     )
     print(f"\n[hosted-update] Summary artifact: {_display_path(summary_path)}")
+    print(f"[hosted-update] Readable summary: {_display_path(markdown_path)}")
     return summary_path
 
 

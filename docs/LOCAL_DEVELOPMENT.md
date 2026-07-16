@@ -452,20 +452,34 @@ Typical files:
 <timestamp>_build_staging_from_raw.log
 <timestamp>_verify_staging_outputs.log
 <timestamp>_run_summary.json
+<timestamp>_hosted_update_summary.json
+<timestamp>_hosted_update_summary.md
 data/raw/<season>/upl_source_preflight_<season>.json
 data/raw/<season>/upl_raw_load_safety_<season>.json
+data/raw/<season>/upl_raw_refresh_plan_<season>.json
 ```
 
-Step logs answer what happened inside a stage. The JSON run summary records the
-final operational state: season, mode, migration behavior, verification status,
-remaining failed matches, raw row counts, loader counts, and step-log paths. A
-failed summary also carries the source URL, failure reason, observed and
-expected/minimum counts, incoming and hosted counts, target season, override
-state, and skipped database write stages. The hosted wrapper embeds that child
-failure evidence so it survives the subprocess boundary.
+Step logs answer what happened inside a stage. The child JSON run summary records
+the final one-season operational state: season, mode, migration behavior,
+verification status, remaining failed matches, raw row counts, loader counts,
+staging rows, and step-log paths. A failed child summary also carries the source
+URL, failure reason, observed and expected/minimum counts, incoming and hosted
+counts, target season, override state, and skipped database write stages.
+
+The hosted wrapper now writes a compact machine-readable JSON summary and a
+readable Markdown summary beside the step logs. Use
+`<timestamp>_hosted_update_summary.md` first during triage, then open the JSON
+when you need exact fields. The hosted summary classifies the run outcome as
+`no changes`, `source-health failure`, `guard blocked write`, `routine updates
+applied`, `admin rebuild`, or `failed`; includes source status, source match-link
+counts, existing hosted match count, incoming distinct count, affected match IDs,
+failed match URL samples, skipped unchanged URL counts, raw processed rows,
+staging rebuilt rows, staging run metadata, migration/cache flags, and whether
+any write stages were skipped.
 
 In GitHub Actions, upload both raw files and `outputs/automation/` logs as
-artifacts even when a run fails.
+artifacts even when a run fails. The uploaded automation logs artifact contains
+both hosted summaries for routine and manual runs.
 
 ## Severity And Escalation
 

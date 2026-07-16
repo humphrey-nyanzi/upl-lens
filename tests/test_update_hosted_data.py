@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -132,3 +134,316 @@ def test_hosted_wrapper_reads_child_failure_evidence(tmp_path) -> None:
     assert payload is not None
     assert payload["failed_stage"] == "load_raw_to_postgres"
     assert payload["failure_evidence"] == {"incoming_match_count": 20}
+
+
+def _write_json(path, payload):
+    """Write a compact JSON fixture for hosted summary tests."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def _patch_season_artifacts(monkeypatch, tmp_path, *, source, safety, refresh_plan):
+    """Point hosted summary helpers at temporary raw evidence artifacts."""
+
+    source_path = _write_json(tmp_path / "source.json", source)
+    safety_path = _write_json(tmp_path / "safety.json", safety)
+    plan_path = _write_json(tmp_path / "refresh_plan.json", refresh_plan)
+    monkeypatch.setattr(
+        update_hosted_data,
+        "raw_season_source_preflight_file",
+        lambda season: source_path,
+    )
+    monkeypatch.setattr(
+        update_hosted_data,
+        "raw_season_load_safety_file",
+        lambda season: safety_path,
+    )
+    monkeypatch.setattr(
+        update_hosted_data,
+        "raw_season_refresh_plan_file",
+        lambda season: plan_path,
+    )
+    return source_path, safety_path, plan_path
+
+
+def test_hosted_summary_writes_json_and_markdown_for_routine_updates(
+    monkeypatch, tmp_path
+) -> None:
+    """Hosted runs should upload one machine and one readable summary artifact."""
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={
+            "status": "passed",
+            "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
+            "http_status": 200,
+            "observed_link_count": 240,
+            "minimum_link_count": 1,
+            "expected_match_count": 240,
+            "failure_reason": None,
+            "source_structure_valid": True,
+            "baseline_version": "test-baseline",
+        },
+        safety={
+            "status": "passed",
+            "existing_match_rows": 238,
+            "incoming_match_rows": 240,
+            "incoming_distinct_match_urls": 240,
+            "duplicate_match_rows": 0,
+            "missing_existing_match_url_count": 0,
+            "override_enabled": False,
+            "database_write_stages_skipped": [],
+        },
+        refresh_plan={
+            "mode": "routine-incremental",
+            "affected_match_ids": [239, 240],
+            "affected_match_urls": [
+                "https://upl.co.ug/event/239/",
+                "https://upl.co.ug/event/240/",
+            ],
+            "attempted_match_urls": [
+                "https://upl.co.ug/event/236/",
+                "https://upl.co.ug/event/237/",
+                "https://upl.co.ug/event/238/",
+                "https://upl.co.ug/event/239/",
+                "https://upl.co.ug/event/240/",
+            ],
+            "failed_match_urls": [],
+        },
+    )
+    log_dir = tmp_path / "logs"
+    staging_log = log_dir / "staging.log"
+    staging_log.parent.mkdir(parents=True)
+    staging_log.write_text(
+        "Run ID: staging-test\nTarget seasons: 2025_26\n"
+        "[ok] Staging verification finished without error-level validation issues.\n",
+        encoding="utf-8",
+    )
+    _write_json(
+        log_dir / "2025_26" / "20260716_run_summary.json",
+        {
+            "status": "success",
+            "season": "2025-26",
+            "remaining_failed_matches": 0,
+            "raw_loader_rows": {"matches": 2, "events": 11},
+            "staging_rows": {"matches": 240, "events": 3431},
+            "staging_rebuild": "completed",
+            "step_logs": {"build_staging_from_raw": str(staging_log)},
+        },
+    )
+
+    summary_path = update_hosted_data._write_summary(
+        args=_args(),
+        seasons=["2025-26"],
+        log_dir=log_dir,
+        step_logs={"routine-refresh_2025_26": "outputs/automation/log.txt"},
+        status="success",
+    )
+
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    markdown_path = tmp_path / "logs" / Path(payload["readable_summary_path"]).name
+    assert payload["outcome"] == "routine updates applied"
+    assert payload["io_verification"]["routine_skips_migrations"] is True
+    season_summary = payload["season_summaries"][0]
+    assert season_summary["source"]["observed_link_count"] == 240
+    assert season_summary["hosted_safety"]["existing_match_count"] == 238
+    assert season_summary["refresh_plan"]["affected_match_ids"] == [239, 240]
+    assert season_summary["refresh_plan"]["skipped_unchanged_match_url_count"] == 3
+    assert season_summary["row_mutations"]["raw"]["processed_rows_total"] == 13
+    assert season_summary["row_mutations"]["staging"]["rebuilt_rows_total"] == 3671
+    assert season_summary["staging_run"]["run_id"] == "staging-test"
+    assert markdown_path.exists()
+    assert "Outcome: routine updates applied" in markdown_path.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_hosted_summary_classifies_guard_blocked_write(monkeypatch, tmp_path) -> None:
+    """A raw safety block should be visible at hosted-wrapper level."""
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={
+            "status": "passed",
+            "source_url": "https://upl.co.ug/calendar/2025-26-fixtures-results/",
+            "observed_link_count": 240,
+            "minimum_link_count": 1,
+            "expected_match_count": 240,
+            "failure_reason": None,
+        },
+        safety={
+            "status": "blocked",
+            "failure_reason": "incoming match set would remove existing hosted matches",
+            "existing_match_rows": 240,
+            "incoming_match_rows": 220,
+            "incoming_distinct_match_urls": 220,
+            "missing_existing_match_url_count": 20,
+            "missing_existing_match_url_sample": ["https://upl.co.ug/event/221/"],
+            "override_enabled": False,
+            "database_write_stages_skipped": ["raw", "staging", "analytics"],
+        },
+        refresh_plan={
+            "mode": "routine-incremental",
+            "affected_match_ids": [],
+            "affected_match_urls": [],
+            "attempted_match_urls": [],
+            "failed_match_urls": [],
+        },
+    )
+    log_dir = tmp_path / "logs"
+    _write_json(
+        log_dir / "2025_26" / "20260716_run_summary_failed.json",
+        {
+            "status": "failed",
+            "failed_stage": "load_raw_to_postgres",
+            "failure_reason": "unsafe raw load blocked",
+            "failure_evidence": {
+                "database_write_stages_skipped": ["raw", "staging", "analytics"]
+            },
+        },
+    )
+
+    payload = update_hosted_data._hosted_observability_payload(
+        args=_args(),
+        seasons=["2025-26"],
+        log_dir=log_dir,
+        step_logs={},
+        status="failed",
+        failure="Hosted update step failed",
+    )
+
+    assert payload["outcome"] == "guard blocked write"
+    safety = payload["season_summaries"][0]["hosted_safety"]
+    assert safety["existing_match_count"] == 240
+    assert safety["incoming_distinct_match_count"] == 220
+    assert safety["missing_existing_match_url_count"] == 20
+    assert safety["database_write_stages_skipped"] == [
+        "raw",
+        "staging",
+        "analytics",
+    ]
+
+
+def test_hosted_summary_distinguishes_source_failure_no_changes_and_admin_rebuild(
+    monkeypatch, tmp_path
+) -> None:
+    """The hosted outcome vocabulary should cover the issue's triage buckets."""
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={"status": "failed", "failure_reason": "unexpected_calendar_structure"},
+        safety={},
+        refresh_plan={
+            "affected_match_ids": [],
+            "affected_match_urls": [],
+            "attempted_match_urls": [],
+            "failed_match_urls": [],
+        },
+    )
+    source_failure = update_hosted_data._hosted_observability_payload(
+        args=_args(),
+        seasons=["2025-26"],
+        log_dir=tmp_path / "source-failure",
+        step_logs={},
+        status="failed",
+        failure="source failed",
+    )
+    assert source_failure["outcome"] == "source-health failure"
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={
+            "status": "passed",
+            "observed_link_count": 240,
+            "expected_match_count": 240,
+        },
+        safety={"status": "passed", "database_write_stages_skipped": []},
+        refresh_plan={
+            "affected_match_ids": [],
+            "affected_match_urls": [],
+            "attempted_match_urls": ["https://upl.co.ug/event/240/"],
+            "failed_match_urls": [],
+        },
+    )
+    no_changes = update_hosted_data._hosted_observability_payload(
+        args=_args(),
+        seasons=["2025-26"],
+        log_dir=tmp_path / "no-changes",
+        step_logs={},
+        status="success",
+        failure=None,
+    )
+    assert no_changes["outcome"] == "no changes"
+
+    admin_rebuild = update_hosted_data._hosted_observability_payload(
+        args=_args(run_type="rebuild-from-existing-raw"),
+        seasons=["2025-26"],
+        log_dir=tmp_path / "admin-rebuild",
+        step_logs={},
+        status="success",
+        failure=None,
+    )
+    assert admin_rebuild["outcome"] == "admin rebuild"
+
+
+def test_hosted_summary_uses_matching_child_summary_per_season(
+    monkeypatch, tmp_path
+) -> None:
+    """Custom multi-season runs should not reuse the newest child summary for all seasons."""
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={
+            "status": "passed",
+            "observed_link_count": 10,
+            "expected_match_count": 240,
+        },
+        safety={"status": "passed", "database_write_stages_skipped": []},
+        refresh_plan={
+            "affected_match_ids": [10],
+            "affected_match_urls": ["https://upl.co.ug/event/10/"],
+            "attempted_match_urls": ["https://upl.co.ug/event/10/"],
+            "failed_match_urls": [],
+        },
+    )
+    log_dir = tmp_path / "logs"
+    _write_json(
+        log_dir / "2024_25" / "20260716_run_summary.json",
+        {
+            "status": "success",
+            "season": "2024-25",
+            "raw_loader_rows": {"matches": 4},
+            "staging_rows": {"matches": 200},
+            "step_logs": {},
+        },
+    )
+    _write_json(
+        log_dir / "2025_26" / "20260716_run_summary.json",
+        {
+            "status": "success",
+            "season": "2025-26",
+            "raw_loader_rows": {"matches": 6},
+            "staging_rows": {"matches": 240},
+            "step_logs": {},
+        },
+    )
+
+    payload = update_hosted_data._hosted_observability_payload(
+        args=_args(season_scope="custom", custom_seasons="2024-25,2025-26"),
+        seasons=["2024-25", "2025-26"],
+        log_dir=log_dir,
+        step_logs={},
+        status="success",
+        failure=None,
+    )
+
+    by_season = {item["season"]: item for item in payload["season_summaries"]}
+    assert by_season["2024-25"]["row_mutations"]["raw"]["processed_rows_total"] == 4
+    assert by_season["2025-26"]["row_mutations"]["raw"]["processed_rows_total"] == 6
