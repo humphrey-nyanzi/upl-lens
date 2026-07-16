@@ -307,38 +307,47 @@ manual database edits.
 
 ## API Guidance
 
-FastAPI should be read-first initially.
+FastAPI should remain read-first for public product use.
 
-Start with simple endpoints:
+Current endpoint families include:
 
 - `GET /health`
 - `GET /seasons`
+- `GET /seasons/overview`
 - `GET /matches`
+- `GET /matches/intelligence`
 - `GET /matches/{match_id}`
 - `GET /teams`
-- `GET /teams/{team_id}/summary`
+- `GET /teams/{team_slug}/profile`
 - `GET /players`
+- `GET /players/leaderboards`
+- `GET /players/{player_slug}`
 - `GET /events`
 - `GET /officials`
+- `GET /trends/seasons`
+- `GET /overview/intelligence`
+- `GET /insights/goal-timing`
 
 Keep business logic out of route functions when it grows. Use service/query
 modules so endpoints remain thin.
-
 ## Frontend Guidance
 
 Build the React app as an analytical product, not a marketing site.
 
-Initial pages should likely be:
+Current product routes include:
 
 - League overview.
+- Trends / league evolution.
 - Goal timing explorer.
-- Discipline dashboard.
-- Team profile.
-- Match explorer.
+- Match explorer and match intelligence brief.
+- Team insights and team profile.
+- Player contribution board and player detail.
+- Insights library.
+- About / methodology.
 
-The UI should focus on comparison, filtering, and readable football stories.
-Avoid generic framework defaults where a more deliberate design is practical.
-
+Future frontend work should improve comparison, filtering, route-specific QA,
+and readable football stories. Avoid generic framework defaults where a more
+deliberate design is practical.
 ## Automation Guidance
 
 The current-season update flow should eventually:

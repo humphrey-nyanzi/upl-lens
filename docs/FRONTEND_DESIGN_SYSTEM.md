@@ -38,23 +38,24 @@ order when frontend guidance conflicts:
 If a future design decision becomes durable, fold it into this document instead
 of creating a new sibling doc.
 
-## Current Frontend Implementation Phase
+## Current Frontend Baseline
 
-The backend has been upgraded for intelligence-layer frontend work. The next
-implementation order is:
+The June intelligence-layer implementation order is now historical. The merged
+frontend baseline includes:
 
-1. Sync `frontend/src/api/client.ts` and `frontend/src/api/types.ts` with the
-   current backend responses.
-2. Build reusable visual components for charts, signal chips, form strips,
-   timeline rails, and data-quality notes.
-3. Upgrade the Trends page first.
-4. Upgrade Teams and Team Detail.
-5. Upgrade Matches and Match Detail.
-6. Upgrade Players and Player Detail.
-7. Refine Overview and About.
+- typed API client methods for the routine intelligence endpoints and promoted
+  Goal Timing insight
+- reusable intelligence components for mini charts, comparisons, scatter plots,
+  signal chips, form strips, timeline rails, score progression, and data-quality
+  notes
+- Overview, Matches, Match Detail, Teams, Team Detail, Players, Player Detail,
+  Insights, Trends, Goal Timing, and About/Methodology routes
+- an Editorial Light shell with desktop sidebar, mobile bottom navigation,
+  stable team badges, loading/empty/error states, and cross-route QA guidance
 
-Do not begin page redesigns before checking the API contract and the page
-requirements below.
+Future Product Experience work should begin from a GitHub Issue or explicit
+owner request, then use the API contract, page roles, visual rules, and launch
+acceptance checklist below. Do not use the old build order as a live task list.
 
 ## Product Architecture Rule
 
@@ -211,14 +212,18 @@ These surfaces are approved as part of the public product direction:
 
 - League Overview
 - Goal Timing Explorer
-- Match Explorer
-- Team Insights / Team Profile
-- Discipline Dashboard
-- Methodology / Data Notes
+- Match Explorer and Match Intelligence Brief
+- Team Insights and Team Profile
+- Player Contribution Board and Player Detail
+- Insights Library
+- Trends / League Evolution
+- About / Methodology / Data Notes
+- Discipline Dashboard as a future promoted or routine intelligence surface
+  after research and endpoint needs are clear
 
-The current deployed app is still a pilot. It proves the architecture, but the
-long-term direction is a richer analytical product.
-
+The current deployed app is now the v1.0 release foundation. Future work should
+polish, verify, or extend these surfaces rather than restart the page build
+sequence.
 ## Page Roles And Requirements
 
 These roles replace the older split launch-doc structure:
@@ -385,9 +390,9 @@ direction are aligned as follows:
 - reusable components under `frontend/src/components/`
 - FastAPI-backed hooks and client calls
 
-The first mockup-aligned redesign pass is complete. Future frontend work should
-come from GitHub Issues, the seed drafts in `.github/ISSUE_DRAFTS/`, or
-explicit user instruction.
+The first mockup-aligned redesign pass and the intelligence-layer route build
+are complete on `main`. Future frontend work should come from GitHub Issues,
+release QA findings, or explicit user instruction.
 
 ## Approved Visual Direction
 
@@ -851,20 +856,20 @@ mockup direction. The goal is close product feel, not pixel-perfect copying.
 ## Frontend Seed Issue List
 
 Active frontend work now belongs in GitHub Issues. This section preserves the
-approved seed list that has been created as live Issues, with reusable local
-drafts kept in `.github/ISSUE_DRAFTS/`. Do not treat this table as the live
-task tracker.
+approved seed list that was used to build the current intelligence-layer
+frontend. Do not treat this table as the live task tracker.
 
 | Request group | Status | Endpoint/data owner | Acceptance signal |
 |---|---|---|---|
-| Intelligence-layer API client sync | approved | `/trends/seasons`, `/overview/intelligence`, `/matches/intelligence`, `/teams/{team_slug}/profile`, `/players/leaderboards` | `frontend/src/api/types.ts` and `frontend/src/api/client.ts` match the backend contract while existing methods keep working. |
-| Reusable intelligence visual components | needs_review | Existing intelligence endpoint responses | Shared components exist for mini charts, comparison bars, scatter plots, stacked bars, timeline rails, form strips, signal chips, and data-quality notes. |
-| Intelligence-layer page upgrades | approved | Current API contract above | Trends, Teams, Matches, Players, Overview, and About present intelligence modules instead of archive-first records. |
-| Cross-season aggregation and fixed featured-insight framing | approved | Season-aware API responses and promoted insight scope | All Seasons support is clear, while featured insights keep their research scope. |
-| Improve Insights Library and insight exploration surfaces | approved | Existing insight endpoint plus static registry until more insight metadata exists | Insights reads as a promoted research library, not a sparse placeholder. |
-| Expand Trends into a multi-visualization surface | approved | `/trends/seasons` | Trends shows scoring, discipline, result share, high-scoring match share, and data coverage across seasons. |
+| Intelligence-layer API client sync | implemented | `/trends/seasons`, `/overview/intelligence`, `/matches/intelligence`, `/teams/{team_slug}/profile`, `/players/leaderboards` | `frontend/src/api/types.ts` and `frontend/src/api/client.ts` expose the merged backend contract while existing methods keep working. |
+| Reusable intelligence visual components | implemented | Existing intelligence endpoint responses | Shared components exist for mini charts, comparison bars, scatter plots, timeline rails, form strips, signal chips, score progression, and data-quality notes. |
+| Intelligence-layer page upgrades | implemented | Current API contract above | Trends, Teams, Matches, Players, Overview, and About present intelligence modules instead of archive-first records. |
+| Cross-season aggregation and fixed featured-insight framing | implemented | Season-aware API responses and promoted insight scope | All Seasons support is clear, while featured insights keep their research scope. |
+| Improve Insights Library and insight exploration surfaces | implemented | Existing insight endpoint plus static registry until more insight metadata exists | Insights reads as a promoted research library, not a sparse placeholder. |
+| Expand Trends into a multi-visualization surface | implemented | `/trends/seasons` | Trends shows scoring, discipline, result share, high-scoring match share, and data coverage across seasons. |
+| Release QA and follow-up polish | active in GitHub | Public routes, Cloudflare preview, and production app | Owner/browser QA records route coverage, limitations, and any follow-up Issues before release. |
 
-Implementation order:
+Historical implementation order, now complete on `main`:
 
 1. API client/types sync
 2. reusable intelligence components
@@ -877,7 +882,6 @@ Implementation order:
 Use the installed `build-web-apps:frontend-app-builder`, `impeccable`, and
 `tufte-viz` skills for substantial frontend work, with `tufte-viz` guiding
 chart choice, graphical integrity, and chartjunk removal.
-
 ## Update Rules
 
 Only add guidance here when one of these is true:

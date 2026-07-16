@@ -15,9 +15,10 @@ Use one of:
 - `promotion_ready`
 - `promoted`
 - `needs_revision`
-- `deprecated`
+- `parked`
+- `rejected`
 
-These statuses are defined in `docs/FEATURE_REGISTRY.md`.
+These statuses are defined in `docs/FEATURE_PROMOTION_WORKFLOW.md`.
 
 ## Feature Question
 

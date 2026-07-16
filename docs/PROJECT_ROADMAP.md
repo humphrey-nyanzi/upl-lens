@@ -303,59 +303,47 @@ Use Issues to give agents bounded coworker roles:
 
 ## Intelligence-Layer Frontend Maturation
 
-This phase covers the backend-upgraded UPL Lens pages that surface routine
-intelligence modules on normal pages without collapsing them into promoted
-insights.
+This June/July phase moved UPL Lens from a pilot dashboard into the v1.0 public
+release foundation. It is no longer the active build-order list.
 
-### Milestone 1 - Backend Intelligence API
+### Completed Foundation
 
-Status: complete.
+- Backend intelligence endpoints exist for trends, overview intelligence, match
+  triage, team profiles, player leaderboards, and extended match/player detail
+  payloads.
+- `frontend/src/api/client.ts` and `frontend/src/api/types.ts` expose the current
+  frontend-facing contract.
+- Shared intelligence primitives exist for mini charts, comparison bars,
+  scatter plots, timeline rails, score progression, form strips, signal chips,
+  and data-quality notes.
+- Trends, Teams, Team Detail, Matches, Match Detail, Players, Player Detail,
+  Insights, Overview, and About/Methodology have merged intelligence-layer
+  routes.
+- Cross-route QA guidance now lives in
+  [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md) for future Product
+  Experience PRs.
 
-The backend now exposes richer shapes for trends, overview intelligence, match
-triage, team profiles, player leaderboards, and extended match/player detail
-payloads.
+### Current v1.0 Release Focus
 
-### Milestone 2 - Documentation Alignment
+The current release lane is hardening and owner review, not another frontend
+rebuild. Use GitHub Issues and PRs for live status. At the time of this
+reconciliation, the open release-hardening items include:
 
-Status: current task.
+- API proxy cache-header safety for credentialed bypasses, under review in PR
+  #101.
+- Hosted refresh observability artifacts, under review in PR #102.
+- Routine refresh, admin migration, and full rebuild workflow-mode separation,
+  tracked in Issue #64 and not yet shipped.
 
-Keep the docs aligned to the backend contract, page responsibilities, and
-implementation order.
+Do not document those pending items as merged behavior until their PRs land on
+`main`.
 
-### Milestone 3 - Frontend API Contract Sync
+### Next Product Experience Loop
 
-- update `frontend/src/api/types.ts`
-- update `frontend/src/api/client.ts`
-- preserve existing methods while adding safe fallbacks for new fields
-
-### Milestone 4 - Visual Component System
-
-- reusable charts
-- timeline rail
-- signal chips
-- form strip
-- data-quality components
-
-### Milestone 5 - Trends Page Rebuild
-
-Highest frontend priority.
-
-### Milestone 6 - Teams and Matches Intelligence Pages
-
-- team intelligence board
-- team dossier
-- match intelligence triage
-- match intelligence brief
-
-### Milestone 7 - Player Contribution Pages
-
-- player contribution board
-- player contribution profile
-
-### Milestone 8 - Overview and About Polish
-
-- editorial control room refinement
-- trust and methodology polish
+After v1.0 release blockers are handled, Product Experience work should be
+selected from owner QA findings, public usability gaps, or research-backed
+feature promotion. The durable page roles, API contract, and launch acceptance
+checks live in [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md).
 
 ## Architecture Overview
 
@@ -537,30 +525,40 @@ Owns:
 
 Current strengths:
 
-- FastAPI exposes seasons, overview, matches, teams, events, officials, health,
-  and goal timing insight endpoints
-- route functions are thin and query logic is centralized
-- React reads FastAPI JSON instead of CSV files
+- FastAPI exposes seasons, overview, trends, matches, match intelligence, team
+  profiles, player leaderboards, events, officials, health, and goal timing
+  insight endpoints.
+- route functions are thin and query logic is centralized under
+  `src/api/query_services/`.
+- React reads FastAPI JSON instead of CSV files, notebooks, or exported images.
 - the frontend has a modular `AppShell`, page components, reusable product
-  surfaces, and first-pass design-system treatment
-- the deployed app proves the full public request flow
+  surfaces, and shared intelligence primitives.
+- merged routes now cover Overview, Matches, Match Detail, Teams, Team Detail,
+  Players, Player Detail, Insights, Trends, Goal Timing, and About/Methodology.
+- the deployed app proves the full public request flow through Cloudflare Pages,
+  the Pages `/api/*` proxy, Render FastAPI, and Supabase Postgres.
+- cross-route QA guidance exists for hierarchy, imagery, navigation, state
+  handling, data trust, and responsive/browser verification.
 
 Known weaknesses:
 
-- the frontend is still a pilot, not a rich analytical product
-- Match Explorer, Team Profile, and Discipline Dashboard are not built out
-- API tests and frontend smoke tests are still thin
-- UI caveats and data freshness signals can be clearer
+- the public app still needs owner release QA across common desktop and mobile
+  routes before v1.0 is accepted.
+- discipline/card intelligence remains a research candidate, not a promoted
+  insight or finished dashboard feature.
+- some public polish work remains active in GitHub Issues and should not be
+  treated as complete until reviewed and merged.
+- free-tier backend/database behavior can still affect perceived reliability,
+  so cache/proxy behavior and hosted health need continued attention.
 
 Next useful work:
 
-- redesign the frontend into real product pages
-- use `docs/FRONTEND_DESIGN_SYSTEM.md` as the source of truth for approved
-  visual system, API/page requirements, seed issue guidance, and durable
-  frontend decisions before implementation
-- add stronger loading, empty, and error states
-- add API endpoints only when product features prove the need
-- create a visible path from summary views to match/team detail views
+- finish v1.0 release-hardening PRs and record owner/browser QA evidence.
+- keep Product Experience follow-up tied to GitHub Issues with route-specific
+  acceptance criteria and cross-route QA notes.
+- promote the next football insight only after notebook evidence and product
+  planning support it.
+- add or change API endpoints only when a real product surface needs the data.
 
 Escalate when:
 
@@ -568,7 +566,6 @@ Escalate when:
 - the frontend needs data that no API endpoint exposes cleanly
 - API response changes can break the dashboard
 - UI presentation makes incomplete data look certain
-
 ### 4. Developer Experience & Documentation
 
 Purpose: keep the project readable, runnable, and teachable for a junior
@@ -899,44 +896,51 @@ Current foundation:
 
 - `api/main.py` creates the FastAPI app and registers route modules.
 - `api/routers/` contains thin endpoint modules for health, seasons, matches,
-  teams, events, officials, and insights.
+  teams, players, events, officials, insights, trends, and overview.
 - `src/api/query_services/` contains the domain-split Postgres query layer.
 - `src/api/queries.py` remains as a compatibility facade for existing imports.
-- `src/api/schemas.py` contains the initial Pydantic response models.
-- The API reads from Postgres `staging.*` tables, not raw CSV files.
+- `src/api/schemas.py` contains the Pydantic response models used by the API and
+  frontend contract.
+- The API reads from Postgres `staging.*` and `analytics.*` tables, not raw CSV
+  files.
 
-Initial endpoints:
+Current endpoint families:
 
 - `GET /health`
+- `GET /health/live`
 - `GET /seasons`
-- `GET /seasons/{season}/overview`
-- `GET /insights/goal-timing`
+- `GET /seasons/overview`
+- `GET /seasons/{season}/overview` for compatibility
 - `GET /matches`
+- `GET /matches/intelligence`
 - `GET /matches/{match_id}`
 - `GET /teams`
-- `GET /teams/{team_id}`
-- `GET /teams/{team_id}/summary`
+- `GET /teams/{team_slug}/profile`
 - `GET /players`
-- `GET /players/{player_id}`
+- `GET /players/leaderboards`
+- `GET /players/{player_slug}`
 - `GET /events`
 - `GET /officials`
-- `GET /officials/{official_id}/summary`
-- `GET /stats/match/{match_id}`
+- `GET /trends/seasons`
+- `GET /overview/intelligence`
+- `GET /insights/goal-timing`
 
-First insight endpoints:
+Promoted insight endpoints:
 
 - `GET /insights/goal-timing`
-- `GET /insights/discipline`
-- `GET /insights/team-form`
-- `GET /insights/official-cards`
+
+Future insight candidates such as discipline, team form, and official card
+patterns should start in `docs/FEATURE_PROMOTION_WORKFLOW.md` and become API
+endpoints only after research and product planning justify them.
 
 Implementation guidance:
 
 - Keep route functions thin.
 - Put SQL/query logic in service or repository modules.
 - Use typed response models.
-- Support filters such as season, team, event type, date range, and home/away.
-- Add pagination for list endpoints.
+- Support filters such as season, team, event type, match day, signal, and
+  pagination where the endpoint supports them.
+- Add cursor-style pagination only when a product surface needs it.
 - Return consistent error shapes.
 
 Command pattern:
@@ -945,10 +949,13 @@ Command pattern:
 - Open API docs: `http://127.0.0.1:8000/docs`
 - Check health: `curl http://127.0.0.1:8000/health`
 - List seasons: `curl http://127.0.0.1:8000/seasons`
-- Get season overview: `curl "http://127.0.0.1:8000/seasons/2025_26/overview"`
+- Get season overview: `curl "http://127.0.0.1:8000/seasons/overview?season=2025_26"`
 - List matches: `curl "http://127.0.0.1:8000/matches?season=2025_26&limit=5"`
+- List match intelligence: `curl "http://127.0.0.1:8000/matches/intelligence?season=2025_26&limit=5"`
 - Inspect one match: `curl "http://127.0.0.1:8000/matches/15463"`
 - List teams: `curl "http://127.0.0.1:8000/teams?season=2025_26"`
+- Inspect one team profile: `curl "http://127.0.0.1:8000/teams/<team_slug>/profile?season=2025_26"`
+- List player leaderboards: `curl "http://127.0.0.1:8000/players/leaderboards?season=2025_26"`
 - List events: `curl "http://127.0.0.1:8000/events?season=2025_26&event_type=goal&limit=10"`
 - List officials: `curl "http://127.0.0.1:8000/officials?season=2025_26&limit=10"`
 
@@ -964,50 +971,49 @@ Acceptance criteria:
 Objective: Build UPL Lens into a real interactive product, not another notebook
 dashboard or official-site clone.
 
-Current pilot foundation:
+Current foundation:
 
 - `frontend/` contains a Vite + React + TypeScript app.
-- `frontend/src/api/client.ts` is the small API service layer.
-- `frontend/src/api/types.ts` mirrors the current FastAPI response shapes.
-- The first screen is a League Overview dashboard that calls `/health`,
-  `/seasons`, `/seasons/{season}/overview`, `/insights/goal-timing`,
-  `/matches`, `/teams`, and `/events`.
-- `GET /seasons/{season}/overview` gives the frontend season-wide totals for
-  matches, teams, goals, cards, event totals, and event breakdowns without
-  paging through every event row in the browser.
-- FastAPI allows local Vite origins with CORS for browser development.
-- The frontend reads FastAPI JSON only; it does not read CSV files.
-- The first promoted insight panel promotes Feature 1 goal timing into the
-  dashboard through `/insights/goal-timing?season=...`.
+- `frontend/src/api/client.ts` is the frontend API service layer.
+- `frontend/src/api/types.ts` mirrors the current FastAPI response shapes used
+  by React.
+- The app uses an Editorial Light shell with desktop sidebar navigation, mobile
+  bottom navigation, shared page structure, and stable team badges instead of
+  official club logos.
+- The frontend reads FastAPI JSON only; it does not read CSV files, notebooks,
+  exported notebook charts, or local database files.
+- Current routes include Overview, Matches, Match Detail, Teams, Team Detail,
+  Players, Player Detail, Insights, Trends, Goal Timing, and About/Methodology.
+- The frontend uses `/seasons/overview`, `/overview/intelligence`,
+  `/trends/seasons`, `/matches/intelligence`, `/teams/{team_slug}/profile`,
+  `/players/leaderboards`, and `/insights/goal-timing` for its main
+  intelligence surfaces.
+- The first promoted insight, Feature 1 Goal Timing, is available through
+  `/insights/goal-timing?season=...` and React visualization components.
+- Shared intelligence primitives support mini charts, comparison bars, scatter
+  plots, timeline rails, form strips, signal chips, score progression, and
+  data-quality notes.
 
-Initial pages:
+Current product pages:
 
-- **League Overview**
-  - Total matches, goals, cards, teams, seasons.
-  - Current-season status.
-  - Key trend cards.
-
-- **Goal Timing Explorer**
-  - Goal distribution by interval.
-  - Filters by season, team, home/away, event type.
-  - Link back to original goal timing research.
-
-- **Discipline Dashboard**
-  - Yellow/red cards by team and season.
-  - Card timing.
-  - Red card match impact.
-  - Officials card rates where data supports it.
-
-- **Team Profile**
-  - Results summary.
-  - Goal timing profile.
-  - Discipline profile.
-  - Home/away split.
-  - Most-used players.
-
-- **Match Explorer**
-  - Search and filter matches.
-  - Match detail page with timeline, lineups, officials, and stats.
+- **League Overview**: editorial control room with season pulse, things to
+  notice, recent signal matches, team signals, featured insight, and data
+  quality context.
+- **Trends**: league evolution across seasons, including scoring, discipline,
+  result share, high-scoring match share, and coverage quality.
+- **Matches**: match intelligence triage with signal filters and interest-based
+  sorting.
+- **Match Detail**: match intelligence brief with key moments, timeline rail,
+  score progression, phase summary, metadata, and source link.
+- **Teams**: team intelligence board with attack/defence comparison, record
+  summaries, profile labels, and team list.
+- **Team Detail**: team dossier with record, splits, form, timing, discipline,
+  and data-quality notes.
+- **Players**: player contribution board with grouped leaderboards and caveats.
+- **Player Detail**: contribution profile with output rates, starts share,
+  season trend, and recent involvement.
+- **Insights / Goal Timing**: promoted notebook-backed research surface.
+- **About / Methodology**: trust, source boundary, data path, and caveat notes.
 
 Frontend principles:
 
@@ -1015,14 +1021,17 @@ Frontend principles:
 - Do not simply reproduce raw match pages.
 - Use readable labels, not raw database column names.
 - Keep filters obvious and useful.
-- Prefer a small polished product over many unfinished pages.
+- Keep caveats near the interpretation they affect.
+- Prefer route-specific follow-up Issues over broad visual rewrites.
 
 Acceptance criteria:
 
 - React app reads from FastAPI, not CSV.
-- Users can browse matches and teams.
+- Users can browse matches, teams, players, trends, and promoted insights.
 - At least one flagship insight is presented interactively.
 - The app can run locally with documented commands.
+- Public-release PRs include route/browser QA evidence or an explicit reason it
+  is not applicable.
 
 Command pattern:
 
@@ -1035,7 +1044,6 @@ Command pattern:
   `npm run dev`
 - Open the frontend:
   `http://127.0.0.1:5173`
-
 ## Launch Milestone 5 - Automation With GitHub Actions
 
 Objective: Keep the current season updated without manual scraping.
@@ -1299,20 +1307,22 @@ Acceptance criteria:
 
 ## Near-Term Next Steps
 
-The next best implementation sequence should use the four continuous areas:
+The next best implementation sequence should use the four continuous areas and
+current GitHub Issues rather than the completed June frontend build order:
 
-1. **Developer Experience & Documentation**: keep `docs/START_HERE.md`,
-   `README.md`, and this roadmap aligned so new contributors know where to
-   begin.
-2. **Data Reliability & Operations**: add a small observability and test
-   foundation around stage logs, run summaries, validation severity, and the
-   highest-risk parser/transform functions.
-3. **Product Experience**: continue the UPL Lens frontend relaunch from the
-   UPL Lens launch docs into a more useful analytical product with clearer
-   navigation, loading states, filters, and detail paths.
-4. **Research & Football Intelligence**: start Feature 2, likely a discipline
-   or card-trends package, and validate it in a notebook before promoting it to
-   FastAPI and React.
+1. **Data Reliability & Operations**: finish release-hardening work around API
+   proxy cache safety, hosted refresh observability, and routine-versus-admin
+   workflow-mode separation. Do not treat open PR or Issue work as shipped until
+   it merges.
+2. **Product Experience**: run owner/browser QA against the public routes,
+   record route-specific findings, and address only the highest-risk follow-up
+   Issues before v1.0.
+3. **Developer Experience & Documentation**: keep `docs/START_HERE.md`,
+   `README.md`, this roadmap, agent instructions, diagrams, and operations docs
+   aligned with merged behavior.
+4. **Research & Football Intelligence**: start Feature 2 only after release
+   blockers are clear, likely with a discipline/card-trends package using the
+   feature workflow.
 
 This keeps the project growing in stable loops: trustworthy data, validated
 football ideas, useful product surfaces, and documentation that remains

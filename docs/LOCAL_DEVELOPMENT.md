@@ -189,7 +189,7 @@ for normal development; they make it harder to tell what has been reviewed.
 Run commands from the repository root:
 
 ```text
-C:\Personal Code Projects\upl-lens
+C:\Code\upl-lens
 ```
 
 Prefer:
