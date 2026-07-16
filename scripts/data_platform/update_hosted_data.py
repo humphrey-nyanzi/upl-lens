@@ -287,13 +287,16 @@ def _displayed_path_to_path(value: str | None) -> Path | None:
 
 
 def _latest_json_artifact(
-    log_dir: Path, patterns: tuple[str, ...]
+    search_roots: list[Path], patterns: tuple[str, ...]
 ) -> tuple[Path, dict[str, Any]] | None:
-    """Return the newest JSON payload matching any of the supplied patterns."""
+    """Return the newest JSON payload matching any pattern under allowed roots."""
 
     matches: list[Path] = []
-    for pattern in patterns:
-        matches.extend(log_dir.rglob(pattern))
+    for root in search_roots:
+        if not root.exists():
+            continue
+        for pattern in patterns:
+            matches.extend(root.rglob(pattern))
     for path in sorted(
         set(matches), key=lambda item: item.stat().st_mtime, reverse=True
     ):
@@ -303,20 +306,42 @@ def _latest_json_artifact(
     return None
 
 
+def _current_step_roots(
+    *, log_dir: Path, step_logs: dict[str, str], season: str | None = None
+) -> list[Path]:
+    """Return artifact search roots proven to belong to this wrapper run."""
+
+    roots: list[Path] = []
+    target_key = season_key(season) if season else None
+    for displayed_path in step_logs.values():
+        path = _displayed_path_to_path(displayed_path)
+        if path is None:
+            continue
+        parent = path.parent
+        if target_key and target_key not in parent.parts and parent != log_dir:
+            continue
+        if parent not in roots:
+            roots.append(parent)
+    return roots
+
+
 def _latest_child_run_summary(
-    log_dir: Path, *, failed: bool, season: str | None = None
+    log_dir: Path,
+    *,
+    failed: bool,
+    season: str | None = None,
+    search_roots: list[Path] | None = None,
 ) -> dict[str, Any] | None:
-    """Return the newest child operations summary from update_current_season.py."""
+    """Return the newest child operations summary from current-run roots only."""
 
     patterns = (
         ("*_run_summary_failed.json", "*_failed_run_summary.json")
         if failed
         else ("*_run_summary.json",)
     )
-    search_dir = log_dir / season_key(season) if season else log_dir
-    result = _latest_json_artifact(search_dir, patterns)
-    if result is None and season:
-        result = _latest_json_artifact(log_dir, patterns)
+    if search_roots is None:
+        search_roots = [log_dir / season_key(season)] if season else [log_dir]
+    result = _latest_json_artifact(search_roots, patterns)
     if result is None:
         return None
     path, payload = result
@@ -408,6 +433,7 @@ def _season_observability_payload(
     season: str,
     child_summary: dict[str, Any] | None,
     child_failure_summary: dict[str, Any] | None,
+    wrapper_step_logs: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Assemble one season's hosted-refresh evidence from existing artifacts."""
 
@@ -423,8 +449,13 @@ def _season_observability_payload(
     child_step_logs = child_summary.get("step_logs") if child_summary else {}
     if not isinstance(child_step_logs, dict):
         child_step_logs = {}
+    if wrapper_step_logs is None:
+        wrapper_step_logs = {}
     raw_load_log = _displayed_path_to_path(child_step_logs.get("load_raw_to_postgres"))
-    staging_log = _displayed_path_to_path(child_step_logs.get("build_staging_from_raw"))
+    staging_log = _displayed_path_to_path(
+        child_step_logs.get("build_staging_from_raw")
+        or wrapper_step_logs.get("build_staging_from_raw")
+    )
     raw_loader_rows = (
         child_summary.get("raw_loader_rows")
         if child_summary and isinstance(child_summary.get("raw_loader_rows"), dict)
@@ -534,7 +565,9 @@ def _season_observability_payload(
                 "inserted_rows_total": _sum_counts(staging_rows),
                 "deleted_and_rebuilt_season_slice": bool(staging_rows),
                 "stage_state": (
-                    child_summary.get("staging_rebuild") if child_summary else None
+                    child_summary.get("staging_rebuild")
+                    if child_summary
+                    else ("completed" if staging_log else None)
                 ),
             },
             "analytics": {
@@ -568,8 +601,6 @@ def _classify_outcome(
         failed_stage = (child_failure_summary or {}).get("failed_stage")
         if failed_stage == "scrape_current_season":
             return "source-health failure"
-        if failed_stage == "load_raw_to_postgres":
-            return "guard blocked write"
         return "failed"
     if args.run_type == "rebuild-from-existing-raw" or args.force_full_scrape:
         return "admin rebuild"
@@ -598,13 +629,29 @@ def _hosted_observability_payload(
     """Build the full hosted summary payload uploaded by GitHub Actions."""
 
     child_failure_summary = (
-        _latest_child_failure_summary(log_dir) if status == "failed" else None
+        _latest_child_failure_summary(
+            log_dir,
+            search_roots=_current_step_roots(log_dir=log_dir, step_logs=step_logs),
+        )
+        if status == "failed"
+        else None
     )
     child_summaries = {
-        season: _latest_child_run_summary(log_dir, failed=False, season=season)
+        season: _latest_child_run_summary(
+            log_dir,
+            failed=False,
+            season=season,
+            search_roots=_current_step_roots(
+                log_dir=log_dir, step_logs=step_logs, season=season
+            ),
+        )
         for season in seasons
     }
-    latest_child_summary = _latest_child_run_summary(log_dir, failed=False)
+    latest_child_summary = _latest_child_run_summary(
+        log_dir,
+        failed=False,
+        search_roots=_current_step_roots(log_dir=log_dir, step_logs=step_logs),
+    )
     season_summaries = [
         _season_observability_payload(
             season=season,
@@ -615,6 +662,7 @@ def _hosted_observability_payload(
                 else None
             ),
             child_failure_summary=child_failure_summary,
+            wrapper_step_logs=step_logs,
         )
         for season in seasons
     ]
@@ -714,10 +762,12 @@ def _write_markdown_summary(summary_path: Path, payload: dict[str, Any]) -> Path
     return markdown_path
 
 
-def _latest_child_failure_summary(log_dir: Path) -> dict[str, object] | None:
+def _latest_child_failure_summary(
+    log_dir: Path, *, search_roots: list[Path] | None = None
+) -> dict[str, object] | None:
     """Return the newest child failure summary produced before subprocess exit."""
 
-    payload = _latest_child_run_summary(log_dir, failed=True)
+    payload = _latest_child_run_summary(log_dir, failed=True, search_roots=search_roots)
     if payload is None:
         return None
     return {
@@ -764,7 +814,7 @@ def main() -> None:
 
     args = parse_args()
     seasons = _resolve_target_seasons(args)
-    log_dir = args.log_dir / _scope_slug(args, seasons)
+    log_dir = args.log_dir / _scope_slug(args, seasons) / _timestamp_slug()
     step_logs: dict[str, str] = {}
 
     print("UPL Lens - Hosted Data Update")
@@ -785,6 +835,7 @@ def main() -> None:
                 args=args, seasons=seasons, log_dir=log_dir, step_logs=step_logs
             )
     except HostedUpdateStepError as error:
+        step_logs.setdefault(error.step_name, _display_path(error.log_path))
         _write_summary(
             args=args,
             seasons=seasons,

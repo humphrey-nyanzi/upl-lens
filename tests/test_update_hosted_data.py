@@ -239,7 +239,7 @@ def test_hosted_summary_writes_json_and_markdown_for_routine_updates(
         args=_args(),
         seasons=["2025-26"],
         log_dir=log_dir,
-        step_logs={"routine-refresh_2025_26": "outputs/automation/log.txt"},
+        step_logs={"routine-refresh_2025_26": str(log_dir / "2025_26" / "step.log")},
         status="success",
     )
 
@@ -439,7 +439,10 @@ def test_hosted_summary_uses_matching_child_summary_per_season(
         args=_args(season_scope="custom", custom_seasons="2024-25,2025-26"),
         seasons=["2024-25", "2025-26"],
         log_dir=log_dir,
-        step_logs={},
+        step_logs={
+            "routine-refresh_2024_25": str(log_dir / "2024_25" / "step.log"),
+            "routine-refresh_2025_26": str(log_dir / "2025_26" / "step.log"),
+        },
         status="success",
         failure=None,
     )
@@ -447,3 +450,130 @@ def test_hosted_summary_uses_matching_child_summary_per_season(
     by_season = {item["season"]: item for item in payload["season_summaries"]}
     assert by_season["2024-25"]["row_mutations"]["raw"]["processed_rows_total"] == 4
     assert by_season["2025-26"]["row_mutations"]["raw"]["processed_rows_total"] == 6
+
+
+def test_hosted_summary_does_not_classify_load_raw_failure_as_guard_without_blocked_safety(
+    monkeypatch, tmp_path
+) -> None:
+    """A load failure is only a guard block when safety explicitly says blocked."""
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={"status": "passed"},
+        safety={"status": "passed", "database_write_stages_skipped": []},
+        refresh_plan={
+            "affected_match_ids": [],
+            "affected_match_urls": [],
+            "attempted_match_urls": [],
+            "failed_match_urls": [],
+        },
+    )
+    log_dir = tmp_path / "logs"
+    failed_summary = _write_json(
+        log_dir / "2025_26" / "20260716_run_summary_failed.json",
+        {
+            "status": "failed",
+            "failed_stage": "load_raw_to_postgres",
+            "failure_reason": "connection dropped",
+            "failure_evidence": {"failure_reason": "connection dropped"},
+        },
+    )
+
+    payload = update_hosted_data._hosted_observability_payload(
+        args=_args(),
+        seasons=["2025-26"],
+        log_dir=log_dir,
+        step_logs={"routine-refresh_2025_26": str(failed_summary.with_suffix(".log"))},
+        status="failed",
+        failure="Hosted update step failed",
+    )
+
+    assert payload["outcome"] == "failed"
+    assert payload["child_failure_summary"]["failed_stage"] == "load_raw_to_postgres"
+
+
+def test_hosted_summary_ignores_stale_child_artifacts_without_current_step_root(
+    monkeypatch, tmp_path
+) -> None:
+    """Early wrapper failures should not reuse summaries from older invocations."""
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={"status": "passed"},
+        safety={"status": "passed", "database_write_stages_skipped": []},
+        refresh_plan={
+            "affected_match_ids": [],
+            "affected_match_urls": [],
+            "attempted_match_urls": [],
+            "failed_match_urls": [],
+        },
+    )
+    log_dir = tmp_path / "logs"
+    _write_json(
+        log_dir / "old-run" / "2025_26" / "20260716_run_summary_failed.json",
+        {
+            "status": "failed",
+            "failed_stage": "load_raw_to_postgres",
+            "failure_reason": "old guard block",
+            "failure_evidence": {"failure_reason": "old guard block"},
+        },
+    )
+
+    payload = update_hosted_data._hosted_observability_payload(
+        args=_args(),
+        seasons=["2025-26"],
+        log_dir=log_dir,
+        step_logs={},
+        status="failed",
+        failure="wrapper failed before child summary",
+    )
+
+    assert payload["child_failure_summary"] is None
+    assert payload["outcome"] == "failed"
+
+
+def test_all_season_rebuild_uses_top_level_staging_log(monkeypatch, tmp_path) -> None:
+    """All-season rebuild summaries should report top-level staging evidence."""
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={"status": "passed"},
+        safety={"status": "passed", "database_write_stages_skipped": []},
+        refresh_plan={
+            "affected_match_ids": [],
+            "affected_match_urls": [],
+            "attempted_match_urls": [],
+            "failed_match_urls": [],
+        },
+    )
+    log_dir = tmp_path / "logs"
+    staging_log = log_dir / "20260716_build_staging_from_raw.log"
+    staging_log.parent.mkdir(parents=True)
+    staging_log.write_text(
+        "Run ID: all-season-staging\n"
+        "Target seasons: 2024_25, 2025_26\n"
+        "  staging.matches: 440 rows\n"
+        "  staging.events: 6123 rows\n"
+        "[ok] Staging verification finished without error-level validation issues.\n",
+        encoding="utf-8",
+    )
+
+    payload = update_hosted_data._hosted_observability_payload(
+        args=_args(season_scope="all", run_type="rebuild-from-existing-raw"),
+        seasons=["2024-25", "2025-26"],
+        log_dir=log_dir,
+        step_logs={"build_staging_from_raw": str(staging_log)},
+        status="success",
+        failure=None,
+    )
+
+    for season_summary in payload["season_summaries"]:
+        assert season_summary["row_mutations"]["staging"]["rebuilt_rows_total"] == 6563
+        assert season_summary["staging_run"]["run_id"] == "all-season-staging"
+        assert season_summary["staging_run"]["target_seasons"] == [
+            "2024_25",
+            "2025_26",
+        ]
