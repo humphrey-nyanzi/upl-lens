@@ -7,7 +7,8 @@ hosted database for the current season, all seasons, or a small custom list.
 Usage examples
 --------------
 python scripts/data_platform/update_hosted_data.py
-python scripts/data_platform/update_hosted_data.py --season-scope all --run-type rebuild-from-existing-raw
+python scripts/data_platform/update_hosted_data.py --run-type admin-migration
+python scripts/data_platform/update_hosted_data.py --season-scope custom --custom-seasons 2025-26 --run-type full-rebuild-backfill
 python scripts/data_platform/update_hosted_data.py --season-scope custom --custom-seasons 2024-25,2025-26
 """
 
@@ -40,6 +41,14 @@ from scripts.data_platform.update_current_season import (
 
 SCRIPT_DIR = PROJECT_ROOT / "scripts" / "data_platform"
 DEFAULT_LOG_DIR = PROJECT_ROOT / "outputs" / "automation"
+SUPPORTED_RUN_TYPES = (
+    "routine-refresh",
+    "source-health",
+    "admin-migration",
+    "full-rebuild-backfill",
+)
+
+
 ALL_KNOWN_SEASONS = (
     "2019-20",
     "2020-21",
@@ -49,6 +58,10 @@ ALL_KNOWN_SEASONS = (
     "2024-25",
     "2025-26",
 )
+
+
+class HostedUpdateModeError(ValueError):
+    """Raised before work starts when hosted-update options are incompatible."""
 
 
 class HostedUpdateStepError(Exception):
@@ -83,17 +96,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--run-type",
-        choices=("routine-refresh", "rebuild-from-existing-raw", "artifact-only"),
+        choices=SUPPORTED_RUN_TYPES,
         default="routine-refresh",
         help=(
-            "routine-refresh scrapes and refreshes Postgres; rebuild-from-existing-raw "
-            "rebuilds staging/analytics from hosted raw rows; artifact-only scrapes raw files only."
+            "routine-refresh runs the safe weekly DB update; source-health only scrapes artifacts; "
+            "admin-migration applies migrations; full-rebuild-backfill performs an explicit raw backfill."
         ),
     )
     parser.add_argument(
         "--apply-migrations",
         action="store_true",
-        help="Apply database migrations before data refresh steps.",
+        help="Deprecated escape hatch. Only valid with --run-type admin-migration.",
     )
     parser.add_argument(
         "--use-cache",
@@ -103,7 +116,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--force-full-scrape",
         action="store_true",
-        help="Disable Postgres change detection and scrape every calendar match.",
+        help="Deprecated escape hatch. Only valid with --run-type full-rebuild-backfill.",
     )
     parser.add_argument(
         "--log-dir",
@@ -117,6 +130,60 @@ def parse_args() -> argparse.Namespace:
         help="Fail if any season ends with failed match URLs.",
     )
     return parser.parse_args()
+
+
+def _validate_mode_args(args: argparse.Namespace) -> None:
+    """Fail before any subprocess can scrape or write when modes are mixed."""
+
+    if args.run_type == "routine-refresh":
+        if args.apply_migrations:
+            raise HostedUpdateModeError("routine-refresh cannot apply migrations")
+        if args.force_full_scrape:
+            raise HostedUpdateModeError(
+                "routine-refresh cannot force a full scrape or raw rebuild"
+            )
+        if args.use_cache:
+            raise HostedUpdateModeError(
+                "routine-refresh must use the live source, not scraper cache"
+            )
+        return
+
+    if args.run_type == "source-health":
+        if args.apply_migrations:
+            raise HostedUpdateModeError("source-health cannot apply migrations")
+        if args.force_full_scrape:
+            raise HostedUpdateModeError(
+                "source-health cannot force a full scrape or raw rebuild"
+            )
+        return
+
+    if args.run_type == "admin-migration":
+        if args.season_scope != "current":
+            raise HostedUpdateModeError(
+                "admin-migration does not accept season selection"
+            )
+        if args.use_cache:
+            raise HostedUpdateModeError(
+                "admin-migration does not use scraper cache options"
+            )
+        if args.force_full_scrape:
+            raise HostedUpdateModeError(
+                "admin-migration cannot force a full scrape or raw rebuild"
+            )
+        return
+
+    if args.run_type == "full-rebuild-backfill":
+        if args.apply_migrations:
+            raise HostedUpdateModeError(
+                "full-rebuild-backfill cannot apply migrations; run admin-migration separately"
+            )
+        if args.use_cache:
+            raise HostedUpdateModeError(
+                "full-rebuild-backfill must use the live source, not scraper cache"
+            )
+        return
+
+    raise HostedUpdateModeError(f"Unsupported hosted update mode: {args.run_type}")
 
 
 def _timestamp_slug() -> str:
@@ -191,17 +258,22 @@ def _season_args(seasons: list[str]) -> list[str]:
 def _build_update_current_season_command(
     args: argparse.Namespace, season: str, *, log_dir: Path | None = None
 ) -> list[str]:
-    """Translate operator options into the existing one-season pipeline command."""
+    """Translate one validated hosted mode into a one-season pipeline command."""
 
-    mode = "artifact-only" if args.run_type == "artifact-only" else "full"
-    command = _python_command(
-        "update_current_season.py", "--season", season, "--mode", mode
-    )
-
-    if args.run_type == "rebuild-from-existing-raw":
-        command.extend(["--skip-scrape", "--skip-raw-load"])
-    if not args.apply_migrations:
+    if args.run_type == "source-health":
+        command = _python_command(
+            "update_current_season.py", "--season", season, "--mode", "artifact-only"
+        )
         command.append("--skip-migrations")
+    else:
+        command = _python_command(
+            "update_current_season.py", "--season", season, "--mode", "full"
+        )
+        command.append("--skip-migrations")
+
+    if args.run_type == "full-rebuild-backfill":
+        command.extend(["--disable-postgres-change-detection", "--full-raw-rebuild"])
+
     if args.use_cache:
         command.append("--use-cache")
     if args.force_full_scrape:
@@ -213,36 +285,23 @@ def _build_update_current_season_command(
     return command
 
 
-def _run_rebuild_all_from_existing_raw(
+def _build_admin_migration_command() -> list[str]:
+    """Return the explicit admin migration/index command."""
+
+    return _python_command("apply_db_migrations.py")
+
+
+def _run_admin_migration(
     *,
-    args: argparse.Namespace,
     log_dir: Path,
     step_logs: dict[str, str],
 ) -> None:
-    """Rebuild staging/analytics for every hosted raw season in one command."""
+    """Run the explicit admin migration/index path without scraping data."""
 
-    if args.apply_migrations:
-        step_logs["apply_db_migrations"] = _display_path(
-            _run_step(
-                "apply_db_migrations",
-                _python_command("apply_db_migrations.py"),
-                log_dir,
-            )
-        )
-    else:
-        print("\n[hosted-update] Skipping migrations.")
-
-    step_logs["build_staging_from_raw"] = _display_path(
+    step_logs["apply_db_migrations"] = _display_path(
         _run_step(
-            "build_staging_from_raw",
-            _python_command("build_staging_from_raw.py"),
-            log_dir,
-        )
-    )
-    step_logs["verify_staging_outputs"] = _display_path(
-        _run_step(
-            "verify_staging_outputs",
-            _python_command("verify_staging_outputs.py"),
+            "apply_db_migrations",
+            _build_admin_migration_command(),
             log_dir,
         )
     )
@@ -634,7 +693,9 @@ def _classify_outcome(
         if failed_stage == "scrape_current_season":
             return "source-health failure"
         return "failed"
-    if args.run_type == "rebuild-from-existing-raw" or args.force_full_scrape:
+    if args.run_type == "admin-migration":
+        return "admin migration"
+    if args.run_type == "full-rebuild-backfill" or args.force_full_scrape:
         return "admin rebuild"
     affected = sum(
         _int_or_none(summary["refresh_plan"].get("affected_match_count")) or 0
@@ -711,12 +772,12 @@ def _hosted_observability_payload(
         "season_scope": args.season_scope,
         "run_type": args.run_type,
         "seasons": seasons,
-        "apply_migrations": args.apply_migrations,
+        "apply_migrations": args.run_type == "admin-migration" or args.apply_migrations,
         "use_cache": args.use_cache,
         "force_full_scrape": args.force_full_scrape,
         "io_verification": {
             "routine_uses_live_source": not args.use_cache,
-            "routine_skips_migrations": not args.apply_migrations,
+            "routine_skips_migrations": args.run_type == "routine-refresh",
             "force_full_scrape": args.force_full_scrape,
             "unsafe_reload_override_exposed_by_wrapper": False,
             "artifacts_uploaded_by_workflow": "outputs/automation/ and data/raw/",
@@ -863,6 +924,7 @@ def main() -> None:
     """Run the selected hosted data update."""
 
     args = parse_args()
+    _validate_mode_args(args)
     seasons = _resolve_target_seasons(args)
     log_dir = args.log_dir / _scope_slug(args, seasons) / _timestamp_slug()
     current_run_started_at = time.time()
@@ -872,15 +934,15 @@ def main() -> None:
     print(f"Season scope: {args.season_scope}")
     print(f"Run type: {args.run_type}")
     print(f"Target seasons: {', '.join(seasons)}")
-    print(f"Apply migrations: {args.apply_migrations}")
+    print(
+        f"Apply migrations: {args.run_type == 'admin-migration' or args.apply_migrations}"
+    )
     print(f"Use cache: {args.use_cache}")
     print(f"Force full scrape: {args.force_full_scrape}")
 
     try:
-        if args.run_type == "rebuild-from-existing-raw" and args.season_scope == "all":
-            _run_rebuild_all_from_existing_raw(
-                args=args, log_dir=log_dir, step_logs=step_logs
-            )
+        if args.run_type == "admin-migration":
+            _run_admin_migration(log_dir=log_dir, step_logs=step_logs)
         else:
             _run_per_season_pipeline(
                 args=args, seasons=seasons, log_dir=log_dir, step_logs=step_logs

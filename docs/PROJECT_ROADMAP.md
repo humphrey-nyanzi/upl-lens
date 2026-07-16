@@ -1062,9 +1062,11 @@ Current foundation:
   `--fail-on-remaining-failed-matches`.
 - `.github/workflows/current-season-update.yml` runs the `Hosted data update`
   workflow and can be triggered manually or by the weekly schedule.
-- The workflow uses operator-level inputs such as `season_scope`, `run_type`,
-  `apply_migrations`, `use_cache`, and `force_full_scrape`. Routine runs skip
-  migrations by default so they can use the least-privilege loader role.
+- The workflow uses explicit operator-level modes through `run_type`:
+  `routine-refresh`, `source-health`, `admin-migration`, and
+  `full-rebuild-backfill`. Scheduled runs are locked to
+  `season_scope=current`, `run_type=routine-refresh`, and `use_cache=false` so
+  they cannot run migrations, force a scrape, or trigger a full raw rebuild.
 - `docs/LOCAL_DEVELOPMENT.md` documents the working GitHub secrets, Supabase
   pooler username pattern, artifact behavior, hosted deployment checks, and
   common connection errors.
@@ -1110,11 +1112,15 @@ Command pattern:
   `python scripts/data_platform/update_current_season.py --season 2025-26 --skip-scrape`
 - Run the routine least-privilege refresh without migrations:
   `python scripts/data_platform/update_hosted_data.py --season-scope current --run-type routine-refresh`
-- Run scraper-only artifact mode for CI or source-data snapshots:
-  `python scripts/data_platform/update_current_season.py --season 2025-26 --mode artifact-only`
+- Run scraper/source-health artifact mode for CI or source-data snapshots:
+  `python scripts/data_platform/update_hosted_data.py --season-scope current --run-type source-health`
+- Run migration/index changes as an explicit admin operation:
+  `python scripts/data_platform/update_hosted_data.py --run-type admin-migration`
+- Run reviewed full-season rebuild/backfill separately from migrations:
+  `python scripts/data_platform/update_hosted_data.py --season-scope custom --custom-seasons 2025-26 --run-type full-rebuild-backfill`
 - Fail strict automation when any match still needs a retry:
   `python scripts/data_platform/update_current_season.py --season 2025-26 --fail-on-remaining-failed-matches`
-- GitHub Actions full mode needs these repository secrets:
+- GitHub Actions database update modes need these repository secrets:
   `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`,
   `POSTGRES_PASSWORD`, and optionally `POSTGRES_SSLMODE`.
 - For Supabase pooler connections, `POSTGRES_USER` may need the project suffix,
