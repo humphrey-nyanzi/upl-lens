@@ -29,8 +29,9 @@ function canUseEdgeCache(request, path) {
 function withCacheHeaders(response, path, cacheStatus) {
   const headers = new Headers(response.headers);
   const cacheSeconds = cacheSecondsFor(path);
+  const publicCacheAllowed = cacheStatus === "HIT" || cacheStatus === "MISS";
 
-  if (cacheSeconds > 0 && response.ok) {
+  if (publicCacheAllowed && cacheSeconds > 0 && response.ok) {
     headers.set("cache-control", `public, max-age=60, s-maxage=${cacheSeconds}, stale-while-revalidate=60`);
   } else {
     headers.set("cache-control", "no-store");
@@ -89,4 +90,5 @@ export async function onRequest({ request, params }) {
 export const testExports = {
   cacheSecondsFor,
   canUseEdgeCache,
+  withCacheHeaders,
 };
