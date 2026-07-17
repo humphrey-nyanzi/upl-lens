@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -188,7 +189,7 @@ def _season_args(seasons: list[str]) -> list[str]:
 
 
 def _build_update_current_season_command(
-    args: argparse.Namespace, season: str
+    args: argparse.Namespace, season: str, *, log_dir: Path | None = None
 ) -> list[str]:
     """Translate operator options into the existing one-season pipeline command."""
 
@@ -205,6 +206,8 @@ def _build_update_current_season_command(
         command.append("--use-cache")
     if args.force_full_scrape:
         command.extend(["--disable-postgres-change-detection", "--full-raw-rebuild"])
+    if log_dir is not None:
+        command.extend(["--log-dir", str(log_dir)])
     if args.fail_on_remaining_failed_matches:
         command.append("--fail-on-remaining-failed-matches")
     return command
@@ -257,7 +260,7 @@ def _run_per_season_pipeline(
     for season in seasons:
         season_log_dir = log_dir / season_key(season)
         step_name = f"{args.run_type}_{season_key(season)}"
-        command = _build_update_current_season_command(args, season)
+        command = _build_update_current_season_command(args, season, log_dir=log_dir)
         step_logs[step_name] = _display_path(
             _run_step(step_name, command, season_log_dir)
         )
@@ -393,6 +396,19 @@ def _sum_counts(counts: object) -> int:
     return sum(int(value) for value in counts.values() if isinstance(value, int))
 
 
+def _artifact_is_current(path: Path, current_run_started_at: float | None) -> bool:
+    """Return whether a persistent artifact was written during this wrapper run."""
+
+    if not path.exists():
+        return False
+    if current_run_started_at is None:
+        return True
+    try:
+        return path.stat().st_mtime >= current_run_started_at - 1.0
+    except OSError:
+        return False
+
+
 def _extract_staging_metadata(log_path: Path | None) -> dict[str, Any]:
     """Read lightweight staging run metadata from the staging build log."""
 
@@ -428,17 +444,36 @@ def _extract_staging_metadata(log_path: Path | None) -> dict[str, Any]:
     return metadata
 
 
+def _staging_aggregate_payload(step_logs: dict[str, str]) -> dict[str, Any]:
+    """Return top-level staging evidence for all-season aggregate rebuilds."""
+
+    staging_log = _displayed_path_to_path(step_logs.get("build_staging_from_raw"))
+    staging_rows = _extract_staging_row_counts(staging_log)
+    staging_metadata = _extract_staging_metadata(staging_log)
+    return {
+        "log_path": _display_path(staging_log) if staging_log else None,
+        "scope": "aggregate" if staging_log else None,
+        "row_counts_by_table": staging_rows,
+        "row_count_total": _sum_counts(staging_rows),
+        "staging_run": staging_metadata,
+    }
+
+
 def _season_observability_payload(
     *,
     season: str,
     child_summary: dict[str, Any] | None,
     child_failure_summary: dict[str, Any] | None,
-    wrapper_step_logs: dict[str, str] | None = None,
+    current_run_started_at: float | None = None,
 ) -> dict[str, Any]:
     """Assemble one season's hosted-refresh evidence from existing artifacts."""
 
     source = _read_json_artifact(raw_season_source_preflight_file(season))
-    safety = _read_json_artifact(raw_season_load_safety_file(season))
+    safety_path = raw_season_load_safety_file(season)
+    raw_safety = _read_json_artifact(safety_path)
+    safety_is_current = _artifact_is_current(safety_path, current_run_started_at)
+    safety = raw_safety if safety_is_current else None
+    stale_safety = raw_safety if raw_safety and not safety_is_current else None
     refresh_plan = _read_json_artifact(raw_season_refresh_plan_file(season))
     failure_evidence = (
         child_failure_summary.get("failure_evidence") if child_failure_summary else None
@@ -449,13 +484,8 @@ def _season_observability_payload(
     child_step_logs = child_summary.get("step_logs") if child_summary else {}
     if not isinstance(child_step_logs, dict):
         child_step_logs = {}
-    if wrapper_step_logs is None:
-        wrapper_step_logs = {}
     raw_load_log = _displayed_path_to_path(child_step_logs.get("load_raw_to_postgres"))
-    staging_log = _displayed_path_to_path(
-        child_step_logs.get("build_staging_from_raw")
-        or wrapper_step_logs.get("build_staging_from_raw")
-    )
+    staging_log = _displayed_path_to_path(child_step_logs.get("build_staging_from_raw"))
     raw_loader_rows = (
         child_summary.get("raw_loader_rows")
         if child_summary and isinstance(child_summary.get("raw_loader_rows"), dict)
@@ -500,7 +530,9 @@ def _season_observability_payload(
             "baseline_version": (source or {}).get("baseline_version"),
         },
         "hosted_safety": {
-            "report_path": _display_path(raw_season_load_safety_file(season)),
+            "report_path": _display_path(safety_path),
+            "report_is_current": safety_is_current,
+            "previous_report_status": (stale_safety or {}).get("status"),
             "status": (safety or {}).get("status"),
             "failure_reason": (safety or {}).get("failure_reason")
             or failure_evidence.get("failure_reason"),
@@ -625,6 +657,7 @@ def _hosted_observability_payload(
     step_logs: dict[str, str],
     status: str,
     failure: str | None,
+    current_run_started_at: float | None = None,
 ) -> dict[str, Any]:
     """Build the full hosted summary payload uploaded by GitHub Actions."""
 
@@ -662,7 +695,7 @@ def _hosted_observability_payload(
                 else None
             ),
             child_failure_summary=child_failure_summary,
-            wrapper_step_logs=step_logs,
+            current_run_started_at=current_run_started_at,
         )
         for season in seasons
     ]
@@ -693,6 +726,7 @@ def _hosted_observability_payload(
         "child_run_summary": latest_child_summary,
         "child_run_summaries": child_summaries,
         "child_failure_summary": child_failure_summary,
+        "staging_aggregate": _staging_aggregate_payload(step_logs),
         "season_summaries": season_summaries,
     }
 
@@ -722,6 +756,20 @@ def _write_markdown_summary(summary_path: Path, payload: dict[str, Any]) -> Path
     ]
     if payload.get("failure"):
         lines.extend(["## Failure", "", str(payload["failure"]), ""])
+
+    aggregate = payload.get("staging_aggregate") or {}
+    if aggregate.get("row_counts_by_table"):
+        lines.extend(
+            [
+                "## Aggregate Staging Rebuild",
+                "",
+                f"- Scope: {aggregate.get('scope') or 'unknown'}",
+                f"- Log: {aggregate.get('log_path') or 'unknown'}",
+                f"- Staging rows: {aggregate.get('row_count_total')} across {aggregate.get('row_counts_by_table') or {}}",
+                f"- Staging run ID: {(aggregate.get('staging_run') or {}).get('run_id') or 'unknown'}",
+                "",
+            ]
+        )
 
     for summary in payload["season_summaries"]:
         source = summary["source"]
@@ -786,6 +834,7 @@ def _write_summary(
     step_logs: dict[str, str],
     status: str,
     failure: str | None = None,
+    current_run_started_at: float | None = None,
 ) -> Path:
     """Write JSON and Markdown summaries for hosted troubleshooting."""
 
@@ -798,6 +847,7 @@ def _write_summary(
         step_logs=step_logs,
         status=status,
         failure=failure,
+        current_run_started_at=current_run_started_at,
     )
     markdown_path = _write_markdown_summary(summary_path, payload)
     payload["readable_summary_path"] = _display_path(markdown_path)
@@ -815,6 +865,7 @@ def main() -> None:
     args = parse_args()
     seasons = _resolve_target_seasons(args)
     log_dir = args.log_dir / _scope_slug(args, seasons) / _timestamp_slug()
+    current_run_started_at = time.time()
     step_logs: dict[str, str] = {}
 
     print("UPL Lens - Hosted Data Update")
@@ -843,6 +894,7 @@ def main() -> None:
             step_logs=step_logs,
             status="failed",
             failure=str(error),
+            current_run_started_at=current_run_started_at,
         )
         raise SystemExit(error.exit_code) from error
 
@@ -852,6 +904,7 @@ def main() -> None:
         log_dir=log_dir,
         step_logs=step_logs,
         status="success",
+        current_run_started_at=current_run_started_at,
     )
     print("\n[ok] Hosted data update finished.")
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -74,6 +76,57 @@ def test_force_full_scrape_disables_postgres_change_detection() -> None:
 
     assert "--disable-postgres-change-detection" in command
     assert "--full-raw-rebuild" in command
+
+
+def test_child_command_uses_wrapper_log_dir_and_summary_is_found(
+    monkeypatch, tmp_path
+) -> None:
+    """Child run summaries should be written and found under the current run root."""
+
+    log_dir = tmp_path / "current-run"
+    command = update_hosted_data._build_update_current_season_command(
+        _args(), "2025-26", log_dir=log_dir
+    )
+
+    assert "--log-dir" in command
+    assert command[command.index("--log-dir") + 1] == str(log_dir)
+
+    _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={"status": "passed"},
+        safety={"status": "passed", "database_write_stages_skipped": []},
+        refresh_plan={
+            "affected_match_ids": [1],
+            "affected_match_urls": ["https://upl.co.ug/event/1/"],
+            "attempted_match_urls": ["https://upl.co.ug/event/1/"],
+            "failed_match_urls": [],
+        },
+    )
+    child_dir = log_dir / "2025_26"
+    _write_json(
+        child_dir / "20260717_run_summary.json",
+        {
+            "status": "success",
+            "season": "2025-26",
+            "raw_loader_rows": {"matches": 7},
+            "staging_rows": {"matches": 208},
+            "step_logs": {},
+        },
+    )
+
+    payload = update_hosted_data._hosted_observability_payload(
+        args=_args(),
+        seasons=["2025-26"],
+        log_dir=log_dir,
+        step_logs={"routine-refresh_2025_26": str(child_dir / "wrapper-step.log")},
+        status="success",
+        failure=None,
+    )
+
+    assert payload["child_run_summaries"]["2025-26"]["season"] == "2025-26"
+    season_summary = payload["season_summaries"][0]
+    assert season_summary["row_mutations"]["raw"]["processed_rows_total"] == 7
 
 
 def test_routine_command_cannot_enable_unsafe_reload() -> None:
@@ -493,6 +546,60 @@ def test_hosted_summary_does_not_classify_load_raw_failure_as_guard_without_bloc
     assert payload["child_failure_summary"]["failed_stage"] == "load_raw_to_postgres"
 
 
+def test_hosted_summary_ignores_stale_blocked_safety_when_current_load_fails(
+    monkeypatch, tmp_path
+) -> None:
+    """A stale blocked safety artifact must not classify a new loader failure."""
+
+    _, safety_path, _ = _patch_season_artifacts(
+        monkeypatch,
+        tmp_path,
+        source={"status": "passed"},
+        safety={
+            "status": "blocked",
+            "failure_reason": "old guard block",
+            "existing_match_rows": 240,
+            "incoming_match_rows": 200,
+            "database_write_stages_skipped": ["raw", "staging", "analytics"],
+        },
+        refresh_plan={
+            "affected_match_ids": [],
+            "affected_match_urls": [],
+            "attempted_match_urls": [],
+            "failed_match_urls": [],
+        },
+    )
+    current_run_started_at = time.time()
+    stale_time = current_run_started_at - 3600
+    os.utime(safety_path, (stale_time, stale_time))
+    log_dir = tmp_path / "logs"
+    failed_summary = _write_json(
+        log_dir / "2025_26" / "20260717_run_summary_failed.json",
+        {
+            "status": "failed",
+            "failed_stage": "load_raw_to_postgres",
+            "failure_reason": "permission denied",
+            "failure_evidence": {"failure_reason": "permission denied"},
+        },
+    )
+
+    payload = update_hosted_data._hosted_observability_payload(
+        args=_args(),
+        seasons=["2025-26"],
+        log_dir=log_dir,
+        step_logs={"routine-refresh_2025_26": str(failed_summary.with_suffix(".log"))},
+        status="failed",
+        failure="Hosted update step failed",
+        current_run_started_at=current_run_started_at,
+    )
+
+    safety = payload["season_summaries"][0]["hosted_safety"]
+    assert payload["outcome"] == "failed"
+    assert safety["status"] is None
+    assert safety["report_is_current"] is False
+    assert safety["previous_report_status"] == "blocked"
+
+
 def test_hosted_summary_ignores_stale_child_artifacts_without_current_step_root(
     monkeypatch, tmp_path
 ) -> None:
@@ -571,9 +678,13 @@ def test_all_season_rebuild_uses_top_level_staging_log(monkeypatch, tmp_path) ->
     )
 
     for season_summary in payload["season_summaries"]:
-        assert season_summary["row_mutations"]["staging"]["rebuilt_rows_total"] == 6563
-        assert season_summary["staging_run"]["run_id"] == "all-season-staging"
-        assert season_summary["staging_run"]["target_seasons"] == [
-            "2024_25",
-            "2025_26",
-        ]
+        assert season_summary["row_mutations"]["staging"]["rebuilt_rows_total"] == 0
+        assert season_summary["row_mutations"]["staging"]["rebuilt_rows_by_table"] == {}
+        assert season_summary["staging_run"]["run_id"] is None
+
+    aggregate = payload["staging_aggregate"]
+    assert aggregate["scope"] == "aggregate"
+    assert aggregate["row_count_total"] == 6563
+    assert aggregate["row_counts_by_table"] == {"matches": 440, "events": 6123}
+    assert aggregate["staging_run"]["run_id"] == "all-season-staging"
+    assert aggregate["staging_run"]["target_seasons"] == ["2024_25", "2025_26"]
