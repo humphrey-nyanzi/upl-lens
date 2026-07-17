@@ -328,21 +328,24 @@ a least-privilege loader role. Schema changes belong to a separate admin path.
 | Path | Purpose | Permissions |
 |------|---------|-------------|
 | Routine refresh | Update raw, staging, and analytics-safe data | least-privilege loader role |
-| Admin migration work | Apply schema or permission changes | admin-capable credential |
+| Source-health artifact run | Scrape and upload evidence without database writes | no database secrets required |
+| Admin migration work | Apply schema, index, or permission changes | admin-capable credential |
+| Full rebuild/backfill | Reviewed whole-season raw reload/backfill | admin-capable credential |
 
 Routine weekly refresh defaults:
 
 ```text
 season_scope=current
 run_type=routine-refresh
-apply_migrations=false
 use_cache=false
-force_full_scrape=false
 ```
 
-Use `--force-full-scrape` only when you intentionally need a whole-season
-scrape and admin raw rebuild. Full mode otherwise uses Postgres change detection,
-compares refreshed payloads, and loads only genuinely affected match IDs.
+The scheduled workflow hard-codes those defaults for cron runs. It does not
+expose migration, force-full-scrape, full raw rebuild, or unsafe reload flags.
+Whole-season rebuild/backfill work is a named manual mode, and migration/index
+verification is a separate admin operation. Routine full mode otherwise uses
+Postgres change detection, compares refreshed payloads, and loads only genuinely
+affected match IDs.
 
 ### Hosted Refresh Safety Guards
 
@@ -408,6 +411,7 @@ intentional removal/correction, or empty/partial input is safe:
 
 Treat full rebuild and especially its unsafe override as Level 4 manual/admin
 actions. Do not add either flag to the weekly GitHub Actions workflow.
+
 ## Hosted Workflow Modes
 
 The GitHub workflow exposes operator-level choices:
@@ -416,25 +420,31 @@ The GitHub workflow exposes operator-level choices:
 |------|--------------|---------|
 | `season_scope` | `current` | Use `current`, `all`, or `custom`. |
 | `season` | `2025-26` | Only used when `season_scope=custom`; pass comma-separated seasons. |
-| `run_type` | `routine-refresh` | Use `routine-refresh`, `rebuild-from-existing-raw`, or `artifact-only`. |
-| `apply_migrations` | `false` | Apply schema migrations before data work. |
-| `use_cache` | `false` | Allow cached scraper HTML or checkpoints. |
-| `force_full_scrape` | `false` | Scrape every calendar match instead of using change detection. |
+| `run_type` | `routine-refresh` | Select exactly one mode from the table below. |
+| `use_cache` | `false` | Source-health/dev only; routine and full-rebuild modes fail before work if cache is enabled. |
 
-After admin SQL has already been handled separately, the safest hosted catch-up
-run is:
+Supported `run_type` values:
 
-```text
-season_scope=all
-run_type=rebuild-from-existing-raw
-apply_migrations=false
-use_cache=false
-force_full_scrape=false
+| Run type | What it does | Database writes |
+|----------|--------------|-----------------|
+| `routine-refresh` | Weekly-safe current-season refresh with live source, change detection, raw safety guards, staging rebuild, and hosted summaries. | Yes, with least-privilege loader role. |
+| `source-health` | Scrape/source preflight and artifact collection for investigation. | No hosted database secrets or writes. |
+| `admin-migration` | Apply migrations, indexes, or permission changes only. | Schema/admin changes only; no scraper, raw load, staging rebuild, or season selection. |
+| `full-rebuild-backfill` | Reviewed whole-season scrape and raw full rebuild/backfill for selected seasons. | Yes, admin/backfill only; migrations must be run separately first. |
+
+Invalid mixes fail before scraping or database writes begin. For example,
+`routine-refresh` cannot use cache, apply migrations, or force a raw rebuild;
+`admin-migration` cannot accept season selection; and `full-rebuild-backfill`
+cannot apply migrations in the same run.
+
+Run migration/index verification explicitly as an admin operation:
+
+```powershell
+.venv\Scripts\python.exe scripts\data_platform\update_hosted_data.py --run-type admin-migration
 ```
 
-Use an admin-capable credential only when schema migrations must run. After the
-migration setup is complete, switch secrets back to the least-privilege loader
-role.
+After admin setup is complete, switch secrets back to the least-privilege loader
+role before routine hosted refreshes.
 
 ## Logs And Run Summaries
 
@@ -537,8 +547,8 @@ First checks:
   `x-upl-lens-cache`. Repeat safe public requests and look for cache `HIT`
   behavior after the first request.
 - Keep routine hosted refreshes on `season_scope=current`,
-  `run_type=routine-refresh`, `apply_migrations=false`, and
-  `force_full_scrape=false` unless an admin rebuild is intentional.
+  `run_type=routine-refresh`, and `use_cache=false`. Use
+  `admin-migration` or `full-rebuild-backfill` only for reviewed manual work.
 - Treat source-preflight or raw season safety failures as successful protection:
   investigate the source page or raw artifacts before trying any manual reload.
 - Use GitHub Actions artifacts and Supabase's available 24-hour reports to

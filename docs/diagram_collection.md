@@ -29,10 +29,10 @@ flowchart TD
     %% ═══════════════════════════════
     %% AUTOMATION TRIGGER
     %% ═══════════════════════════════
-    GA["⚙️ GitHub Actions\nweekly trigger\n--season 2025-26"]
+    GA["⚙️ GitHub Actions\nweekly routine-refresh\nmanual admin/source modes"]
     GA -->|"runs"| ORCH
 
-    ORCH["🎛️ update_hosted_data.py\noperator wrapper\n→ update_current_season.py\nscrape · migrate/load · verify · staging"]
+    ORCH["🎛️ update_hosted_data.py\nmode wrapper\nroutine · source-health\nadmin-migration · full-rebuild"]
     SUMMARY["📄 hosted update summaries\nJSON + Markdown\noutcome · source/safety counts\nrow mutations · staging run\nuploaded in automation logs"]
     ORCH -->|"writes"| SUMMARY
 
@@ -63,7 +63,7 @@ flowchart TD
 
     WEB -->|"GET /event/<id>/\nGET /calendar/"| SCRAPER
 
-    NOTE1["ℹ️ Current behavior:\nPostgres change detection is\nactive by default for full\ncurrent-season refreshes.\nUse force-full-scrape only\nfor investigation or rebuilds."]
+    NOTE1["ℹ️ Current behavior:\nweekly schedule is locked to\nroutine-refresh with live source.\nMigrations and full rebuilds\nuse explicit manual modes."]
     SCRAPING -.->|"operator note"| NOTE1
 
     %% ═══════════════════════════════

@@ -51,31 +51,37 @@ def test_custom_scope_requires_custom_seasons() -> None:
         update_hosted_data._resolve_target_seasons(_args(season_scope="custom"))
 
 
-def test_rebuild_from_existing_raw_translates_to_safe_skip_flags() -> None:
-    """Hosted rebuilds should reuse raw DB rows and skip admin migrations by default."""
+def test_full_rebuild_backfill_translates_to_explicit_admin_flags() -> None:
+    """Full rebuild/backfill should be explicit and remain separate from migrations."""
 
     command = update_hosted_data._build_update_current_season_command(
-        _args(run_type="rebuild-from-existing-raw"),
+        _args(run_type="full-rebuild-backfill"),
         "2025-26",
     )
 
     assert "--mode" in command
     assert "full" in command
-    assert "--skip-scrape" in command
-    assert "--skip-raw-load" in command
     assert "--skip-migrations" in command
+    assert "--disable-postgres-change-detection" in command
+    assert "--full-raw-rebuild" in command
+    assert "--skip-scrape" not in command
+    assert "--skip-raw-load" not in command
 
 
-def test_force_full_scrape_disables_postgres_change_detection() -> None:
-    """The operator-facing boolean should map to the lower-level scraper flag."""
+def test_source_health_translates_to_artifact_only_without_db_refresh() -> None:
+    """Source-health mode should collect evidence without refreshing hosted data."""
 
     command = update_hosted_data._build_update_current_season_command(
-        _args(force_full_scrape=True),
+        _args(run_type="source-health", use_cache=True),
         "2025-26",
     )
 
-    assert "--disable-postgres-change-detection" in command
-    assert "--full-raw-rebuild" in command
+    assert "--mode" in command
+    assert "artifact-only" in command
+    assert "--skip-migrations" in command
+    assert "--use-cache" in command
+    assert "--disable-postgres-change-detection" not in command
+    assert "--full-raw-rebuild" not in command
 
 
 def test_child_command_uses_wrapper_log_dir_and_summary_is_found(
@@ -138,6 +144,8 @@ def test_routine_command_cannot_enable_unsafe_reload() -> None:
     )
 
     assert "--allow-unsafe-season-reload" not in command
+    assert "--full-raw-rebuild" not in command
+    assert "--disable-postgres-change-detection" not in command
 
 
 def test_weekly_workflow_does_not_expose_unsafe_reload() -> None:
@@ -152,6 +160,56 @@ def test_weekly_workflow_does_not_expose_unsafe_reload() -> None:
 
     assert "allow-unsafe-season-reload" not in workflow
     assert "--allow-unsafe-season-reload" not in workflow
+    assert "apply_migrations" not in workflow
+    assert "force_full_scrape" not in workflow
+    assert "source-health" in workflow
+    assert "admin-migration" in workflow
+    assert "full-rebuild-backfill" in workflow
+    assert "Enforce scheduled routine mode" in workflow
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        (_args(run_type="routine-refresh", apply_migrations=True), "routine-refresh"),
+        (_args(run_type="routine-refresh", force_full_scrape=True), "routine-refresh"),
+        (_args(run_type="routine-refresh", use_cache=True), "routine-refresh"),
+        (_args(run_type="source-health", apply_migrations=True), "source-health"),
+        (_args(run_type="source-health", force_full_scrape=True), "source-health"),
+        (
+            _args(
+                run_type="admin-migration",
+                season_scope="custom",
+                custom_seasons="2025-26",
+            ),
+            "admin-migration",
+        ),
+        (_args(run_type="admin-migration", use_cache=True), "admin-migration"),
+        (_args(run_type="admin-migration", force_full_scrape=True), "admin-migration"),
+        (
+            _args(run_type="full-rebuild-backfill", apply_migrations=True),
+            "admin-migration separately",
+        ),
+        (
+            _args(run_type="full-rebuild-backfill", use_cache=True),
+            "full-rebuild-backfill",
+        ),
+    ],
+)
+def test_invalid_mode_combinations_fail_before_work(args, message) -> None:
+    """Unsafe mode mixes should fail before scraping or database writes."""
+
+    with pytest.raises(update_hosted_data.HostedUpdateModeError, match=message):
+        update_hosted_data._validate_mode_args(args)
+
+
+def test_admin_migration_command_is_migration_only() -> None:
+    """Admin migration mode should not assemble scraper or loader commands."""
+
+    command = update_hosted_data._build_admin_migration_command()
+
+    assert command[-1].endswith("apply_db_migrations.py")
+    assert "update_current_season.py" not in " ".join(command)
 
 
 def test_weekly_workflow_uses_node24_action_majors() -> None:
@@ -435,7 +493,7 @@ def test_hosted_summary_distinguishes_source_failure_no_changes_and_admin_rebuil
     assert no_changes["outcome"] == "no changes"
 
     admin_rebuild = update_hosted_data._hosted_observability_payload(
-        args=_args(run_type="rebuild-from-existing-raw"),
+        args=_args(run_type="full-rebuild-backfill"),
         seasons=["2025-26"],
         log_dir=tmp_path / "admin-rebuild",
         step_logs={},
