@@ -237,8 +237,9 @@ decision exists in code but not in docs.
   release foundation rather than future build-order items.
 - Clarified that v1.0 work is now public-release hardening: owner QA,
   operations safety, release documentation, and follow-up research planning.
-- Kept open release-hardening PRs and Issues in GitHub as active work rather
-  than documenting them as shipped behavior.
+- Recorded the cache-safety, hosted-observability, and workflow-mode separation
+  work as merged release-hardening foundations; remaining release QA stays
+  tracked in GitHub.
 
 ### 2026-07-15
 

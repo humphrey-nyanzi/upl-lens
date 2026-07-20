@@ -326,17 +326,21 @@ release foundation. It is no longer the active build-order list.
 ### Current v1.0 Release Focus
 
 The current release lane is hardening and owner review, not another frontend
-rebuild. Use GitHub Issues and PRs for live status. At the time of this
-reconciliation, the open release-hardening items include:
+rebuild. Use GitHub Issues and PRs for live status. The release-hardening foundation is now merged on `main`:
 
-- API proxy cache-header safety for credentialed bypasses, under review in PR
-  #101.
-- Hosted refresh observability artifacts, under review in PR #102.
-- Routine refresh, admin migration, and full rebuild workflow-mode separation,
-  tracked in Issue #64 and not yet shipped.
+- API proxy cache-header safety for credentialed bypasses shipped in PR #101,
+  including no-store handling for credentialed or bypassed responses and a CI
+  regression suite.
+- Hosted refresh observability artifacts shipped in PR #102, including
+  current-run provenance, stale-safety handling, failure classification, and
+  aggregate all-season staging evidence.
+- Routine refresh, source-health, admin migration, and full rebuild workflow
+  separation shipped in PR #107. Issue #64 is closed; the scheduled workflow is
+  locked to the routine-refresh mode, while the other modes remain explicit
+  manual operations.
 
-Do not document those pending items as merged behavior until their PRs land on
-`main`.
+Remaining release work is owner QA, browser evidence, and release documentation;
+use GitHub Issues and PRs for the live task status.
 
 ### Next Product Experience Loop
 
