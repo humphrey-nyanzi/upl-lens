@@ -11,7 +11,7 @@ Feature lifecycle status:
 promoted
 ```
 
-This status is also tracked in `docs/FEATURE_REGISTRY.md`.
+This status is also tracked in `docs/FEATURE_PROMOTION_WORKFLOW.md`.
 
 ## Promotion Plan
 

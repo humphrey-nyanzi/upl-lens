@@ -83,7 +83,8 @@ The deployed app currently proves the production path end to end:
 - FastAPI backend hosted on Render.
 - Supabase Postgres database with `raw`, `staging`, `analytics`, and `app_meta`
   schemas.
-- Dashboard reads FastAPI JSON, not CSV files or notebook exports.
+- Dashboard and detail routes read FastAPI JSON, not CSV files or notebook
+  exports.
 - Current-season data refresh is automated through GitHub Actions.
 - Notebook research can be promoted into API endpoints and dashboard surfaces.
 
@@ -99,8 +100,9 @@ For portfolio and recruiting review, this repository demonstrates:
   issues, run summaries, logs, artifacts, and escalation rules.
 - **Backend development**: read-first FastAPI routes backed by a query/service
   layer under `src/api/`.
-- **Frontend development**: React dashboard surfaces for league summaries,
-  goal-timing insight, match/team/event data, loading states, and API status.
+- **Frontend development**: React product routes for overview, trends, matches,
+  teams, players, insights, goal timing, methodology, loading states, and API
+  status.
 - **Research workflow**: notebooks, research briefs, product plans, and a
   single research playbook for moving useful analysis into production.
 - **Deployment**: Cloudflare Pages, Render, Supabase, GitHub Actions, CORS, and

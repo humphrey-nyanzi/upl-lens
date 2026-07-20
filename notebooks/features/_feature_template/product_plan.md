@@ -16,7 +16,7 @@ Feature lifecycle status:
 idea
 ```
 
-Allowed statuses are documented in `docs/FEATURE_REGISTRY.md`.
+Allowed statuses are documented in `docs/FEATURE_PROMOTION_WORKFLOW.md`.
 
 ## Promotion Plan
 
@@ -88,7 +88,7 @@ Beginner guide:
 - Use a stored analytics table/materialized view only when a normal view is too
   slow or the result must be snapshotted.
 
-See `docs/ANALYTICS_VIEW_CONVENTIONS.md` before adding database objects.
+See `docs/FEATURE_PROMOTION_WORKFLOW.md` before adding database objects.
 
 ### Desired Filters
 

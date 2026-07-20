@@ -34,25 +34,36 @@ React must not read CSV files, notebooks, exported notebook images, or local
 database files. Notebooks are the research lab. Postgres plus FastAPI is the
 production path.
 
-## Current Implementation Phase
+## Current Release Phase
 
-The backend has been upgraded for intelligence-layer frontend work. The next
-implementation order is:
+UPL Lens is in v1.0 public-release hardening. The core production path exists:
+the scraper loads Postgres, FastAPI exposes read endpoints, React consumes
+FastAPI JSON, the public frontend is hosted on Cloudflare Pages, and routine
+hosted refresh runs through GitHub Actions.
 
-1. Sync `frontend/src/api/client.ts` and `frontend/src/api/types.ts` with the
-   current backend responses.
-2. Build reusable chart and visual components for signals, comparisons, and
-   data-quality notes.
-3. Upgrade the Trends page first.
-4. Upgrade Teams and Team Detail.
-5. Upgrade Matches and Match Detail.
-6. Upgrade Players and Player Detail.
-7. Refine Overview and About.
+The intelligence-layer frontend build order from June is now historical. The
+merged app has:
 
-Do not begin page redesigns before checking the current API contract and page
-requirements in [FRONTEND_DESIGN_SYSTEM.md](FRONTEND_DESIGN_SYSTEM.md). Use
-GitHub Issues for active implementation tracking; the frontend guide owns the
-durable rules and seed issue list, not the live task board.
+- synced frontend API client/types for the current intelligence endpoints
+- reusable intelligence primitives for charts, comparisons, signals, timelines,
+  form strips, and data-quality notes
+- product pages for Overview, Matches, Match Detail, Teams, Team Detail,
+  Players, Player Detail, Insights, Trends, Goal Timing, and About/Methodology
+- cross-route QA guidance for future Product Experience PRs
+
+Current release work should focus on:
+
+1. Owner review and browser QA for the public frontend.
+2. Data Reliability & Operations hardening for hosted refresh behavior,
+   cache/proxy safety, observability, and routine-versus-admin workflow
+   separation.
+3. Documentation and release notes that describe what is actually merged.
+4. Feature 2 research planning, most likely discipline/card intelligence, after
+   public-release blockers are handled.
+
+Do not treat unmerged PRs as shipped behavior. Use GitHub Issues and PRs for
+the live task board; the frontend guide owns durable rules and launch
+acceptance, not day-to-day status.
 
 ## GitHub-Native Workflow
 
@@ -217,6 +228,29 @@ which doc to read first, a command depends on hidden local setup, or a feature
 decision exists in code but not in docs.
 
 ## Recent History
+
+### 2026-07-16
+
+- Reconciled the canonical docs with the merged intelligence-layer frontend:
+  API client sync, reusable intelligence primitives, Trends, Teams, Matches,
+  Players, Insights, Overview, and About/Methodology are now part of the merged
+  release foundation rather than future build-order items.
+- Clarified that v1.0 work is now public-release hardening: owner QA,
+  operations safety, release documentation, and follow-up research planning.
+- Recorded the cache-safety, hosted-observability, and workflow-mode separation
+  work as merged release-hardening foundations; remaining release QA stays
+  tracked in GitHub.
+
+### 2026-07-15
+
+- Added the cross-route frontend QA checklist so Product Experience PRs have a
+  durable route/state/browser verification companion.
+
+### 2026-07-14
+
+- Aligned shared image-backed page heroes and continued public frontend polish
+  across the merged product routes.
+
 
 ### 2026-06-10
 

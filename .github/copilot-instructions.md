@@ -123,14 +123,13 @@ areas in `docs/START_HERE.md`:
 
 Owns scraping, cleaning, loading, validation, and scheduled updates.
 
-Expected future pieces:
+Current pieces:
 
 - Postgres schema/migrations.
-- CSV-to-Postgres ingestion.
-- Idempotent current-season update script.
-- Data quality checks.
-- GitHub Actions workflow.
-
+- CSV-to-Postgres ingestion with explicit admin full rebuild mode.
+- Idempotent current-season update and hosted update scripts.
+- Data quality checks and staging validation records.
+- GitHub Actions hosted refresh workflow.
 ### Research Lab
 
 Owns exploration.
@@ -148,14 +147,14 @@ Do not make notebooks responsible for production serving.
 
 Owns API and frontend.
 
-Expected future pieces:
+Current pieces:
 
 - FastAPI backend.
 - React frontend.
-- Interactive match, team, player, discipline, and goal timing pages.
+- Interactive overview, trends, matches, match detail, teams, team detail,
+  players, player detail, insights, goal timing, and methodology pages.
 
 The React app should call FastAPI. It should not read CSV files directly.
-
 ## Preferred Repository Evolution
 
 Grow toward this shape gradually:
@@ -289,21 +288,29 @@ matches, events, lineups, officials, or stats.
 
 ## API Guidance
 
-FastAPI should start read-only.
+FastAPI should stay read-first for public product use.
 
-Good first endpoints:
+Current endpoint families include:
 
 - `GET /health`
 - `GET /seasons`
+- `GET /seasons/overview`
 - `GET /matches`
+- `GET /matches/intelligence`
 - `GET /matches/{match_id}`
 - `GET /teams`
-- `GET /teams/{team_id}/summary`
+- `GET /teams/{team_slug}/profile`
+- `GET /players`
+- `GET /players/leaderboards`
+- `GET /players/{player_slug}`
 - `GET /events`
+- `GET /officials`
+- `GET /trends/seasons`
+- `GET /overview/intelligence`
+- `GET /insights/goal-timing`
 
 Keep route handlers thin. Put query/service logic in separate modules when it
 grows.
-
 ## Frontend Guidance
 
 Build a real React analytical app, not another Streamlit-style notebook
@@ -324,7 +331,7 @@ names to users.
 
 GitHub Actions is the preferred automation path.
 
-The future scheduled workflow should:
+The scheduled hosted refresh workflow should:
 
 1. Run the current-season scraper.
 2. Detect new or changed matches.
@@ -354,7 +361,7 @@ Before making non-trivial changes:
 Do not:
 
 - Move production serving into notebooks.
-- Make the future frontend read CSVs directly.
+- Make the React frontend read CSVs directly.
 - Introduce a different primary database without user approval.
 - Hardcode team names, source URLs, or paths in random modules.
 - Add broad architecture scaffolding with no runnable value.

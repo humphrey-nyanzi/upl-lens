@@ -182,8 +182,8 @@ flowchart TD
         CLIENT["api/client.ts\napiClient fetch() wrappers\nAPI_BASE_URL from .env"]
         HOOKS["hooks/\nuseDashboardData\nuseHashNavigation\nloadState: idle/loading/success/error"]
         SHELL["App.tsx shell\nAppShell\nsidebar · top bar · bottom nav\nhash-based page switch"]
-        PAGES["pages/\nOverview\nGoal Timing\nMatch Explorer\nTeam Insights\nMethodology"]
-        COMPONENTS["components/\ncharts · common · matches\nnavigation · overview\nseason · teams"]
+        PAGES["pages/\nOverview · Trends · Insights\nMatches · Match Detail\nTeams · Team Detail\nPlayers · Player Detail\nGoal Timing · About/Methodology"]
+        COMPONENTS["components/\ncharts · common · intelligence\nmatches · overview · players\nnavigation · season · teams"]
 
         CLIENT --> HOOKS --> SHELL --> PAGES --> COMPONENTS
     end

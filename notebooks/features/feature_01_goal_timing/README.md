@@ -47,7 +47,7 @@ staging.events
 Registry:
 
 ```text
-docs/FEATURE_REGISTRY.md
+docs/FEATURE_PROMOTION_WORKFLOW.md
 ```
 
 ## Important Caveat
