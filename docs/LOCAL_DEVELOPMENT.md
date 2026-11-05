@@ -564,6 +564,11 @@ In GitHub Actions, upload both raw files and `outputs/automation/` logs as
 artifacts even when a run fails. The uploaded automation logs artifact contains
 both hosted summaries for routine and manual runs.
 
+When the Monday scheduled refresh fails, the workflow also comments on Issue
+#84 with a link to that run and directs the maintainer to its uploaded summary
+and failed-stage log. This creates a GitHub notification while preserving the
+failure artifacts for diagnosis; it does not retry or override any safety gate.
+
 ## Severity And Escalation
 
 Use this severity language consistently:

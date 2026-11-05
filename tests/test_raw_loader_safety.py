@@ -40,7 +40,10 @@ class ExistingUrlCursor:
         self.params = params
 
     def fetchall(self):
-        return [(" https://upl.co.ug/event/1/ ",), ("https://upl.co.ug/event/2/",)]
+        return [
+            (1, "https://upl.co.ug/event/1/"),
+            (2, "https://upl.co.ug/event/2/"),
+        ]
 
 
 class ExistingUrlConnection:
@@ -53,18 +56,20 @@ class ExistingUrlConnection:
         return self.read_cursor
 
 
-def test_existing_season_urls_are_queried_as_distinct_identities() -> None:
+def test_existing_season_ids_are_queried_as_distinct_identities() -> None:
     """The loader should read the hosted identity set before deletion."""
 
     connection = ExistingUrlConnection()
 
-    urls = raw_loader._existing_season_match_urls(connection, "2025-26")
+    matches = raw_loader._existing_season_matches(connection, "2025-26")
 
-    assert urls == {
-        "https://upl.co.ug/event/1/",
-        "https://upl.co.ug/event/2/",
+    assert matches == {
+        1: "https://upl.co.ug/event/1/",
+        2: "https://upl.co.ug/event/2/",
     }
-    assert "SELECT DISTINCT BTRIM(match_url)" in connection.read_cursor.statement
+    assert (
+        "SELECT DISTINCT match_id, BTRIM(match_url)" in connection.read_cursor.statement
+    )
     assert connection.read_cursor.params == ("2025_26",)
 
 
@@ -158,7 +163,18 @@ def _run_loader_boundary(
         table_name: season_dir / f"{table_name}.csv"
         for table_name in raw_loader.RAW_TABLE_CONFIGS
     }
-    rows = [{"season": season, "match_url": url} for url in incoming_urls]
+    rows = [
+        {
+            "season": season,
+            "match_url": url,
+            "match_id": str(
+                int(url.rstrip("/").split("/")[-1])
+                if url.rstrip("/").split("/")[-1].isdigit()
+                else 999999
+            ),
+        }
+        for index, url in enumerate(incoming_urls)
+    ]
     validated_source_urls = (
         source_urls if source_urls is not None else set(incoming_urls)
     )
@@ -184,8 +200,12 @@ def _run_loader_boundary(
     )
     monkeypatch.setattr(
         raw_loader,
-        "_existing_season_match_urls",
-        lambda _connection, _season: existing_urls,
+        "_existing_season_matches",
+        lambda _connection, _season: {
+            int(url.rstrip("/").split("/")[-1]): url
+            for url in existing_urls
+            if url.rstrip("/").split("/")[-1].isdigit()
+        },
     )
     monkeypatch.setattr(
         raw_loader,
@@ -227,8 +247,12 @@ def test_safe_raw_season_load_blocks_zero_match_input() -> None:
             source_url="https://upl.co.ug/calendar/2025-26-fixtures-results/",
             incoming_match_rows=0,
             incoming_match_urls=set(),
+            incoming_match_ids=set(),
             duplicate_match_rows=0,
-            existing_match_urls=set(_match_urls(240)),
+            existing_match_ids=set(range(240)),
+            existing_match_urls_by_id={
+                i: f"https://upl.co.ug/event/{i}/" for i in range(240)
+            },
             expected_match_rows=240,
             source_contract_valid=True,
             incoming_urls_match_source=True,
@@ -334,6 +358,27 @@ def test_equal_count_substitution_blocks_before_delete(monkeypatch, tmp_path) ->
     )
     assert deleted_tables == []
     assert connection.commit_count == 0
+
+
+def test_changed_event_slug_preserves_existing_match_identity() -> None:
+    """A URL slug change is safe when the source match ID is unchanged."""
+    report = _enforce_safe_raw_season_load(
+        season="2026-27",
+        source_url="https://upl.co.ug/calendar/2026-27-fixtures-results/",
+        incoming_match_rows=108,
+        incoming_match_urls={"https://upl.co.ug/event/maroons-fc-vs-kataka-fc/"},
+        incoming_match_ids={33077},
+        duplicate_match_rows=0,
+        existing_match_ids={33077},
+        existing_match_urls_by_id={
+            33077: "https://upl.co.ug/event/maroons-fc-vs-kataka/"
+        },
+        expected_match_rows=306,
+        source_contract_valid=True,
+        incoming_urls_match_source=True,
+        allow_unsafe_season_reload=False,
+    )
+    assert report.missing_existing_match_url_count == 0
 
 
 def test_incoming_superset_preserves_existing_urls_and_proceeds(
@@ -617,8 +662,11 @@ def _run_incremental_loader(
     )
     monkeypatch.setattr(
         raw_loader,
-        "_existing_season_match_urls",
-        lambda _connection, _season: set(_match_urls(existing_count)),
+        "_existing_season_matches",
+        lambda _connection, _season: {
+            match_id: f"https://upl.co.ug/event/{match_id}/"
+            for match_id in range(existing_count)
+        },
     )
     monkeypatch.setattr(
         raw_loader,
