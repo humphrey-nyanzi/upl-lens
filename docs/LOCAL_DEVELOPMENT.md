@@ -548,6 +548,8 @@ verification status, remaining failed matches, raw row counts, loader counts,
 staging rows, and step-log paths. A failed child summary also carries the source
 URL, failure reason, observed and expected/minimum counts, incoming and hosted
 counts, target season, override state, and skipped database write stages.
+When a hosted match is missing from the incoming set, the bounded safety sample
+uses its stored URL when available and its match ID when the URL is blank.
 
 The hosted wrapper now writes a compact machine-readable JSON summary and a
 readable Markdown summary beside the step logs. Use

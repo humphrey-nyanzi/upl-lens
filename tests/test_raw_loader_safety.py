@@ -43,6 +43,7 @@ class ExistingUrlCursor:
         return [
             (1, "https://upl.co.ug/event/1/"),
             (2, "https://upl.co.ug/event/2/"),
+            (3, ""),
         ]
 
 
@@ -66,6 +67,7 @@ def test_existing_season_ids_are_queried_as_distinct_identities() -> None:
     assert matches == {
         1: "https://upl.co.ug/event/1/",
         2: "https://upl.co.ug/event/2/",
+        3: "",
     }
     assert (
         "SELECT DISTINCT match_id, BTRIM(match_url)" in connection.read_cursor.statement
@@ -148,6 +150,7 @@ def _run_loader_boundary(
     *,
     incoming_urls: list[str],
     existing_urls: set[str],
+    existing_matches: dict[int, str] | None = None,
     source_urls: set[str] | None = None,
     expected_count: int = 240,
     contract_valid: bool = True,
@@ -201,11 +204,15 @@ def _run_loader_boundary(
     monkeypatch.setattr(
         raw_loader,
         "_existing_season_matches",
-        lambda _connection, _season: {
-            int(url.rstrip("/").split("/")[-1]): url
-            for url in existing_urls
-            if url.rstrip("/").split("/")[-1].isdigit()
-        },
+        lambda _connection, _season: (
+            existing_matches
+            if existing_matches is not None
+            else {
+                int(url.rstrip("/").split("/")[-1]): url
+                for url in existing_urls
+                if url.rstrip("/").split("/")[-1].isdigit()
+            }
+        ),
     )
     monkeypatch.setattr(
         raw_loader,
@@ -356,6 +363,36 @@ def test_equal_count_substitution_blocks_before_delete(monkeypatch, tmp_path) ->
         "https://upl.co.ug/event/239/"
         in error.value.report.missing_existing_match_url_sample
     )
+    assert deleted_tables == []
+    assert connection.commit_count == 0
+
+
+def test_blank_existing_match_url_still_blocks_identity_removal(
+    monkeypatch, tmp_path
+) -> None:
+    """An empty hosted URL must not hide its stable match ID from the guard."""
+    incoming_urls = _match_urls(240)
+    existing_matches = {
+        match_id: f"https://upl.co.ug/event/{match_id}/" for match_id in range(240)
+    }
+    existing_matches[33077] = ""
+    connection = FakeConnection()
+    deleted_tables: list[str] = []
+
+    with pytest.raises(RawSeasonLoadSafetyError) as error:
+        _run_loader_boundary(
+            monkeypatch,
+            tmp_path,
+            incoming_urls=incoming_urls,
+            existing_urls=set(),
+            existing_matches=existing_matches,
+            source_urls=set(incoming_urls),
+            connection=connection,
+            deleted_tables=deleted_tables,
+        )
+
+    assert error.value.report.missing_existing_match_url_count == 1
+    assert error.value.report.missing_existing_match_url_sample == ("33077",)
     assert deleted_tables == []
     assert connection.commit_count == 0
 

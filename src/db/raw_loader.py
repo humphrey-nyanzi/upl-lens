@@ -703,7 +703,8 @@ def _existing_season_matches(connection, season: str) -> dict[int, str]:
     """Return hosted match IDs and URLs for one normalized season.
 
     UPL event URLs can change when match titles or slugs are edited. The
-    numeric source match ID is the durable identity used by the raw tables.
+    numeric source match ID is the durable identity used by the raw tables, so
+    retain it even when its stored URL is blank.
     """
 
     with connection.cursor() as cursor:
@@ -718,9 +719,9 @@ def _existing_season_matches(connection, season: str) -> dict[int, str]:
         )
         rows = cursor.fetchall()
     return {
-        int(row[0]): str(row[1]).strip()
+        int(row[0]): str(row[1] or "").strip()
         for row in rows
-        if row and row[0] is not None and row[1]
+        if row and row[0] is not None
     }
 
 
@@ -745,7 +746,7 @@ def _enforce_safe_raw_season_load(
 
     missing_existing_ids = sorted(existing_match_ids - incoming_match_ids)
     missing_existing_urls = [
-        existing_match_urls_by_id.get(match_id, str(match_id))
+        existing_match_urls_by_id.get(match_id) or str(match_id)
         for match_id in missing_existing_ids
     ]
     report = RawSeasonSafetyReport(
