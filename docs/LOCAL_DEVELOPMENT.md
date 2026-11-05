@@ -548,6 +548,8 @@ verification status, remaining failed matches, raw row counts, loader counts,
 staging rows, and step-log paths. A failed child summary also carries the source
 URL, failure reason, observed and expected/minimum counts, incoming and hosted
 counts, target season, override state, and skipped database write stages.
+When a hosted match is missing from the incoming set, the bounded safety sample
+uses its stored URL when available and its match ID when the URL is blank.
 
 The hosted wrapper now writes a compact machine-readable JSON summary and a
 readable Markdown summary beside the step logs. Use
@@ -563,6 +565,11 @@ any write stages were skipped.
 In GitHub Actions, upload both raw files and `outputs/automation/` logs as
 artifacts even when a run fails. The uploaded automation logs artifact contains
 both hosted summaries for routine and manual runs.
+
+When the Monday scheduled refresh fails, the workflow also comments on Issue
+#84 with a link to that run and directs the maintainer to its uploaded summary
+and failed-stage log. This creates a GitHub notification while preserving the
+failure artifacts for diagnosis; it does not retry or override any safety gate.
 
 ## Severity And Escalation
 

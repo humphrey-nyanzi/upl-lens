@@ -699,21 +699,30 @@ def _write_raw_load_safety_artifact(
     return report_path
 
 
-def _existing_season_match_urls(connection, season: str) -> set[str]:
-    """Return distinct nonblank hosted match URLs for one normalized season."""
+def _existing_season_matches(connection, season: str) -> dict[int, str]:
+    """Return hosted match IDs and URLs for one normalized season.
+
+    UPL event URLs can change when match titles or slugs are edited. The
+    numeric source match ID is the durable identity used by the raw tables, so
+    retain it even when its stored URL is blank.
+    """
 
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT DISTINCT BTRIM(match_url)
+            SELECT DISTINCT match_id, BTRIM(match_url)
             FROM raw.matches
             WHERE REPLACE(REPLACE(season, '-', '_'), '/', '_') = %s
-              AND NULLIF(BTRIM(match_url), '') IS NOT NULL;
+              AND match_id IS NOT NULL;
             """,
             (season_key(season),),
         )
         rows = cursor.fetchall()
-    return {str(row[0]).strip() for row in rows if row and str(row[0]).strip()}
+    return {
+        int(row[0]): str(row[1] or "").strip()
+        for row in rows
+        if row and row[0] is not None
+    }
 
 
 def _enforce_safe_raw_season_load(
@@ -722,8 +731,10 @@ def _enforce_safe_raw_season_load(
     source_url: str,
     incoming_match_rows: int,
     incoming_match_urls: set[str],
+    incoming_match_ids: set[int],
     duplicate_match_rows: int,
-    existing_match_urls: set[str],
+    existing_match_ids: set[int],
+    existing_match_urls_by_id: dict[int, str],
     expected_match_rows: int,
     source_contract_valid: bool,
     incoming_urls_match_source: bool,
@@ -733,15 +744,19 @@ def _enforce_safe_raw_season_load(
 ) -> RawSeasonSafetyReport:
     """Block unsafe raw loads before any season rows are deleted."""
 
-    missing_existing_urls = sorted(existing_match_urls - incoming_match_urls)
+    missing_existing_ids = sorted(existing_match_ids - incoming_match_ids)
+    missing_existing_urls = [
+        existing_match_urls_by_id.get(match_id) or str(match_id)
+        for match_id in missing_existing_ids
+    ]
     report = RawSeasonSafetyReport(
         season=season,
         source_url=source_url,
         incoming_match_rows=incoming_match_rows,
         incoming_distinct_match_urls=len(incoming_match_urls),
         duplicate_match_rows=duplicate_match_rows,
-        existing_match_rows=len(existing_match_urls),
-        missing_existing_match_url_count=len(missing_existing_urls),
+        existing_match_rows=len(existing_match_ids),
+        missing_existing_match_url_count=len(missing_existing_ids),
         missing_existing_match_url_sample=tuple(missing_existing_urls[:10]),
         expected_match_rows=expected_match_rows,
         minimum_match_rows=minimum_match_rows,
@@ -788,15 +803,15 @@ def _enforce_safe_raw_season_load(
             "incoming match CSV exceeds the trusted season maximum",
         )
 
-    if missing_existing_urls:
+    if missing_existing_ids:
         raise RawSeasonLoadSafetyError(
             report,
             "incoming match set would remove or substitute existing hosted matches",
         )
 
-    if existing_match_urls:
+    if existing_match_ids:
         minimum_from_existing = math.ceil(
-            len(existing_match_urls) * minimum_existing_ratio
+            len(existing_match_ids) * minimum_existing_ratio
         )
         if len(incoming_match_urls) < minimum_from_existing:
             raise RawSeasonLoadSafetyError(
@@ -1014,25 +1029,35 @@ def load_raw_seasons_to_postgres(
             expected_rows, source_url, contract_valid, source_urls = (
                 _read_source_preflight_contract(season)
             )
-            incoming_url_values = [
+            incoming_match_ids = [
+                _to_int(str(row.get("match_id", "")))
+                for row in matching_match_rows
+                if str(row.get("match_id", "")).strip()
+            ]
+            incoming_ids = {
+                match_id for match_id in incoming_match_ids if match_id is not None
+            }
+            duplicate_match_rows = len(incoming_match_ids) - len(incoming_ids)
+            incoming_urls = {
                 str(row.get("match_url", "")).strip()
                 for row in matching_match_rows
                 if str(row.get("match_url", "")).strip()
-            ]
-            incoming_urls = set(incoming_url_values)
-            duplicate_match_rows = len(incoming_url_values) - len(incoming_urls)
+            }
             incoming_urls_match_source = (
                 bool(source_urls) and incoming_urls <= source_urls
             )
-            existing_urls = _existing_season_match_urls(connection, season)
+            existing_matches = _existing_season_matches(connection, season)
+            existing_ids = set(existing_matches)
             try:
                 safety_report = _enforce_safe_raw_season_load(
                     season=season,
                     source_url=source_url,
                     incoming_match_rows=len(matching_match_rows),
                     incoming_match_urls=incoming_urls,
+                    incoming_match_ids=incoming_ids,
                     duplicate_match_rows=duplicate_match_rows,
-                    existing_match_urls=existing_urls,
+                    existing_match_ids=existing_ids,
+                    existing_match_urls_by_id=existing_matches,
                     expected_match_rows=expected_rows,
                     source_contract_valid=contract_valid,
                     incoming_urls_match_source=incoming_urls_match_source,
