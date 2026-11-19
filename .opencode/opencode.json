@@ -1,0 +1,59 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "supabase": {
+        "type": "remote",
+        "url": "https://mcp.supabase.com/mcp"
+      }
+    }
+  },
+  "formatter": {
+    "ruff": {
+      "command": ["ruff", "format", "--stdin-filename", "$FILE", "-"],
+      "extensions": [".py"]
+    }
+  },
+  "watcher": {
+    "ignore": [
+      "**/node_modules/**",
+      "**/.venv/**",
+      "**/venv/**",
+      "**/__pycache__/**",
+      "**/.pytest_cache/**",
+      "**/.mypy_cache/**",
+      "**/.ruff_cache/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.ipynb_checkpoints/**",
+      "**/.git/**",
+      "**/.coverage/**",
+      "**/htmlcov/**",
+      "**/.tox/**",
+      "**/.cache/**",
+      "**/*.pyc",
+      "**/*.pyo",
+      "**/*.pyd",
+      "**/*.so",
+      "**/*.egg-info/**",
+      "**/.eggs/**",
+      "**/target/**",
+      "**/.idea/**",
+      "**/.vscode/**",
+      "**/*.swp",
+      "**/*.swo",
+      "**/.DS_Store",
+      "**/Thumbs.db",
+      "**/outputs/automation/**",
+      "**/outputs/sync/**",
+      "**/outputs/test_artifacts/**",
+      "**/data/raw/**",
+      "**/data/processed/**",
+      "**/data/interim/**",
+      "**/models/**",
+      "**/*.db",
+      "**/*.rdb",
+      "**/*.pbix"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "UPL React Doctor"
+  short_description: "React Doctor workflow for UPL Lens"
+  default_prompt: "Use $upl-react-doctor to run React Doctor on the UPL Lens frontend and fix issues to 100."
